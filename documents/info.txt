@@ -1,0 +1,57 @@
+---
+Frontend (React + Vite)
+
+Build
+
+cd "C:\1. Personal\CC\cyracode\frontend"
+npm run build
+Output goes to frontend/dist/ — these are the static files to deploy.
+
+Deploy options
+
+┌────────────────┬────────────────────────────────────────────────────────────────────┐
+│     Option     │                                       │
+├────────────────┼────────────────────────────────────────────────────────────────────┤
+│ Nginx / Apache │ Copy dist/ to the web server's /html) │
+├────────────────┼────────────────────────────────────────────────────────────────────┤
+│ Vercel         │ npm i -g vercel && vercel — aut       │
+├────────────────┼────────────────────────────────────────────────────────────────────┤
+│ Netlify        │ Drag & drop dist/ at netlify.cost     │
+├────────────────┼────────────────────────────────────────────────────────────────────┤
+│ GitHub Pages   │ Push dist/ to gh-pages branch         │
+└────────────────┴────────────────────────────────────────────────────────────────────┘
+
+▎ For client-side routing (React Router), configure the server to redirect all 404s to index.html.
+
+---
+Backend (FastAPI + Uvicorn)
+
+Run for production
+
+cd cyracode/backend
+pip install -r requirements.txt
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --
+
+Deploy options
+
+┌─────────────────────┬───────────────────────────────────────────────────────┐
+│       Option        │                                        How                                         │
+├─────────────────────┼───────────────────────────────────────────────────────┤
+│ Linux VPS (systemd) │ Create a systemd service to run uvicorn, use Nginx as reverse proxy                │
+├─────────────────────┼───────────────────────────────────────────────────────┤
+│ Docker              │ Build an image, run on any cloud (AWS ECS, GCP Cloud Run, etc.)                    │
+├─────────────────────┼───────────────────────────────────────────────────────┤
+│ Railway / Render    │ Push repo, point start command to uvicorn app.main:app --host 0.0.0.0 --port $PORT │
+├─────────────────────┼───────────────────────────────────────────────────────┤
+│ AWS EC2             │ SSH in, run with gunicorn or uvicorn behind Nginx                                  │
+└─────────────────────┴───────────────────────────────────────────────────────┘
+
+---
+Environment Variables to Set in Production
+
+Check app/config.py for all settings — at minimum you'll need:
+- FRONTEND_URL — your deployed frontend URL (for C
+- Database connection string
+- JWT secret key
+
+---
