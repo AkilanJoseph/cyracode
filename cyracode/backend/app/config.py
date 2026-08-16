@@ -8,7 +8,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    DATABASE_URL: str = "mssql+pyodbc://sa:password@localhost/cyracode?driver=ODBC+Driver+17+for+SQL+Server"
+    DATABASE_URL: str = "postgresql+psycopg2://postgres:postgres@localhost:5432/cyracode"
     # AC 6.8: Optional read replica for search queries (leave blank to use primary)
     DB_READ_REPLICA_URL: str = ""
     # AC 6.8: Connection pool tuning — supports 1 M concurrent users via replicas

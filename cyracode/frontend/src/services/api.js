@@ -39,8 +39,6 @@ export const otp = {
 
 export const registration = {
   checkName: (name) => api.get(`/registration/check-name/${encodeURIComponent(name)}`),
-  checkDuplicate: (latitude, longitude, country_code, flat_plot_number, floor_unit) =>
-    api.post('/registration/check-duplicate', { latitude, longitude, country_code, flat_plot_number, floor_unit }),
   generateCode: (lat, lng) => api.post('/registration/generate-code', { lat, lng }),
   // AC 6.17: idempotencyKey prevents duplicate registrations on rapid double-submit
   registerTraditional: (payload, idempotencyKey) =>

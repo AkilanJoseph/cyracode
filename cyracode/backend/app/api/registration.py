@@ -13,7 +13,6 @@ from app.models.models import CyraCode, IdempotencyKey, OTPRecord, User
 from app.rate_limiter import limiter
 from app.services.auth_service import get_current_user
 from app.services.registration_service import (
-    check_duplicate_address,
     check_name_available,
     create_cyracode_entry,
     generate_cyracode,
@@ -110,12 +109,17 @@ class RegistrationRequest(BaseModel):
     country_code: str = Field(..., max_length=10)
     state: Optional[str] = Field(None, max_length=100)
     district: Optional[str] = Field(None, max_length=100)
-    city: str = Field(..., min_length=1, max_length=100)
+    city: Optional[str] = Field(None, max_length=100)
+    area: Optional[str] = Field(None, max_length=100)
+    town: Optional[str] = Field(None, max_length=100)
+    road_name: Optional[str] = Field(None, max_length=100)
     street_address: str = Field(..., min_length=1, max_length=100)
     building_name: Optional[str] = Field(None, max_length=100)
-    flat_plot_number: Optional[str] = Field(None, max_length=50)
+    flat_number: Optional[str] = Field(None, max_length=50)
+    plot_number: Optional[str] = Field(None, max_length=50)
     floor_unit: Optional[str] = Field(None, max_length=50)
     postal_code: str = Field(..., min_length=1, max_length=20)
+    digi_pin: Optional[str] = Field(None, max_length=10)
     landmark: Optional[str] = Field(None, max_length=100)
     verified_mobile: str
 
@@ -161,12 +165,17 @@ class CyraCodeResponse(BaseModel):
     country_code: str
     state: Optional[str] = None
     district: Optional[str] = None
-    city: str
+    city: Optional[str] = None
+    area: Optional[str] = None
+    town: Optional[str] = None
+    road_name: Optional[str] = None
     street_address: str
     building_name: Optional[str] = None
-    flat_plot_number: Optional[str] = None
+    flat_number: Optional[str] = None
+    plot_number: Optional[str] = None
     floor_unit: Optional[str] = None
     postal_code: str
+    digi_pin: Optional[str] = None
     landmark: Optional[str] = None
     qr_code: Optional[str] = None
 
@@ -187,31 +196,6 @@ class AutoGenerateRegistrationRequest(RegistrationRequest):
                 "(e.g. Aa2DF43T91q5)."
             )
         return v
-
-
-class CheckDuplicateRequest(BaseModel):
-    latitude: float
-    longitude: float
-    country_code: str
-    flat_plot_number: Optional[str] = None
-    floor_unit: Optional[str] = None
-
-
-class CheckDuplicateResponse(BaseModel):
-    duplicate: bool
-
-
-@router.post("/check-duplicate", response_model=CheckDuplicateResponse)
-def check_duplicate(payload: CheckDuplicateRequest, db: Session = Depends(get_db)):
-    is_dup = check_duplicate_address(
-        db,
-        payload.latitude,
-        payload.longitude,
-        payload.country_code,
-        flat_plot_number=payload.flat_plot_number,
-        floor_unit=payload.floor_unit,
-    )
-    return CheckDuplicateResponse(duplicate=is_dup)
 
 
 @router.get("/check-name/{name}", response_model=CheckNameResponse)
@@ -284,20 +268,6 @@ def _register(
             status_code=409, detail="This CyraCode name is already taken."
         )
 
-    if check_duplicate_address(
-        db,
-        payload.latitude,
-        payload.longitude,
-        payload.country_code,
-        flat_plot_number=payload.flat_plot_number,
-        floor_unit=payload.floor_unit,
-    ):
-        # AC 6.19: exact message per spec
-        raise HTTPException(
-            status_code=409,
-            detail="An address within 10 meters already registered",
-        )
-
     # Spam Name Detection: skip for auto-generated codes (machine-generated, not user-chosen)
     is_blocked, block_reason, should_flag, flag_reason = False, "", False, ""
     if not skip_spam_check:
@@ -325,12 +295,17 @@ def _register(
 
     # Send confirmation email (mocked)
     address_parts = [
-        payload.flat_plot_number,
+        payload.flat_number,
+        payload.plot_number,
         payload.building_name,
         payload.street_address,
+        payload.road_name,
+        payload.area,
+        payload.town,
         payload.city,
         payload.state,
         payload.postal_code,
+        payload.digi_pin,
         payload.country,
     ]
     address_line = ", ".join(p for p in address_parts if p)
@@ -358,24 +333,20 @@ def _register(
 @router.post("/traditional", response_model=CyraCodeResponse, status_code=201)
 def register_traditional(
     payload: RegistrationRequest,
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-    # TODO: restore auth for production
-    # user: User = Depends(get_current_user),
     x_idempotency_key: Optional[str] = Header(None, alias="X-Idempotency-Key"),
 ):
-    user = db.query(User).filter(User.is_active == True).first()  # noqa: E712
     return _register(payload, "traditional", user, db, x_idempotency_key)
 
 
 @router.post("/auto-generate", response_model=CyraCodeResponse, status_code=201)
 def register_auto_generate(
     payload: AutoGenerateRegistrationRequest,
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-    # TODO: restore auth for production
-    # user: User = Depends(get_current_user),
     x_idempotency_key: Optional[str] = Header(None, alias="X-Idempotency-Key"),
 ):
-    user = db.query(User).filter(User.is_active == True).first()  # noqa: E712
     # AC 3.3: skip_spam_check=True — code is machine-generated, not user-chosen
     return _register(payload, "auto_generate", user, db, x_idempotency_key, skip_spam_check=True)
 

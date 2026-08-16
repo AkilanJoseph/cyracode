@@ -4,6 +4,7 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 from app.config import settings
 
 _is_sqlite = settings.DATABASE_URL.startswith("sqlite")
+_is_mssql = settings.DATABASE_URL.startswith("mssql")
 
 # AC 6.8: pool settings — sized for production read-replica topology
 _engine_kwargs: dict = {"pool_pre_ping": True}
@@ -13,13 +14,14 @@ if _is_sqlite:
 else:
     _engine_kwargs.update(
         {
-            "fast_executemany": True,
             "pool_size": settings.DB_POOL_SIZE,
             "max_overflow": settings.DB_MAX_OVERFLOW,
             "pool_timeout": settings.DB_POOL_TIMEOUT,
             "pool_recycle": settings.DB_POOL_RECYCLE,
         }
     )
+    if _is_mssql:
+        _engine_kwargs["fast_executemany"] = True
 
 engine = create_engine(settings.DATABASE_URL, **_engine_kwargs)
 
@@ -27,19 +29,21 @@ engine = create_engine(settings.DATABASE_URL, **_engine_kwargs)
 # DB_READ_REPLICA_URL is set; falls back to the primary if it is empty.
 _read_url = settings.DB_READ_REPLICA_URL or settings.DATABASE_URL
 _read_is_sqlite = _read_url.startswith("sqlite")
+_read_is_mssql = _read_url.startswith("mssql")
 _read_kwargs: dict = {"pool_pre_ping": True}
 if _read_is_sqlite:
     _read_kwargs["connect_args"] = {"check_same_thread": False}
 else:
     _read_kwargs.update(
         {
-            "fast_executemany": True,
             "pool_size": settings.DB_POOL_SIZE,
             "max_overflow": settings.DB_MAX_OVERFLOW,
             "pool_timeout": settings.DB_POOL_TIMEOUT,
             "pool_recycle": settings.DB_POOL_RECYCLE,
         }
     )
+    if _read_is_mssql:
+        _read_kwargs["fast_executemany"] = True
 
 read_engine = (
     create_engine(_read_url, **_read_kwargs)

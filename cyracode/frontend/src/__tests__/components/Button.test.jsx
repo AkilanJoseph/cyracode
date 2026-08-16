@@ -51,7 +51,7 @@ describe('Button', () => {
 
   it('applies secondary variant classes', () => {
     render(<Button variant="secondary">Secondary</Button>)
-    expect(screen.getByRole('button').className).toMatch(/bg-gray-200/)
+    expect(screen.getByRole('button').className).toMatch(/bg-white/)
   })
 
   it('applies outline variant classes', () => {

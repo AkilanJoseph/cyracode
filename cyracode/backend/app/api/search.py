@@ -30,7 +30,10 @@ class SearchResult(BaseModel):
     full_address: str
     postal_code: str
     country: str
-    city: str
+    city: Optional[str] = None
+    area: Optional[str] = None
+    town: Optional[str] = None
+    road_name: Optional[str] = None
 
 
 class ReverseRequest(BaseModel):
@@ -40,9 +43,13 @@ class ReverseRequest(BaseModel):
 
 def _full_address(c) -> str:
     parts = [
-        c.flat_plot_number,
+        c.flat_number,
+        c.plot_number,
         c.building_name,
         c.street_address,
+        c.road_name,
+        c.area,
+        c.town,
         c.landmark,
         c.city,
         c.district,
@@ -80,6 +87,9 @@ def reverse_post(payload: ReverseRequest, db: Session = Depends(get_read_db)):
         postal_code=result.postal_code,
         country=result.country,
         city=result.city,
+        area=result.area,
+        town=result.town,
+        road_name=result.road_name,
     )
 
 
@@ -107,4 +117,7 @@ def search(name: str, response: Response, db: Session = Depends(get_read_db)):
         postal_code=result.postal_code,
         country=result.country,
         city=result.city,
+        area=result.area,
+        town=result.town,
+        road_name=result.road_name,
     )

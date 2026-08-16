@@ -26,7 +26,7 @@ describe('ProgressSteps', () => {
 
   it('renders the correct number of connector lines', () => {
     const { container } = render(<ProgressSteps steps={STEPS} current={1} />)
-    const connectors = container.querySelectorAll('[class*="h-0.5"]')
+    const connectors = container.querySelectorAll('[class*="h-px"]')
     expect(connectors).toHaveLength(STEPS.length - 1)
   })
 
@@ -44,7 +44,7 @@ describe('ProgressSteps', () => {
 
   it('future step connector is gray', () => {
     const { container } = render(<ProgressSteps steps={STEPS} current={1} />)
-    const grayConnectors = container.querySelectorAll('[class*="bg-gray-200"]')
+    const grayConnectors = container.querySelectorAll('[class*="bg-border"]')
     expect(grayConnectors.length).toBeGreaterThan(0)
   })
 

@@ -22,7 +22,6 @@ from app.services.otp_service import (
     verify_otp_hash,
 )
 from app.services.registration_service import (
-    check_duplicate_address,
     check_name_available,
     generate_cyracode,
     generate_qr_code,
@@ -294,67 +293,12 @@ class TestCheckNameAvailable:
         assert "Popular" not in suggestions
 
 
-class TestCheckDuplicateAddress:
-    def test_no_duplicate(self, db):
-        assert check_duplicate_address(db, 12.9716, 77.5946, "IN") is False
-
-    def test_within_10m_is_duplicate(self, db):
-        entry = CyraCode(
-            id=str(uuid.uuid4()), user_id=str(uuid.uuid4()),
-            code_name="Existing", code_type="traditional",
-            latitude=12.9716, longitude=77.5946,
-            country="India", country_code="IN",
-            city="BLR", street_address="MG Road", postal_code="560001",
-            is_active=True,
-        )
-        db.add(entry)
-        db.commit()
-        assert check_duplicate_address(db, 12.97161, 77.59461, "IN") is True
-
-    def test_beyond_10m_not_duplicate(self, db):
-        entry = CyraCode(
-            id=str(uuid.uuid4()), user_id=str(uuid.uuid4()),
-            code_name="FarAway", code_type="traditional",
-            latitude=12.9716, longitude=77.5946,
-            country="India", country_code="IN",
-            city="BLR", street_address="MG Road", postal_code="560001",
-            is_active=True,
-        )
-        db.add(entry)
-        db.commit()
-        assert check_duplicate_address(db, 13.0, 77.6, "IN") is False
-
-    def test_different_country_code_not_duplicate(self, db):
-        entry = CyraCode(
-            id=str(uuid.uuid4()), user_id=str(uuid.uuid4()),
-            code_name="Overlap", code_type="traditional",
-            latitude=12.9716, longitude=77.5946,
-            country="India", country_code="IN",
-            city="BLR", street_address="MG Road", postal_code="560001",
-            is_active=True,
-        )
-        db.add(entry)
-        db.commit()
-        assert check_duplicate_address(db, 12.9716, 77.5946, "US") is False
-
-    def test_inactive_entry_ignored(self, db):
-        entry = CyraCode(
-            id=str(uuid.uuid4()), user_id=str(uuid.uuid4()),
-            code_name="Inactive", code_type="traditional",
-            latitude=12.9716, longitude=77.5946,
-            country="India", country_code="IN",
-            city="BLR", street_address="MG Road", postal_code="560001",
-            is_active=False,
-        )
-        db.add(entry)
-        db.commit()
-        assert check_duplicate_address(db, 12.9716, 77.5946, "IN") is False
-
-
 class TestGenerateQRCode:
     def test_returns_data_uri(self):
         result = generate_qr_code("TestCode", 12.9716, 77.5946)
-        assert result.startswith("data:image/png;base64,")
+        # AC 6.10: WebP preferred, PNG fallback — always a base64 image data URI
+        assert result.startswith("data:image/")
+        assert ";base64," in result
 
 
 # ─────────────────────────── search_service ─────────────────────────

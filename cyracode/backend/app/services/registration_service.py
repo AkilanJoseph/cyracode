@@ -12,8 +12,6 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.models.models import CyraCode
 
-DUPLICATE_RADIUS_M = 10.0
-
 
 def haversine_distance(lat1, lng1, lat2, lng2) -> float:
     """Return distance in meters between two coordinate pairs."""
@@ -117,52 +115,6 @@ def validate_coordinates(lat: float, lng: float) -> bool:
     return -90 <= lat <= 90 and -180 <= lng <= 180
 
 
-def check_duplicate_address(
-    db: Session,
-    lat: float,
-    lng: float,
-    country_code: str,
-    flat_plot_number: str | None = None,
-    floor_unit: str | None = None,
-) -> bool:
-    """Return True if an identical unit already exists within 10m in the same country.
-
-    When flat_plot_number is provided the check is unit-level: two entries at the
-    same coordinates are only duplicates when they share the same flat/plot number
-    and floor/unit, allowing hundreds of flats in one building to register separately.
-    When flat_plot_number is absent the original 10m proximity check applies.
-    """
-    delta = 0.001  # ~111m bounding box to pre-filter
-    candidates = (
-        db.query(CyraCode)
-        .filter(
-            CyraCode.country_code == country_code,
-            CyraCode.is_active == True,  # noqa: E712
-            CyraCode.latitude >= lat - delta,
-            CyraCode.latitude <= lat + delta,
-            CyraCode.longitude >= lng - delta,
-            CyraCode.longitude <= lng + delta,
-        )
-        .all()
-    )
-    for c in candidates:
-        if haversine_distance(lat, lng, c.latitude, c.longitude) > DUPLICATE_RADIUS_M:
-            continue
-        if flat_plot_number:
-            # Unit-level duplicate: same flat AND same floor
-            same_flat = (c.flat_plot_number or "").strip().lower() == flat_plot_number.strip().lower()
-            incoming_floor = (floor_unit or "").strip().lower()
-            existing_floor = (c.floor_unit or "").strip().lower()
-            same_floor = incoming_floor == existing_floor
-            if same_flat and same_floor:
-                return True
-        else:
-            # No flat supplied — treat any entry at this location as a duplicate
-            if not c.flat_plot_number:
-                return True
-    return False
-
-
 def create_cyracode_entry(db: Session, user_id: str, data: dict) -> CyraCode:
     entry = CyraCode(
         user_id=user_id,
@@ -174,12 +126,17 @@ def create_cyracode_entry(db: Session, user_id: str, data: dict) -> CyraCode:
         country_code=data["country_code"],
         state=data.get("state"),
         district=data.get("district"),
-        city=data["city"],
+        city=data.get("city"),
+        area=data.get("area"),
+        town=data.get("town"),
+        road_name=data.get("road_name"),
         street_address=data["street_address"],
         building_name=data.get("building_name"),
-        flat_plot_number=data.get("flat_plot_number"),
+        flat_number=data.get("flat_number"),
+        plot_number=data.get("plot_number"),
         floor_unit=data.get("floor_unit"),
         postal_code=data["postal_code"],
+        digi_pin=data.get("digi_pin"),
         landmark=data.get("landmark"),
         qr_code_path=data.get("qr_code_path"),
         is_flagged=data.get("is_flagged", False),

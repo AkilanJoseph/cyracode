@@ -140,6 +140,7 @@ describe('SearchPage — history', () => {
   it('clear history removes all entries', async () => {
     localStorage.setItem('cyracode_search_history', JSON.stringify(['TestHome']))
     const { user } = setup()
+    await user.click(screen.getByPlaceholderText(/search a cyracode/i))
     expect(await screen.findByText('TestHome')).toBeInTheDocument()
     await user.click(screen.getByText(/clear/i))
     expect(screen.queryByText('TestHome')).not.toBeInTheDocument()

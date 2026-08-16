@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 import { useTranslation } from 'react-i18next'
 import {
   CheckCircle2, Download, Share2, Mail, Copy, MessageCircle,
-  MapPin, ArrowRight, Facebook, Smartphone, UserCircle, Truck, Users,
+  MapPin, ArrowRight, Facebook, UserCircle, Truck, Users,
 } from 'lucide-react'
 import Button from '../components/common/Button'
 
@@ -50,9 +50,13 @@ export default function Confirmation() {
   const qrValue = `https://maps.google.com/?q=${record.latitude},${record.longitude}`
 
   const addressLine = [
-    record.flat_plot_number,
+    record.flat_number,
+    record.plot_number,
     record.building_name,
     record.street_address,
+    record.road_name,
+    record.area,
+    record.town,
     record.landmark,
     record.city,
     record.district,
@@ -94,11 +98,6 @@ export default function Confirmation() {
   // AC 4.8: Facebook share
   const shareFacebook = () => {
     window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareLink)}`, '_blank')
-  }
-
-  // AC 4.8: SMS share
-  const shareSMS = () => {
-    window.location.href = `sms:?&body=${encodeURIComponent(shareText)}`
   }
 
   // AC 4.9: Next steps
@@ -162,12 +161,11 @@ export default function Confirmation() {
               <Download className="w-4 h-4" /> {t('confirmation.download_qr')}
             </Button>
 
-            {/* AC 4.8: full share sheet — WhatsApp, Email, SMS, Facebook, Copy */}
-            <div className="grid grid-cols-5 gap-2">
+            {/* AC 4.8: full share sheet — WhatsApp, Email, Facebook, Copy */}
+            <div className="grid grid-cols-4 gap-2">
               {[
                 { label: 'WhatsApp', icon: MessageCircle, color: 'text-emerald-500', action: shareWhatsApp },
                 { label: t('confirmation.share_email'), icon: Mail, color: 'text-blue-500', action: shareEmail },
-                { label: 'SMS', icon: Smartphone, color: 'text-purple-500', action: shareSMS },
                 { label: 'Facebook', icon: Facebook, color: 'text-blue-600', action: shareFacebook },
                 { label: t('confirmation.copy_link'), icon: Copy, color: 'text-muted', action: copyLink },
               ].map(({ label, icon: Icon, color, action }) => (

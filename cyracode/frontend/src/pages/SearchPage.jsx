@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import {
   Search, MapPin, Navigation, Share2, X, Clock, ArrowLeft,
-  Mail, Copy, MessageCircle, Facebook, Smartphone, WifiOff, Route,
+  Mail, Copy, MessageCircle, Facebook, WifiOff, Route,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import MapPicker from '../components/MapPicker'
@@ -203,8 +203,6 @@ export default function SearchPage() {
   }
   const shareFacebook = () =>
     window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareLink)}`, '_blank')
-  const shareSMS = () =>
-    (window.location.href = `sms:?&body=${encodeURIComponent(shareText)}`)
 
   const distance = result && userPos
     ? haversineKm(userPos.lat, userPos.lng, Number(result.latitude), Number(result.longitude))
@@ -364,13 +362,12 @@ export default function SearchPage() {
               </Button>
             </div>
 
-            {/* AC 5.8: Share sheet — Email, SMS, WhatsApp, Facebook, Copy Link */}
+            {/* AC 5.8: Share sheet — Email, WhatsApp, Facebook, Copy Link */}
             {showShareSheet && (
-              <div className="mt-3 grid grid-cols-5 gap-2 animate-fade-in-up">
+              <div className="mt-3 grid grid-cols-4 gap-2 animate-fade-in-up">
                 {[
                   { label: 'WhatsApp', icon: MessageCircle, color: 'text-emerald-500', action: shareWhatsApp },
                   { label: t('search.email'), icon: Mail, color: 'text-blue-500', action: shareEmail },
-                  { label: 'SMS', icon: Smartphone, color: 'text-purple-500', action: shareSMS },
                   { label: 'Facebook', icon: Facebook, color: 'text-blue-600', action: shareFacebook },
                   { label: t('search.copy'), icon: Copy, color: 'text-muted', action: copyLink },
                 ].map(({ label, icon: Icon, color, action }) => (

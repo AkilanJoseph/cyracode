@@ -37,7 +37,7 @@ describe('Input', () => {
 
   it('applies normal border when no error', () => {
     render(<Input />)
-    expect(screen.getByRole('textbox').className).toMatch(/border-gray/)
+    expect(screen.getByRole('textbox').className).toMatch(/border-border/)
   })
 
   it('calls onChange when user types', async () => {

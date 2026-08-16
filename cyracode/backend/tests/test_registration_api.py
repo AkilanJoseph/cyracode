@@ -72,7 +72,8 @@ class TestRegisterTraditional:
         assert resp.status_code == 409
         assert "already taken" in resp.json()["detail"]
 
-    def test_duplicate_address_returns_409(self, client, db):
+    def test_same_address_different_name_allowed(self, client, db):
+        """Multiple residents in one flat may register the same address under different names."""
         make_verified_otp(db)
         headers = auth_headers(client)
         make_cyracode(db, "Occupied", lat=12.9716, lng=77.5946, country_code="IN")
@@ -82,8 +83,7 @@ class TestRegisterTraditional:
             longitude=77.59461,
         )
         resp = client.post("/registration/traditional", json=payload, headers=headers)
-        assert resp.status_code == 409
-        assert "10 meters" in resp.json()["detail"]
+        assert resp.status_code == 201
 
     def test_invalid_coordinates_returns_400(self, client):
         headers = auth_headers(client)
@@ -116,10 +116,11 @@ class TestRegisterAutoGenerate:
     def test_success(self, client, db):
         make_verified_otp(db)
         headers = auth_headers(client)
-        # Name must match ^[A-Z]{3}[A-Z]{2}[a-z0-9]{7}$ (12 chars)
+        # Name must match the backend generator format LL#LL##L##L# (12 chars),
+        # e.g. Aa2DF43T91q5
         resp = client.post(
             "/registration/auto-generate",
-            json=base_registration_payload(name="ABCDEfg12345"),
+            json=base_registration_payload(name="Aa2DF43T91q5"),
             headers=headers,
         )
         assert resp.status_code == 201
@@ -196,17 +197,16 @@ class TestDataIntegrity:
         resp2 = client.post("/registration/traditional", json=base_registration_payload(), headers=headers)
         assert resp2.status_code == 409
 
-    # --- AC 6.19: Duplicate Address Prevention message ---
+    # --- Multiple residents allowed at the same address ---
 
-    def test_duplicate_address_exact_error_message(self, client, db):
-        """AC 6.19: error must say 'An address within 10 meters already registered'."""
+    def test_same_address_allows_multiple_entries(self, client, db):
+        """A flat may house many people; registration must not be blocked by proximity."""
         make_verified_otp(db)
         headers = auth_headers(client)
         make_cyracode(db, "Existing", lat=12.9716, lng=77.5946, country_code="IN")
         payload = base_registration_payload(name="NewName", latitude=12.97161, longitude=77.59461)
         resp = client.post("/registration/traditional", json=payload, headers=headers)
-        assert resp.status_code == 409
-        assert resp.json()["detail"] == "An address within 10 meters already registered"
+        assert resp.status_code == 201
 
     # --- AC 6.21: Mobile Number Validation ---
 
@@ -273,9 +273,23 @@ class TestDataIntegrity:
         assert resp.status_code == 422
 
     def test_flat_plot_over_50_chars_returns_422(self, client):
-        """AC 6.22: flat_plot_number exceeding 50 characters is rejected."""
+        """AC 6.22: flat_number / plot_number exceeding 50 characters is rejected."""
         headers = auth_headers(client)
-        payload = base_registration_payload(flat_plot_number="F" * 51)
+        payload = base_registration_payload(flat_number="F" * 51)
+        resp = client.post("/registration/traditional", json=payload, headers=headers)
+        assert resp.status_code == 422
+
+    def test_plot_number_over_50_chars_returns_422(self, client):
+        """AC 6.22: plot_number exceeding 50 characters is rejected."""
+        headers = auth_headers(client)
+        payload = base_registration_payload(plot_number="P" * 51)
+        resp = client.post("/registration/traditional", json=payload, headers=headers)
+        assert resp.status_code == 422
+
+    def test_digi_pin_over_10_chars_returns_422(self, client):
+        """AC 6.22: digi_pin exceeding 10 characters is rejected."""
+        headers = auth_headers(client)
+        payload = base_registration_payload(digi_pin="D" * 11)
         resp = client.post("/registration/traditional", json=payload, headers=headers)
         assert resp.status_code == 422
 

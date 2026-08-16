@@ -19,6 +19,11 @@ vi.mock('react-router-dom', async () => {
   return { ...actual, useNavigate: () => mockNavigate }
 })
 
+// LandingPage uses Google sign-in; mock the hook so tests don't require GoogleOAuthProvider
+vi.mock('@react-oauth/google', () => ({
+  useGoogleLogin: () => () => {},
+}))
+
 function setup() {
   const utils = render(
     <MemoryRouter>
@@ -33,7 +38,7 @@ function setup() {
 describe('LandingPage — layout', () => {
   it('renders hero heading', () => {
     setup()
-    expect(screen.getByText(/Universal Address Identity/i)).toBeInTheDocument()
+    expect(screen.getByText(/your address/i)).toBeInTheDocument()
   })
 
   it('renders Login tab active by default', () => {
@@ -62,6 +67,7 @@ describe('LandingPage — Login tab', () => {
 
   it('shows validation error for invalid email', async () => {
     const { user } = setup()
+    await user.type(screen.getByPlaceholderText('you@example.com'), 'not-an-email')
     await user.click(screen.getByRole('button', { name: /^log in$/i }))
     expect(await screen.findByText(/valid email/i)).toBeInTheDocument()
   })
@@ -70,7 +76,7 @@ describe('LandingPage — Login tab', () => {
     const { user } = setup()
     await user.type(screen.getByPlaceholderText('you@example.com'), 'a@b.com')
     await user.click(screen.getByRole('button', { name: /^log in$/i }))
-    expect(await screen.findByText(/password is required/i)).toBeInTheDocument()
+    expect(await screen.findByText(/this field is required/i)).toBeInTheDocument()
   })
 
   it('navigates to dashboard on successful login', async () => {
@@ -126,7 +132,7 @@ describe('LandingPage — Sign Up tab', () => {
     const { user } = setup()
     await switchToSignUp(user)
     await user.click(screen.getByRole('button', { name: /create account/i }))
-    expect(await screen.findByText(/first name is required/i)).toBeInTheDocument()
+    expect(await screen.findAllByText(/this field is required/i)).not.toHaveLength(0)
   })
 
   it('shows password strength indicator when typing password', async () => {
@@ -146,6 +152,7 @@ describe('LandingPage — Sign Up tab', () => {
     await user.type(emailInput, 'john@example.com')
     const pwInput = screen.getAllByPlaceholderText('••••••••')[0]
     await user.type(pwInput, 'ValidP@ss1')
+    await user.click(screen.getByLabelText(/i agree/i))
     await user.click(screen.getByRole('button', { name: /create account/i }))
     expect(await screen.findByText(/how do you want to register/i)).toBeInTheDocument()
   })
@@ -159,6 +166,7 @@ describe('LandingPage — Sign Up tab', () => {
     await user.type(emailInput, 'jane@example.com')
     const pwInput = screen.getAllByPlaceholderText('••••••••')[0]
     await user.type(pwInput, 'ValidP@ss1')
+    await user.click(screen.getByLabelText(/i agree/i))
     await user.click(screen.getByRole('button', { name: /create account/i }))
     await screen.findByText(/maybe later/i)
     await user.click(screen.getByText(/maybe later/i))

@@ -14,7 +14,7 @@ from sqlalchemy.pool import StaticPool
 # Import app at module level so models are registered with Base.metadata
 # before any fixture calls create_all.
 from app.main import app  # triggers model registration
-from app.database import Base, get_db
+from app.database import Base, get_db, get_read_db
 
 # StaticPool keeps a single in-memory connection so all sessions share one DB.
 test_engine = create_engine(
@@ -28,6 +28,7 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_
 # directly rather than via DI) writes to the same in-memory test database.
 import app.database as _app_database
 _app_database.SessionLocal = TestingSessionLocal
+_app_database.ReadSessionLocal = TestingSessionLocal
 
 
 @pytest.fixture(autouse=True)
@@ -52,6 +53,7 @@ def client(db):
         yield db
 
     app.dependency_overrides[get_db] = _override
+    app.dependency_overrides[get_read_db] = _override
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()

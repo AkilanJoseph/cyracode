@@ -24,6 +24,35 @@ function passwordStrength(pw) {
 const strengthColors = ['bg-red-400', 'bg-red-400', 'bg-amber-400', 'bg-blue-400', 'bg-emerald-500']
 const strengthTextColors = ['text-red-500', 'text-red-500', 'text-amber-500', 'text-blue-500', 'text-emerald-500']
 
+const VITE_GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
+
+function GoogleSignInButton({ onSuccess, onError, disabled }) {
+  const { t } = useTranslation()
+  const googleLogin = useGoogleLogin({
+    onSuccess,
+    onError,
+    flow: 'implicit',
+  })
+
+  return (
+    <button
+      onClick={() => googleLogin()}
+      disabled={disabled}
+      className="w-full flex items-center justify-center gap-2.5 py-2.5 px-4 border border-border rounded-xl text-sm font-medium text-ink hover:bg-slate-50 transition-colors disabled:opacity-50"
+    >
+      <img
+        src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+        alt=""
+        className="w-4 h-4"
+        loading="lazy"
+        width="16"
+        height="16"
+      />
+      {t('landing.btn_google')}
+    </button>
+  )
+}
+
 function FeaturePill({ icon: Icon, label }) {
   return (
     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-light text-primary text-xs font-medium">
@@ -148,26 +177,22 @@ export default function LandingPage() {
     }
   }
 
-  const googleLogin = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      setLoading(true)
-      try {
-        // For token response (implicit flow), use access_token to fetch user info
-        // then pass id_token if available, or handle with backend
-        const credential = tokenResponse.credential || tokenResponse.access_token
-        const { data } = await auth.googleAuth(credential)
-        login(data.access_token, data.user)
-        toast.success('Signed in with Google!')
-        setShowModeSelect(true)
-      } catch (err) {
-        toast.error(err.response?.data?.detail || t('errors.google_failed'))
-      } finally {
-        setLoading(false)
-      }
-    },
-    onError: () => toast.error(t('errors.google_failed')),
-    flow: 'implicit',
-  })
+  const handleGoogleSuccess = async (tokenResponse) => {
+    setLoading(true)
+    try {
+      // For token response (implicit flow), use access_token to fetch user info
+      // then pass id_token if available, or handle with backend
+      const credential = tokenResponse.credential || tokenResponse.access_token
+      const { data } = await auth.googleAuth(credential)
+      login(data.access_token, data.user)
+      toast.success('Signed in with Google!')
+      setShowModeSelect(true)
+    } catch (err) {
+      toast.error(err.response?.data?.detail || t('errors.google_failed'))
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const strength = passwordStrength(regForm.password)
 
@@ -424,21 +449,13 @@ export default function LandingPage() {
             <div className="flex-1 h-px bg-border" />
           </div>
 
-          <button
-            onClick={() => googleLogin()}
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-2.5 py-2.5 px-4 border border-border rounded-xl text-sm font-medium text-ink hover:bg-slate-50 transition-colors disabled:opacity-50"
-          >
-            <img
-              src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-              alt=""
-              className="w-4 h-4"
-              loading="lazy"
-              width="16"
-              height="16"
+          {VITE_GOOGLE_CLIENT_ID && (
+            <GoogleSignInButton
+              onSuccess={handleGoogleSuccess}
+              onError={() => toast.error(t('errors.google_failed'))}
+              disabled={loading}
             />
-            {t('landing.btn_google')}
-          </button>
+          )}
         </div>
       </div>
 

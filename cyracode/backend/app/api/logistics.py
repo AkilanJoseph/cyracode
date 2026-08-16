@@ -123,34 +123,42 @@ def _format_address(c: CyraCode) -> str:
     """Return address in the standardised format for the CyraCode's country."""
     cc = c.country_code or ""
 
+    def _unit() -> str:
+        return " ".join(p for p in (c.flat_number, c.plot_number) if p)
+
     def _j(*parts) -> str:
         return ", ".join(p for p in parts if p)
 
     if cc == "US":
-        street = f"{c.flat_plot_number or ''} {c.street_address or ''}".strip()
+        street = f"{_unit()} {c.street_address or ''}".strip()
         state_zip = f"{c.state or ''} {c.postal_code or ''}".strip()
-        return _j(street, c.city, state_zip, c.country)
+        return _j(street, c.road_name, c.area, c.town, c.city, state_zip, c.country)
 
     if cc == "GB":
         return _j(
-            c.flat_plot_number, c.building_name,
-            c.street_address, c.city, c.postal_code, c.country,
+            _unit(), c.building_name,
+            c.street_address, c.road_name, c.area, c.town,
+            c.city, c.postal_code, c.country,
         )
 
     if cc == "DE":
-        street = f"{c.street_address or ''} {c.flat_plot_number or ''}".strip()
+        street = f"{c.street_address or ''} {_unit()}".strip()
         city_zip = f"{c.postal_code or ''} {c.city or ''}".strip()
-        return _j(street, city_zip, c.country)
+        return _j(street, c.road_name, c.area, c.town, city_zip, c.country)
 
     if cc == "AU":
         state_zip = f"{c.state or ''} {c.postal_code or ''}".strip()
-        return _j(c.flat_plot_number, c.street_address, c.city, state_zip, c.country)
+        return _j(
+            _unit(), c.street_address, c.road_name,
+            c.area, c.town, c.city, state_zip, c.country,
+        )
 
     if cc == "JP":
         return " ".join(
             p for p in [
-                c.country, c.postal_code, c.state, c.city,
-                c.street_address, c.building_name, c.flat_plot_number,
+                c.country, c.postal_code, c.state, c.city, c.town,
+                c.area, c.street_address, c.road_name,
+                c.building_name, _unit(),
             ]
             if p
         )
@@ -159,14 +167,16 @@ def _format_address(c: CyraCode) -> str:
         postal = f"- {c.postal_code}" if c.postal_code else ""
         state_postal = f"{c.state or ''} {postal}".strip() if c.state or postal else None
         return _j(
-            c.flat_plot_number, c.building_name, c.street_address,
-            c.landmark, c.city, c.district, state_postal, c.country,
+            _unit(), c.building_name, c.street_address,
+            c.road_name, c.area, c.town, c.landmark, c.city,
+            c.district, state_postal, c.country,
         )
 
     # Default: generic comma-joined format
     return _j(
-        c.flat_plot_number, c.building_name, c.street_address,
-        c.landmark, c.city, c.district, c.state, c.postal_code, c.country,
+        _unit(), c.building_name, c.street_address,
+        c.road_name, c.area, c.town, c.landmark, c.city,
+        c.district, c.state, c.postal_code, c.country,
     )
 
 

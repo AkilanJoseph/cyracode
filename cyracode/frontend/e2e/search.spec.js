@@ -14,8 +14,7 @@ async function seedCode(request) {
   })
   const { access_token } = await regResp.json()
 
-  // Use UNIQUE-derived coordinates to avoid the 10m duplicate-address constraint
-  // across successive test runs.
+  // Use UNIQUE-derived coordinates to avoid collisions across successive test runs.
   const lat = 10 + (UNIQUE % 70)
   const lng = 10 + (UNIQUE % 160)
 

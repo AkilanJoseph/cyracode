@@ -167,7 +167,7 @@ class TestAddressFormatStandardization:
             district="Bangalore Urban",
             state="Karnataka",
             street_address="MG Road",
-            flat_plot_number="42",
+            flat_number="42",
             building_name="Tech Park",
             postal_code="560001",
             is_active=True,
@@ -194,7 +194,7 @@ class TestAddressFormatStandardization:
             city="San Francisco",
             state="CA",
             street_address="Market Street",
-            flat_plot_number="100",
+            flat_number="100",
             postal_code="94102",
             is_active=True,
         )
@@ -219,7 +219,7 @@ class TestAddressFormatStandardization:
             country_code="DE",
             city="Berlin",
             street_address="Unter den Linden",
-            flat_plot_number="5",
+            flat_number="5",
             postal_code="10117",
             is_active=True,
         )

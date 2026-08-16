@@ -1,5 +1,6 @@
 import math
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.models import CyraCode
@@ -21,17 +22,36 @@ def haversine_distance(lat1, lng1, lat2, lng2) -> float:
 
 
 def _brief_address(code: CyraCode) -> str:
-    parts = [code.street_address, code.city, code.country]
+    parts = [
+        code.street_address,
+        code.road_name,
+        code.area,
+        code.town,
+        code.city,
+        code.country,
+    ]
     return ", ".join(p for p in parts if p)
+
+
+def _uses_mssql_ci(db: Session) -> bool:
+    """MSSQL's default CI collation makes =/LIKE case-insensitive; other dialects
+    (PostgreSQL, SQLite) require func.lower() for case-insensitive matching."""
+    return db.get_bind().dialect.name == "mssql"
 
 
 def search_by_name(db: Session, name: str):
     # AC 6.8: Direct equality lets MSSQL's CI (case-insensitive) collation use
-    # IX_CyraCodes_CodeName; func.lower() would force a full scan.
+    # IX_CyraCodes_CodeName. On case-sensitive dialects, lower() both sides so
+    # search is case-insensitive there too (func.lower() on MSSQL would force a
+    # full scan, which is why it is only applied on non-MSSQL backends).
+    if _uses_mssql_ci(db):
+        name_clause = CyraCode.code_name == name
+    else:
+        name_clause = func.lower(CyraCode.code_name) == name.lower()
     return (
         db.query(CyraCode)
         .filter(
-            CyraCode.code_name == name,
+            name_clause,
             CyraCode.is_active == True,  # noqa: E712
         )
         .first()
@@ -43,10 +63,14 @@ def autocomplete_names(db: Session, query: str, limit: int = 5) -> list:
         return []
     # AC 6.8: Prefix LIKE (no leading wildcard) performs an index range scan on
     # IX_CyraCodes_CodeName with MSSQL's CI collation.
+    if _uses_mssql_ci(db):
+        name_clause = CyraCode.code_name.like(f"{query}%")
+    else:
+        name_clause = func.lower(CyraCode.code_name).like(f"{query.lower()}%")
     results = (
         db.query(CyraCode)
         .filter(
-            CyraCode.code_name.like(f"{query}%"),
+            name_clause,
             CyraCode.is_active == True,  # noqa: E712
         )
         .limit(limit)
@@ -66,10 +90,14 @@ def autocomplete_names(db: Session, query: str, limit: int = 5) -> list:
 def fuzzy_search(db: Session, name: str, limit: int = 5) -> list:
     if not name:
         return []
+    if _uses_mssql_ci(db):
+        name_clause = CyraCode.code_name.like(f"%{name}%")
+    else:
+        name_clause = func.lower(CyraCode.code_name).like(f"%{name.lower()}%")
     results = (
         db.query(CyraCode)
         .filter(
-            CyraCode.code_name.ilike(f"%{name}%"),
+            name_clause,
             CyraCode.is_active == True,  # noqa: E712
         )
         .limit(limit)

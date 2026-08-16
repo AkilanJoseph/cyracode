@@ -31,8 +31,8 @@ export default function RegisterAutoGenerate() {
 
   const [address, setAddress] = useState({
     country_code: '', country: '', state: '', stateIso: '', district: '',
-    city: '', street_address: '', building_name: '', flat_plot_number: '',
-    floor_unit: '', postal_code: '', landmark: '',
+    city: '', area: '', town: '', road_name: '', street_address: '', building_name: '', flat_number: '', plot_number: '',
+    floor_unit: '', postal_code: '', digi_pin: '', landmark: '',
   })
   const [addressErrors, setAddressErrors] = useState({})
   const [mobile, setMobile] = useState('')
@@ -97,12 +97,17 @@ export default function RegisterAutoGenerate() {
         country_code: address.country_code === 'OTHER' ? 'XX' : address.country_code,
         state: address.state || null,
         district: address.district || null,
-        city: address.city,
+        city: address.city || null,
+        area: address.area || null,
+        town: address.town || null,
+        road_name: address.road_name || null,
         street_address: address.street_address,
         building_name: address.building_name || null,
-        flat_plot_number: address.flat_plot_number || null,
+        flat_number: address.flat_number || null,
+        plot_number: address.plot_number || null,
         floor_unit: address.floor_unit || null,
         postal_code: address.postal_code,
+        digi_pin: address.digi_pin || null,
         landmark: address.landmark || null,
         verified_mobile: mobile,
       }

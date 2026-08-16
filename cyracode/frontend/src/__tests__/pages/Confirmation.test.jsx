@@ -25,10 +25,13 @@ const mockRecord = {
   country: 'India',
   country_code: 'IN',
   state: 'Karnataka',
+  area: 'Indiranagar',
+  town: 'Bengaluru East',
+  road_name: '100 Feet Road',
   city: 'Bangalore',
   street_address: 'MG Road',
   building_name: 'Test Building',
-  flat_plot_number: '10A',
+  flat_number: '10A',
   postal_code: '560001',
 }
 
@@ -121,7 +124,8 @@ describe('Confirmation page — with record', () => {
     const sparseRecord = {
       ...mockRecord,
       building_name: null,
-      flat_plot_number: null,
+      flat_number: null,
+      plot_number: null,
       landmark: null,
       district: null,
       state: null,

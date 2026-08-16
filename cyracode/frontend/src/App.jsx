@@ -134,12 +134,19 @@ function AppRoutes() {
   )
 }
 
+function AppShell() {
+  return (
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
+  )
+}
+
 export default function App() {
+  if (!VITE_GOOGLE_CLIENT_ID) return <AppShell />
   return (
     <GoogleOAuthProvider clientId={VITE_GOOGLE_CLIENT_ID}>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
+      <AppShell />
     </GoogleOAuthProvider>
   )
 }
