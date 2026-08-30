@@ -54,6 +54,7 @@ export const registration = {
         : { Authorization: `Bearer ${localStorage.getItem('cyracode_token')}` },
     }),
   getMyCodes: () => api.get('/registration/my-codes'),
+  updateMyCode: (id, payload) => api.put(`/registration/my-codes/${id}`, payload),
 }
 
 export const search = {

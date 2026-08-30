@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Link, Navigate, useNavigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
-import { MapPin, Sparkles, Zap, Search, LogOut, ArrowRight, Loader2 } from 'lucide-react'
+import { MapPin, Sparkles, Zap, Search, LogOut, ArrowRight, Loader2, Pencil } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import { AuthProvider, useAuth } from './context/AuthContext'
@@ -13,6 +13,7 @@ const RegisterTraditional = lazy(() => import('./pages/RegisterTraditional'))
 const RegisterAutoGenerate = lazy(() => import('./pages/RegisterAutoGenerate'))
 const Confirmation = lazy(() => import('./pages/Confirmation'))
 const SearchPage = lazy(() => import('./pages/SearchPage'))
+const EditAddress = lazy(() => import('./pages/EditAddress'))
 const ResetPassword = lazy(() => import('./pages/ResetPassword'))
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
@@ -44,6 +45,7 @@ function Dashboard() {
     { to: '/register/traditional', icon: Sparkles, title: t('dashboard.card_custom_title'), desc: t('dashboard.card_custom_desc'), primary: true },
     { to: '/register/auto-generate', icon: Zap, title: t('dashboard.card_auto_title'), desc: t('dashboard.card_auto_desc'), primary: false },
     { to: '/search', icon: Search, title: t('dashboard.card_search_title'), desc: t('dashboard.card_search_desc'), primary: false },
+    { to: '/edit-address', icon: Pencil, title: t('dashboard.card_edit_title'), desc: t('dashboard.card_edit_desc'), primary: false },
   ]
 
   return (
@@ -77,7 +79,7 @@ function Dashboard() {
           <p className="text-muted mt-1">{t('dashboard.subtitle')}</p>
         </div>
 
-        <div className="grid sm:grid-cols-3 gap-4">
+        <div className="grid sm:grid-cols-2 gap-4">
           {actions.map(({ to, icon: Icon, title, desc, primary }) => (
             <Link
               key={to}
@@ -123,6 +125,7 @@ function AppRoutes() {
           <Route path="/register/auto-generate" element={<ProtectedRoute><RegisterAutoGenerate /></ProtectedRoute>} />
           <Route path="/confirmation" element={<ProtectedRoute><Confirmation /></ProtectedRoute>} />
           <Route path="/search" element={<SearchPage />} />
+          <Route path="/edit-address" element={<ProtectedRoute><EditAddress /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />

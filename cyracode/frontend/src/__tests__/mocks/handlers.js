@@ -72,6 +72,9 @@ export const handlers = [
   http.get(`${BASE}/registration/my-codes`, () =>
     HttpResponse.json([mockCyraCode])
   ),
+  http.put(`${BASE}/registration/my-codes/:id`, () =>
+    HttpResponse.json({ ...mockCyraCode, street_address: 'Edited Road' })
+  ),
 
   // Search
   http.get(`${BASE}/search/autocomplete`, () =>

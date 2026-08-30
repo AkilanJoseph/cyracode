@@ -18,6 +18,7 @@ from app.services.registration_service import (
     generate_cyracode,
     generate_qr_code,
     suggest_alternative_names,
+    update_cyracode_entry,
     validate_coordinates,
     validate_coordinates_not_ocean,
 )
@@ -181,6 +182,33 @@ class CyraCodeResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class UpdateCyraCodeRequest(BaseModel):
+    """Address fields that may be edited on an existing CyraCode.
+
+    ``name`` (code_name) and ``verified_mobile`` are deliberately absent:
+    the CyraCode name is unique and immutable, and editing an address does not
+    require re-verifying the mobile number via OTP.
+    """
+    latitude: float
+    longitude: float
+    country: str = Field(..., max_length=100)
+    country_code: str = Field(..., max_length=10)
+    state: Optional[str] = Field(None, max_length=100)
+    district: Optional[str] = Field(None, max_length=100)
+    city: Optional[str] = Field(None, max_length=100)
+    area: Optional[str] = Field(None, max_length=100)
+    town: Optional[str] = Field(None, max_length=100)
+    road_name: Optional[str] = Field(None, max_length=100)
+    street_address: str = Field(..., min_length=1, max_length=100)
+    building_name: Optional[str] = Field(None, max_length=100)
+    flat_number: Optional[str] = Field(None, max_length=50)
+    plot_number: Optional[str] = Field(None, max_length=50)
+    floor_unit: Optional[str] = Field(None, max_length=50)
+    postal_code: str = Field(..., min_length=1, max_length=20)
+    digi_pin: Optional[str] = Field(None, max_length=10)
+    landmark: Optional[str] = Field(None, max_length=100)
 
 
 class AutoGenerateRegistrationRequest(RegistrationRequest):
@@ -362,3 +390,41 @@ def my_codes(
         .all()
     )
     return [CyraCodeResponse.model_validate(c) for c in codes]
+
+
+@router.put("/my-codes/{code_id}", response_model=CyraCodeResponse)
+def update_my_code(
+    code_id: str,
+    payload: UpdateCyraCodeRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Edit the address of one of the authenticated user's CyraCodes.
+
+    The CyraCode ``code_name`` is unique and immutable, so it is never updated
+    here — only the address/coordinate fields may change.
+    """
+    entry = (
+        db.query(CyraCode)
+        .filter(
+            CyraCode.id == code_id,
+            CyraCode.user_id == user.id,
+            CyraCode.is_active == True,  # noqa: E712
+        )
+        .first()
+    )
+    if not entry:
+        raise HTTPException(status_code=404, detail="CyraCode not found.")
+
+    if not validate_coordinates(payload.latitude, payload.longitude):
+        raise HTTPException(status_code=400, detail="Invalid coordinates.")
+
+    if not validate_coordinates_not_ocean(payload.latitude, payload.longitude):
+        raise HTTPException(
+            status_code=400,
+            detail="Selected location appears to be in an uninhabited or ocean area. Please select a valid address.",
+        )
+
+    data = payload.model_dump()
+    entry = update_cyracode_entry(db, entry, data)
+    return CyraCodeResponse.model_validate(entry)

@@ -3,6 +3,7 @@ import io
 import math
 import random
 import string
+from datetime import datetime
 
 import httpx
 import qrcode
@@ -142,6 +143,36 @@ def create_cyracode_entry(db: Session, user_id: str, data: dict) -> CyraCode:
         is_flagged=data.get("is_flagged", False),
         flag_reason=data.get("flag_reason"),
     )
+    db.add(entry)
+    db.commit()
+    db.refresh(entry)
+    return entry
+
+
+def update_cyracode_entry(db: Session, entry: CyraCode, data: dict) -> CyraCode:
+    """Update the editable address fields of an existing CyraCode.
+
+    ``code_name`` is intentionally never touched — it is unique and immutable.
+    """
+    entry.latitude = data["latitude"]
+    entry.longitude = data["longitude"]
+    entry.country = data["country"]
+    entry.country_code = data["country_code"]
+    entry.state = data.get("state")
+    entry.district = data.get("district")
+    entry.city = data.get("city")
+    entry.area = data.get("area")
+    entry.town = data.get("town")
+    entry.road_name = data.get("road_name")
+    entry.street_address = data["street_address"]
+    entry.building_name = data.get("building_name")
+    entry.flat_number = data.get("flat_number")
+    entry.plot_number = data.get("plot_number")
+    entry.floor_unit = data.get("floor_unit")
+    entry.postal_code = data["postal_code"]
+    entry.digi_pin = data.get("digi_pin")
+    entry.landmark = data.get("landmark")
+    entry.updated_at = datetime.utcnow()
     db.add(entry)
     db.commit()
     db.refresh(entry)

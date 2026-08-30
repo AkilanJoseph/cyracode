@@ -163,6 +163,114 @@ class TestMyCodes:
         assert resp.json() == []
 
 
+class TestUpdateMyCode:
+    def _create_code(self, client, db, name="MyHome"):
+        make_verified_otp(db)
+        headers = auth_headers(client)
+        client.post("/registration/traditional", json=base_registration_payload(name=name), headers=headers)
+        return headers
+
+    def _update_payload(self, **overrides):
+        payload = {
+            "latitude": 12.9716,
+            "longitude": 77.5946,
+            "country": "India",
+            "country_code": "IN",
+            "state": "Karnataka",
+            "city": "Bangalore",
+            "street_address": "MG Road",
+            "postal_code": "560001",
+        }
+        payload.update(overrides)
+        return payload
+
+    def test_updates_address_fields(self, client, db):
+        headers = self._create_code(client, db)
+        codes = client.get("/registration/my-codes", headers=headers).json()
+        code_id = codes[0]["id"]
+
+        payload = self._update_payload(
+            latitude=12.9999,
+            longitude=77.1111,
+            street_address="New Street Address",
+            postal_code="560002",
+            landmark="Near Bus Stop",
+        )
+        resp = client.put(f"/registration/my-codes/{code_id}", json=payload, headers=headers)
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["id"] == code_id
+        assert body["street_address"] == "New Street Address"
+        assert body["postal_code"] == "560002"
+        assert body["landmark"] == "Near Bus Stop"
+        assert body["latitude"] == 12.9999
+        # name must be preserved — immutable
+        assert body["code_name"] == "MyHome"
+
+    def test_name_remains_unchanged_in_db(self, client, db):
+        headers = self._create_code(client, db)
+        codes = client.get("/registration/my-codes", headers=headers).json()
+        code_id = codes[0]["id"]
+
+        resp = client.put(
+            f"/registration/my-codes/{code_id}",
+            json=self._update_payload(street_address="Edited Road"),
+            headers=headers,
+        )
+        assert resp.status_code == 200
+        from app.models.models import CyraCode
+        entry = db.query(CyraCode).filter(CyraCode.id == code_id).first()
+        assert entry.code_name == "MyHome"
+        assert entry.street_address == "Edited Road"
+
+    def test_cannot_update_another_users_code(self, client, db):
+        # First user owns a code
+        headers1 = self._create_code(client, db)
+        code_id = client.get("/registration/my-codes", headers=headers1).json()[0]["id"]
+
+        # Second user cannot edit it
+        headers2 = auth_headers(client, email="other@example.com")
+        resp = client.put(
+            f"/registration/my-codes/{code_id}",
+            json=self._update_payload(),
+            headers=headers2,
+        )
+        assert resp.status_code == 404
+
+    def test_update_nonexistent_code_returns_404(self, client, db):
+        headers = auth_headers(client)
+        resp = client.put(
+            "/registration/my-codes/does-not-exist",
+            json=self._update_payload(),
+            headers=headers,
+        )
+        assert resp.status_code == 404
+
+    def test_unauthenticated_returns_401(self, client):
+        resp = client.put("/registration/my-codes/abc", json=self._update_payload())
+        assert resp.status_code == 401
+
+    def test_invalid_coordinates_returns_400(self, client, db):
+        headers = self._create_code(client, db)
+        code_id = client.get("/registration/my-codes", headers=headers).json()[0]["id"]
+        resp = client.put(
+            f"/registration/my-codes/{code_id}",
+            json=self._update_payload(latitude=999, longitude=77.5946),
+            headers=headers,
+        )
+        assert resp.status_code == 400
+
+    def test_field_length_limits_enforced(self, client, db):
+        headers = self._create_code(client, db)
+        code_id = client.get("/registration/my-codes", headers=headers).json()[0]["id"]
+        resp = client.put(
+            f"/registration/my-codes/{code_id}",
+            json=self._update_payload(street_address="A" * 101),
+            headers=headers,
+        )
+        assert resp.status_code == 422
+
+
 class TestDataIntegrity:
     """Tests for AC 6.17–6.22: idempotency, coordinate validation, duplicate prevention,
     email uniqueness, mobile validation, and address field length limits."""

@@ -186,7 +186,24 @@
       "card_auto_desc": "Let us create a unique 12-character code",
       "card_search_title": "Search CyraCodes",
       "card_search_desc": "Find and share any registered location",
+      "card_edit_title": "Edit My Address",
+      "card_edit_desc": "Update the details of an existing address",
       "get_started": "Get started"
+    },
+    "edit": {
+      "title": "Edit Address",
+      "subtitle": "Select one of your CyraCodes to update its address. Your CyraCode name cannot be changed.",
+      "select_label": "Select CyraCode",
+      "select_placeholder": "Choose a CyraCode to edit",
+      "no_codes": "You don't have any registered CyraCodes yet.",
+      "register_first": "Register your first address",
+      "name_immutable": "Your CyraCode name is unique and cannot be changed — only the address details can be updated.",
+      "editing_label": "Editing",
+      "change_code": "Change",
+      "save_changes": "Save Changes",
+      "saved_success": "Address updated successfully!",
+      "save_failed": "Failed to update the address",
+      "pick_hint": "Editing {{name}} — adjust the pin on the map if needed"
     },
     "reset": {
       "title": "Reset Password",
