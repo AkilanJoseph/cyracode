@@ -116,6 +116,56 @@ describe('SearchPage — search results', () => {
   })
 })
 
+describe('SearchPage — directions vs navigation', () => {
+  let openSpy
+
+  beforeEach(() => {
+    openSpy = vi.fn()
+    window.open = openSpy
+  })
+
+  async function searchAndGetButtons(user) {
+    await user.type(screen.getByPlaceholderText(/search a cyracode/i), 'TestHome{Enter}')
+    await screen.findByText(/MG Road/i)
+    return {
+      directions: screen.getByRole('button', { name: /get directions/i }),
+      navigate: screen.getByRole('button', { name: /start navigation/i }),
+    }
+  }
+
+  it('Get Directions opens the OSM routing planner, not just the map', async () => {
+    const { user } = setup()
+    const { directions } = await searchAndGetButtons(user)
+    await user.click(directions)
+    expect(openSpy).toHaveBeenCalledTimes(1)
+    const url = openSpy.mock.calls[0][0]
+    expect(url).toMatch(/^https:\/\/www\.openstreetmap\.org\/directions\?engine=fossgis_osrm_car/)
+    expect(url).toContain('to=12.9716,77.5946')
+  })
+
+  it('Start Navigation opens a navigation deep link, not the map page', async () => {
+    const { user } = setup()
+    const { navigate } = await searchAndGetButtons(user)
+    await user.click(navigate)
+    expect(openSpy).toHaveBeenCalledTimes(1)
+    const url = openSpy.mock.calls[0][0]
+    expect(url).toContain('dir_action=navigate')
+    expect(url).toMatch(/destination=12\.9716,77\.5946/)
+  })
+
+  it('directions and navigation produce different URLs', async () => {
+    const { user } = setup()
+    const { directions, navigate } = await searchAndGetButtons(user)
+    await user.click(directions)
+    const directionsUrl = openSpy.mock.calls[0][0]
+    await user.click(navigate)
+    const navigateUrl = openSpy.mock.calls[1][0]
+    expect(directionsUrl).not.toEqual(navigateUrl)
+    expect(directionsUrl).not.toContain('dir_action=navigate')
+    expect(navigateUrl).not.toContain('/directions?engine=')
+  })
+})
+
 describe('SearchPage — not found / fuzzy', () => {
   it('shows fuzzy suggestions when not found', async () => {
     server.use(

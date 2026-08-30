@@ -151,39 +151,37 @@ export default function SearchPage() {
     }
   }
 
-  // AC 5.6: Get Directions — opens OpenStreetMap directions planning view
+  // AC 5.6: Get Directions — opens the OpenStreetMap routing planner with the
+  // user's current position as origin and the result as destination (when no
+  // position is known, only the destination is pre-filled).
   const getDirections = useCallback(() => {
     if (!result) return
-    const dest = `${result.latitude},${result.longitude}`
-    const originParam = userPos ? `&origin=${userPos.lat},${userPos.lng}` : ''
-    window.open(
-      `https://www.openstreetmap.org/?lat=${result.latitude}&lon=${result.longitude}&zoom=15#map${originParam}&destination=${dest}`,
-      '_blank'
-    )
+    const lat = Number(result.latitude)
+    const lng = Number(result.longitude)
+    const base = 'https://www.openstreetmap.org/directions?engine=fossgis_osrm_car'
+    const mapHash = `#map=15/${lat}/${lng}`
+    const url = userPos
+      ? `${base}&route=${userPos.lat},${userPos.lng};${lat},${lng}${mapHash}`
+      : `${base}&to=${lat},${lng}${mapHash}`
+    window.open(url, '_blank')
   }, [result, userPos])
 
-  // AC 5.7: Start Navigation — turn-by-turn with OpenStreetMap deep link + fallback
+  // AC 5.7: Start Navigation — launches turn-by-turn navigation in the
+  // platform's native navigation app (Apple Maps on iOS, Google Maps elsewhere),
+  // falling back to a route in the browser when no navigation app is installed.
   const startNavigation = useCallback(() => {
     if (!result) return
     const dest = `${result.latitude},${result.longitude}`
-    const isAndroid = /Android/i.test(navigator.userAgent)
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent)
 
-    if (isAndroid) {
-      window.location.href = `osm://map?lat=${result.latitude}&lon=${result.longitude}`
-      setTimeout(() => window.open(
-        `https://www.openstreetmap.org/?lat=${result.latitude}&lon=${result.longitude}&zoom=15#map`,
-        '_blank'
-      ), 500)
-    } else if (isIOS) {
-      window.location.href = `https://www.openstreetmap.org/?lat=${result.latitude}&lon=${result.longitude}&zoom=15#map`
-      setTimeout(() => window.open(
-        `https://www.openstreetmap.org/?lat=${result.latitude}&lon=${result.longitude}&zoom=15#map`,
-        '_blank'
-      ), 500)
+    if (isIOS) {
+      // Apple Maps is the system navigation app on iOS; daddr + dirflg=d starts turn-by-turn.
+      window.open(`https://maps.apple.com/?daddr=${dest}&dirflg=d`, '_blank')
     } else {
+      // Google Maps universal URL: dir_action=navigate starts turn-by-turn when the
+      // origin defaults to the user's current location, otherwise shows a route preview.
       window.open(
-        `https://www.openstreetmap.org/?lat=${result.latitude}&lon=${result.longitude}&zoom=15#map`,
+        `https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=driving&dir_action=navigate`,
         '_blank'
       )
     }
