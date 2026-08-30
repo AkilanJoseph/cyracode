@@ -460,20 +460,24 @@ export default function RegisterTraditional() {
   }, [address.country_code, mapGeoCountry])
 
   const handleLocationSelect = (lat, lng, addr, raw) => {
-    // Ocean/uninhabited land: geocoder returned no address (ZERO_RESULTS)
-    if (addr === '') {
-      toast.error('Please select a valid residential address')
-      return
-    }
-    // Geocoded but no country component — international waters or uninhabited territory
-    if (raw && !raw.address_components?.find((c) => c.types.includes('country'))) {
-      toast.error('Please select a valid residential address')
-      return
-    }
+    // Always accept the picked coordinate so lat/lng are prefilled.
     setCoords({ lat, lng })
-    if (raw) {
-      const countryComp = raw.address_components?.find((c) => c.types.includes('country'))
-      if (countryComp) setMapGeoCountry(countryComp.short_name)
+
+    // AC 2.x / OSM (Nominatim) reverse geocoding:
+    // `raw` is the Nominatim JSON payload (or null if geocoding failed).
+    // A residential address requires a country component; ocean/international
+    // waters have no `address.country`. If raw is null (geocode failure) or it
+    // has no country, we still keep the coordinates but warn softly.
+    const countryCode = raw?.address?.country_code
+    if (countryCode) {
+      setMapGeoCountry(countryCode.toUpperCase())
+    } else {
+      setMapGeoCountry(null)
+    }
+
+    if (raw && !raw.address?.country) {
+      toast.error('Please select a valid residential address')
+      return
     }
     if (addr) toast.success('Location selected')
   }
@@ -558,7 +562,7 @@ export default function RegisterTraditional() {
             <div className="space-y-5">
               <MapPicker markerPosition={coords} onLocationSelect={handleLocationSelect} />
               {/* AC 2.5 & 2.6: Read-only coordinate fields auto-populated from map */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3 pt-4">
                 <Input
                   label="Latitude"
                   value={coords ? coords.lat.toFixed(6) : ''}

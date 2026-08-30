@@ -50,8 +50,15 @@ describe('SearchPage — rendering', () => {
     expect(screen.getByRole('button', { name: /go/i })).toBeInTheDocument()
   })
 
-  it('renders map picker', () => {
+  it('does not render map before a search', () => {
     setup()
+    expect(screen.queryByTestId('map-picker')).not.toBeInTheDocument()
+  })
+
+  it('renders map picker after a search result', async () => {
+    const { user } = setup()
+    await user.type(screen.getByPlaceholderText(/search a cyracode/i), 'TestHome{Enter}')
+    await screen.findByText(/Get Directions/i)
     expect(screen.getByTestId('map-picker')).toBeInTheDocument()
   })
 })

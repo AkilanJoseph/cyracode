@@ -151,7 +151,7 @@ export default function RegisterAutoGenerate() {
             <div className="space-y-5">
               <MapPicker markerPosition={coords} onLocationSelect={handleLocation} />
 
-              <div>
+              <div className="pt-2">
                 <label className="block text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">
                   {t('register.generated_code_label')}
                 </label>

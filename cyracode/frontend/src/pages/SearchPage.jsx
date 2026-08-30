@@ -224,27 +224,15 @@ export default function SearchPage() {
   )
 
   return (
-    <div className="min-h-screen relative bg-slate-100">
-      {/* Full-screen map (AC 5.1) */}
-      <div className="absolute inset-0">
-        <MapPicker
-          readonly
-          height="100vh"
-          markerPosition={result ? { lat: Number(result.latitude), lng: Number(result.longitude) } : null}
-          searchResult={result}
-          userPos={userPos}
-          onGetDirections={getDirections}
-        />
-      </div>
-
+    <div className="min-h-screen bg-slate-100">
       {/* Offline banner */}
       {isOffline && (
-        <div className="absolute top-0 left-0 right-0 z-20 bg-yellow-400/90 text-yellow-900 text-xs font-semibold text-center py-1.5 flex items-center justify-center gap-1.5">
+        <div className="top-0 left-0 right-0 z-20 bg-yellow-400/90 text-yellow-900 text-xs font-semibold text-center py-1.5 flex items-center justify-center gap-1.5">
           <WifiOff className="w-3.5 h-3.5" /> Offline — showing cached results
         </div>
       )}
 
-      <div className={`relative z-10 max-w-md mx-auto px-4 ${isOffline ? 'pt-10' : 'pt-4'}`}>
+      <div className="relative max-w-md mx-auto px-4 pt-4">
         {/* Search bar */}
         <div className="bg-white rounded-2xl shadow-card-hover border border-border p-3">
           <div className="flex items-center gap-2">
@@ -390,6 +378,20 @@ export default function SearchPage() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Small map window — shown underneath the search after a result is selected */}
+        {result && (
+          <div className="mt-3 rounded-2xl overflow-hidden border border-border shadow-card-hover animate-fade-in-up">
+            <MapPicker
+              readonly
+              height="280px"
+              markerPosition={{ lat: Number(result.latitude), lng: Number(result.longitude) }}
+              searchResult={result}
+              userPos={userPos}
+              onGetDirections={getDirections}
+            />
           </div>
         )}
 

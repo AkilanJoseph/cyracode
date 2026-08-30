@@ -34,7 +34,10 @@ audience validation. To verify the token's audience, set the same Client ID in
 GOOGLE_CLIENT_ID=xxxxxxxx.apps.googleusercontent.com
 ```
 
-## 4. Google Maps key
+## 4. Google Maps key (optional, backend only)
 
-`frontend/.env` also has `VITE_GOOGLE_MAPS_API_KEY` for the interactive map picker.
-Without it the picker falls back to an address-only mode; Google sign-in is unaffected.
+The interactive map picker now uses **OpenStreetMap (Leaflet)** and needs **no key**.
+The only remaining Google API key is optional and lives in `backend/.env`:
+`GOOGLE_MAPS_API_KEY`. It is used server-side to reject coordinates that fall in
+the ocean during registration. If it is left blank, the ocean check fails open
+(allows the coordinates) and the rest of the app is unaffected.

@@ -46,8 +46,8 @@ export default function Confirmation() {
     )
   }
 
-    // AC 4.6: QR encodes Google Maps URL for proper scanning behavior
-    const qrValue = `https://maps.google.com/?q=${record.latitude},${record.longitude}`
+    // AC 4.6: QR encodes an OpenStreetMap URL for proper scanning behavior
+    const qrValue = `https://www.openstreetmap.org/?mlat=${record.latitude}&mlon=${record.longitude}#map=16/${record.latitude}/${record.longitude}`
 
   const addressLine = [
     record.flat_number,
