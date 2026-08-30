@@ -11,6 +11,7 @@ import hi from './locales/hi.json'
 import ja from './locales/ja.json'
 import pt from './locales/pt.json'
 import ru from './locales/ru.json'
+import ta from './locales/ta.json'
 import zh from './locales/zh.json'
 
 export const SUPPORTED_LANGUAGES = [
@@ -24,13 +25,14 @@ export const SUPPORTED_LANGUAGES = [
   { code: 'hi', label: 'हिन्दी', dir: 'ltr' },
   { code: 'pt', label: 'Português', dir: 'ltr' },
   { code: 'ru', label: 'Русский', dir: 'ltr' },
+  { code: 'ta', label: 'தமிழ்', dir: 'ltr' },
 ]
 
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    resources: { en, es, fr, de, zh, ja, ar, hi, pt, ru },
+    resources: { en, es, fr, de, zh, ja, ar, hi, pt, ru, ta },
     fallbackLng: 'en',
     defaultNS: 'translation',
     interpolation: { escapeValue: false },
