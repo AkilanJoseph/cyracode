@@ -397,7 +397,13 @@ export default function LandingPage() {
                 type="password"
                 placeholder="••••••••"
                 value={regForm.password}
-                onChange={(e) => setRegForm({ ...regForm, password: e.target.value })}
+                onChange={(e) => {
+                  const val = e.target.value
+                  setRegForm({ ...regForm, password: val })
+                  if (regErrors.password && passwordStrength(val) === 4) {
+                    setRegErrors((prev) => ({ ...prev, password: undefined }))
+                  }
+                }}
                 error={regErrors.password}
               />
               {regForm.password && (
@@ -419,7 +425,12 @@ export default function LandingPage() {
                   <input
                     type="checkbox"
                     checked={regForm.gdpr}
-                    onChange={(e) => setRegForm({ ...regForm, gdpr: e.target.checked })}
+                    onChange={(e) => {
+                      setRegForm({ ...regForm, gdpr: e.target.checked })
+                      if (regErrors.gdpr && e.target.checked) {
+                        setRegErrors((prev) => ({ ...prev, gdpr: undefined }))
+                      }
+                    }}
                     className="accent-primary w-3.5 h-3.5 mt-0.5 shrink-0"
                   />
                   <span className="text-xs text-muted">

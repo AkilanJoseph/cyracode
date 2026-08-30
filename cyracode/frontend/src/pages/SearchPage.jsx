@@ -151,33 +151,41 @@ export default function SearchPage() {
     }
   }
 
-  // AC 5.6: Get Directions — opens Google Maps directions planning view
+  // AC 5.6: Get Directions — opens OpenStreetMap directions planning view
   const getDirections = useCallback(() => {
     if (!result) return
     const dest = `${result.latitude},${result.longitude}`
     const originParam = userPos ? `&origin=${userPos.lat},${userPos.lng}` : ''
     window.open(
-      `https://www.google.com/maps/dir/?api=1${originParam}&destination=${dest}`,
+      `https://www.openstreetmap.org/?lat=${result.latitude}&lon=${result.longitude}&zoom=15#map${originParam}&destination=${dest}`,
       '_blank'
     )
   }, [result, userPos])
 
-  // AC 5.7: Start Navigation — turn-by-turn with mobile deep link + fallback
+  // AC 5.7: Start Navigation — turn-by-turn with OpenStreetMap deep link + fallback
   const startNavigation = useCallback(() => {
     if (!result) return
     const dest = `${result.latitude},${result.longitude}`
-    const webUrl = `https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=driving`
     const isAndroid = /Android/i.test(navigator.userAgent)
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent)
 
     if (isAndroid) {
-      window.location.href = `google.navigation:q=${dest}`
-      setTimeout(() => window.open(webUrl, '_blank'), 500)
+      window.location.href = `osm://map?lat=${result.latitude}&lon=${result.longitude}`
+      setTimeout(() => window.open(
+        `https://www.openstreetmap.org/?lat=${result.latitude}&lon=${result.longitude}&zoom=15#map`,
+        '_blank'
+      ), 500)
     } else if (isIOS) {
-      window.location.href = `comgooglemaps://?daddr=${dest}&directionsmode=driving`
-      setTimeout(() => window.open(`https://maps.apple.com/?daddr=${dest}&dirflg=d`, '_blank'), 500)
+      window.location.href = `https://www.openstreetmap.org/?lat=${result.latitude}&lon=${result.longitude}&zoom=15#map`
+      setTimeout(() => window.open(
+        `https://www.openstreetmap.org/?lat=${result.latitude}&lon=${result.longitude}&zoom=15#map`,
+        '_blank'
+      ), 500)
     } else {
-      window.open(webUrl, '_blank')
+      window.open(
+        `https://www.openstreetmap.org/?lat=${result.latitude}&lon=${result.longitude}&zoom=15#map`,
+        '_blank'
+      )
     }
   }, [result])
 

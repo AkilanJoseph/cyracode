@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 import { useTranslation } from 'react-i18next'
 import {
   CheckCircle2, Download, Share2, Mail, Copy, MessageCircle,
-  MapPin, ArrowRight, Facebook, UserCircle, Truck, Users,
+  MapPin, ArrowRight, ArrowLeft, Facebook, UserCircle, Truck, Users,
 } from 'lucide-react'
 import Button from '../components/common/Button'
 
@@ -46,8 +46,8 @@ export default function Confirmation() {
     )
   }
 
-  // AC 4.6: QR encodes Google Maps URL for proper scanning behavior
-  const qrValue = `https://maps.google.com/?q=${record.latitude},${record.longitude}`
+    // AC 4.6: QR encodes Google Maps URL for proper scanning behavior
+    const qrValue = `https://maps.google.com/?q=${record.latitude},${record.longitude}`
 
   const addressLine = [
     record.flat_number,
@@ -113,6 +113,12 @@ export default function Confirmation() {
 
       <nav className="border-b border-border bg-white/80 backdrop-blur-sm sticky top-0 z-20">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-2">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-surface text-muted hover:text-ink transition-colors shrink-0"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
           <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
             <MapPin className="w-4 h-4 text-white" />
           </div>

@@ -43,11 +43,15 @@ export const registration = {
   // AC 6.17: idempotencyKey prevents duplicate registrations on rapid double-submit
   registerTraditional: (payload, idempotencyKey) =>
     api.post('/registration/traditional', payload, {
-      headers: idempotencyKey ? { 'X-Idempotency-Key': idempotencyKey } : {},
+      headers: idempotencyKey
+        ? { 'X-Idempotency-Key': idempotencyKey, Authorization: `Bearer ${localStorage.getItem('cyracode_token')}` }
+        : { Authorization: `Bearer ${localStorage.getItem('cyracode_token')}` },
     }),
   registerAutoGenerate: (payload, idempotencyKey) =>
     api.post('/registration/auto-generate', payload, {
-      headers: idempotencyKey ? { 'X-Idempotency-Key': idempotencyKey } : {},
+      headers: idempotencyKey
+        ? { 'X-Idempotency-Key': idempotencyKey, Authorization: `Bearer ${localStorage.getItem('cyracode_token')}` }
+        : { Authorization: `Bearer ${localStorage.getItem('cyracode_token')}` },
     }),
   getMyCodes: () => api.get('/registration/my-codes'),
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Check, X, Loader2, MapPin, AlertTriangle } from 'lucide-react'
+import { Check, X, Loader2, MapPin, AlertTriangle, ArrowLeft } from 'lucide-react'
 import Country from 'country-state-city/lib/country'
 import { useTranslation } from 'react-i18next'
 import ProgressSteps from '../components/common/ProgressSteps'
@@ -531,6 +531,12 @@ export default function RegisterTraditional() {
     <div className="min-h-screen bg-surface">
       <nav aria-label={t('nav.brand')} className="border-b border-border bg-white/80 backdrop-blur-sm sticky top-0 z-20">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-2">
+          <button
+            onClick={() => navigate('/')}
+            className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-surface text-muted hover:text-ink transition-colors shrink-0"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
           <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
             <MapPin className="w-4 h-4 text-white" aria-hidden="true" />
           </div>
