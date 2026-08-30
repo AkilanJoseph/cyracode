@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import get_db
-from app.models.models import AuditLog, CyraCode, OTPRecord, User
+from app.models.models import AuditLog, CyraCode, User
 from app.rate_limiter import limiter
 from app.services.auth_service import (
     create_access_token,
@@ -278,10 +278,6 @@ def delete_account(
     db.query(CyraCode).filter(CyraCode.user_id == current_user.id).update(
         {"is_active": False}
     )
-    # Remove OTP records
-    db.query(OTPRecord).filter(OTPRecord.mobile.in_(
-        db.query(CyraCode.verified_mobile if hasattr(CyraCode, "verified_mobile") else [])
-    )).delete(synchronize_session=False)
 
     log = AuditLog(user_id=current_user.id, action="gdpr_delete_request")
     db.add(log)

@@ -1,5 +1,8 @@
 /* ============================================================
    CyraCode - Microsoft SQL Server Schema
+   Mirrors the SQLAlchemy models in backend/app/models/models.py.
+   Ids are stored as NVARCHAR(36) because the ORM generates
+   uuid4 UUIDs as strings (see _uuid() in models.py).
    ============================================================ */
 
 IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'CyraCode')
@@ -12,13 +15,23 @@ USE CyraCode;
 GO
 
 /* ------------------------------------------------------------
-   Users
+   Re-runnable: drop all tables first, children before parents.
    ------------------------------------------------------------ */
-IF OBJECT_ID('dbo.Users', 'U') IS NOT NULL DROP TABLE dbo.Users;
+IF OBJECT_ID('dbo.LogisticsAccessLogs', 'U') IS NOT NULL DROP TABLE dbo.LogisticsAccessLogs;
+IF OBJECT_ID('dbo.DeliveryRecords', 'U')     IS NOT NULL DROP TABLE dbo.DeliveryRecords;
+IF OBJECT_ID('dbo.IdempotencyKeys', 'U')     IS NOT NULL DROP TABLE dbo.IdempotencyKeys;
+IF OBJECT_ID('dbo.AuditLogs', 'U')           IS NOT NULL DROP TABLE dbo.AuditLogs;
+IF OBJECT_ID('dbo.OTPRecords', 'U')          IS NOT NULL DROP TABLE dbo.OTPRecords;
+IF OBJECT_ID('dbo.CyraCodes', 'U')           IS NOT NULL DROP TABLE dbo.CyraCodes;
+IF OBJECT_ID('dbo.Users', 'U')               IS NOT NULL DROP TABLE dbo.Users;
 GO
 
+/* ------------------------------------------------------------
+   Users
+   ------------------------------------------------------------ */
+
 CREATE TABLE dbo.Users (
-    Id              UNIQUEIDENTIFIER    NOT NULL DEFAULT NEWID(),
+    Id              NVARCHAR(36)        NOT NULL,
     Email           NVARCHAR(255)       NOT NULL,
     FirstName       NVARCHAR(100)       NOT NULL,
     LastName        NVARCHAR(100)       NOT NULL,
@@ -27,8 +40,9 @@ CREATE TABLE dbo.Users (
     IsEmailVerified BIT                 NOT NULL DEFAULT 0,
     IsActive        BIT                 NOT NULL DEFAULT 1,
     RememberMe      BIT                 NOT NULL DEFAULT 0,
-    CreatedAt       DATETIME2           NOT NULL DEFAULT SYSUTCDATETIME(),
-    UpdatedAt       DATETIME2           NOT NULL DEFAULT SYSUTCDATETIME(),
+    GdprConsent     BIT                 NOT NULL DEFAULT 0,
+    CreatedAt       DATETIME2           NOT NULL,
+    UpdatedAt       DATETIME2           NOT NULL,
     CONSTRAINT PK_Users PRIMARY KEY (Id),
     CONSTRAINT UQ_Users_Email UNIQUE (Email),
     CONSTRAINT UQ_Users_GoogleId UNIQUE (GoogleId)
@@ -41,12 +55,10 @@ GO
 /* ------------------------------------------------------------
    CyraCodes
    ------------------------------------------------------------ */
-IF OBJECT_ID('dbo.CyraCodes', 'U') IS NOT NULL DROP TABLE dbo.CyraCodes;
-GO
 
 CREATE TABLE dbo.CyraCodes (
-    Id              UNIQUEIDENTIFIER    NOT NULL DEFAULT NEWID(),
-    UserId          UNIQUEIDENTIFIER    NOT NULL,
+    Id              NVARCHAR(36)        NOT NULL,
+    UserId          NVARCHAR(36)        NOT NULL,
     CodeName        NVARCHAR(50)        NOT NULL,
     CodeType        NVARCHAR(20)        NOT NULL,   -- 'traditional' | 'auto_generate'
     Latitude        DECIMAL(10, 7)      NOT NULL,
@@ -69,8 +81,10 @@ CREATE TABLE dbo.CyraCodes (
     Landmark        NVARCHAR(100)       NULL,
     IsActive        BIT                 NOT NULL DEFAULT 1,
     QrCodePath      NVARCHAR(500)       NULL,
-    CreatedAt       DATETIME2           NOT NULL DEFAULT SYSUTCDATETIME(),
-    UpdatedAt       DATETIME2           NOT NULL DEFAULT SYSUTCDATETIME(),
+    IsFlagged       BIT                 NOT NULL DEFAULT 0,
+    FlagReason      NVARCHAR(255)       NULL,
+    CreatedAt       DATETIME2           NOT NULL,
+    UpdatedAt       DATETIME2           NOT NULL,
     CONSTRAINT PK_CyraCodes PRIMARY KEY (Id),
     CONSTRAINT UQ_CyraCodes_CodeName UNIQUE (CodeName),
     CONSTRAINT FK_CyraCodes_Users FOREIGN KEY (UserId) REFERENCES dbo.Users (Id)
@@ -111,11 +125,9 @@ GO
 /* ------------------------------------------------------------
    OTPRecords
    ------------------------------------------------------------ */
-IF OBJECT_ID('dbo.OTPRecords', 'U') IS NOT NULL DROP TABLE dbo.OTPRecords;
-GO
 
 CREATE TABLE dbo.OTPRecords (
-    Id              UNIQUEIDENTIFIER    NOT NULL DEFAULT NEWID(),
+    Id              NVARCHAR(36)        NOT NULL,
     Mobile          NVARCHAR(20)        NOT NULL,
     OtpHash         NVARCHAR(255)       NOT NULL,
     ExpiresAt       DATETIME2           NOT NULL,
@@ -123,7 +135,8 @@ CREATE TABLE dbo.OTPRecords (
     AttemptCount    INT                 NOT NULL DEFAULT 0,
     IsLocked        BIT                 NOT NULL DEFAULT 0,
     LockedUntil     DATETIME2           NULL,
-    CreatedAt       DATETIME2           NOT NULL DEFAULT SYSUTCDATETIME(),
+    VerifiedAt      DATETIME2           NULL,
+    CreatedAt       DATETIME2           NOT NULL,
     CONSTRAINT PK_OTPRecords PRIMARY KEY (Id)
 );
 GO
@@ -132,22 +145,79 @@ CREATE INDEX IX_OTPRecords_Mobile ON dbo.OTPRecords (Mobile);
 GO
 
 /* ------------------------------------------------------------
-   AuditLogs
+   IdempotencyKeys
    ------------------------------------------------------------ */
-IF OBJECT_ID('dbo.AuditLogs', 'U') IS NOT NULL DROP TABLE dbo.AuditLogs;
+
+CREATE TABLE dbo.IdempotencyKeys (
+    Id              NVARCHAR(36)        NOT NULL,
+    [Key]           NVARCHAR(128)       NOT NULL,
+    Endpoint        NVARCHAR(100)       NOT NULL,
+    ResponseJson    NVARCHAR(MAX)       NULL,
+    CreatedAt       DATETIME2           NOT NULL,
+    ExpiresAt       DATETIME2           NOT NULL,
+    CONSTRAINT PK_IdempotencyKeys PRIMARY KEY (Id),
+    CONSTRAINT UQ_IdempotencyKeys_Key UNIQUE ([Key])
+);
 GO
 
+CREATE INDEX IX_IdempotencyKeys_Key ON dbo.IdempotencyKeys ([Key]);
+GO
+
+/* ------------------------------------------------------------
+   AuditLogs
+   ------------------------------------------------------------ */
+
 CREATE TABLE dbo.AuditLogs (
-    Id              UNIQUEIDENTIFIER    NOT NULL DEFAULT NEWID(),
-    UserId          UNIQUEIDENTIFIER    NULL,
+    Id              NVARCHAR(36)        NOT NULL,
+    UserId          NVARCHAR(36)        NULL,
     Action          NVARCHAR(100)       NOT NULL,
     IpAddress       NVARCHAR(50)        NULL,
     UserAgent       NVARCHAR(500)       NULL,
-    CreatedAt       DATETIME2           NOT NULL DEFAULT SYSUTCDATETIME(),
+    CreatedAt       DATETIME2           NOT NULL,
     CONSTRAINT PK_AuditLogs PRIMARY KEY (Id),
     CONSTRAINT FK_AuditLogs_Users FOREIGN KEY (UserId) REFERENCES dbo.Users (Id)
 );
 GO
 
 CREATE INDEX IX_AuditLogs_UserId ON dbo.AuditLogs (UserId);
+GO
+
+/* ------------------------------------------------------------
+   DeliveryRecords  (AC 6.27: persistent delivery history)
+   ------------------------------------------------------------ */
+
+CREATE TABLE dbo.DeliveryRecords (
+    Id              NVARCHAR(36)        NOT NULL,
+    CyraCodeId      NVARCHAR(36)        NOT NULL,
+    TrackingId      NVARCHAR(100)       NOT NULL,
+    PartnerKey      NVARCHAR(50)        NULL,
+    Status          NVARCHAR(50)        NOT NULL,
+    DeliveredAt     DATETIME2           NULL,
+    ProofPhoto      NVARCHAR(MAX)       NULL,
+    CreatedAt       DATETIME2           NOT NULL,
+    UpdatedAt       DATETIME2           NOT NULL,
+    CONSTRAINT PK_DeliveryRecords PRIMARY KEY (Id),
+    CONSTRAINT FK_DeliveryRecords_CyraCodes FOREIGN KEY (CyraCodeId)
+        REFERENCES dbo.CyraCodes (Id)
+);
+GO
+
+CREATE INDEX IX_DeliveryRecords_TrackingId ON dbo.DeliveryRecords (TrackingId);
+GO
+
+/* ------------------------------------------------------------
+   LogisticsAccessLogs  (AC 6.26: audit log for logistics API access)
+   ------------------------------------------------------------ */
+
+CREATE TABLE dbo.LogisticsAccessLogs (
+    Id              NVARCHAR(36)        NOT NULL,
+    PartnerKey      NVARCHAR(50)        NULL,
+    Endpoint        NVARCHAR(200)       NOT NULL,
+    Method          NVARCHAR(10)        NOT NULL,
+    IpAddress       NVARCHAR(50)        NULL,
+    StatusCode      INT                 NULL,
+    ResponseTimeMs  INT                 NULL,
+    CreatedAt       DATETIME2           NOT NULL,
+    CONSTRAINT PK_LogisticsAccessLogs PRIMARY KEY (Id)
+);
 GO
