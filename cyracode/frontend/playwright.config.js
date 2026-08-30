@@ -1,11 +1,14 @@
 import { defineConfig, devices } from '@playwright/test'
 
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173'
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000'
+
 export default defineConfig({
   testDir: './e2e',
   timeout: 30_000,
   retries: 0,
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: FRONTEND_URL,
     screenshot: 'only-on-failure',
     video: 'off',
   },
@@ -13,13 +16,13 @@ export default defineConfig({
     {
       command: 'python3 -m uvicorn app.main:app --port 8000',
       cwd: '../backend',
-      url: 'http://localhost:8000/health',
+      url: `${BACKEND_URL}/health`,
       reuseExistingServer: true,
       timeout: 20_000,
     },
     {
       command: 'npm run dev',
-      url: 'http://localhost:5173',
+      url: FRONTEND_URL,
       reuseExistingServer: true,
       timeout: 30_000,
     },

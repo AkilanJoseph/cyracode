@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/test'
 
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000'
 const UNIQUE = Date.now()
 const TEST_CODE = `E2ECode${UNIQUE}`
 
 async function seedCode(request) {
-  const regResp = await request.post('http://localhost:8000/auth/register', {
+  const regResp = await request.post(`${BACKEND_URL}/auth/register`, {
     data: {
       first_name: 'Seed',
       last_name: 'User',
@@ -18,7 +19,7 @@ async function seedCode(request) {
   const lat = 10 + (UNIQUE % 70)
   const lng = 10 + (UNIQUE % 160)
 
-  const codeResp = await request.post('http://localhost:8000/registration/traditional', {
+  const codeResp = await request.post(`${BACKEND_URL}/registration/traditional`, {
     headers: { Authorization: `Bearer ${access_token}` },
     data: {
       name: TEST_CODE,

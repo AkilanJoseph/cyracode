@@ -25,12 +25,10 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
-origins = [
-    settings.FRONTEND_URL,
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "http://127.0.0.1:5173",
+_extra_origins = [
+    o.strip() for o in settings.CORS_ORIGINS.split(",") if o.strip()
 ]
+origins = [settings.FRONTEND_URL, *_extra_origins]
 
 app.add_middleware(
     CORSMiddleware,

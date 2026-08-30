@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000'
 const UNIQUE = Date.now()
 const TEST_EMAIL = `e2e_${UNIQUE}@testcyra.com`
 const TEST_PASSWORD = 'TestPass1!'
@@ -80,7 +81,7 @@ test.describe('Authentication flow', () => {
 
   test('login with registered account goes to dashboard', async ({ page }) => {
     // Register via API so we don't depend on E2E sign-up flow
-    const resp = await page.request.post('http://localhost:8000/auth/register', {
+    const resp = await page.request.post(`${BACKEND_URL}/auth/register`, {
       data: {
         first_name: 'E2E',
         last_name: 'Login',
@@ -100,7 +101,7 @@ test.describe('Authentication flow', () => {
   })
 
   test('dashboard shows user name', async ({ page }) => {
-    const resp = await page.request.post('http://localhost:8000/auth/register', {
+    const resp = await page.request.post(`${BACKEND_URL}/auth/register`, {
       data: {
         first_name: 'Dashboard',
         last_name: 'Tester',
@@ -123,7 +124,7 @@ test.describe('Authentication flow', () => {
   })
 
   test('logout clears session and shows landing', async ({ page }) => {
-    const resp = await page.request.post('http://localhost:8000/auth/register', {
+    const resp = await page.request.post(`${BACKEND_URL}/auth/register`, {
       data: {
         first_name: 'Logout',
         last_name: 'Test',

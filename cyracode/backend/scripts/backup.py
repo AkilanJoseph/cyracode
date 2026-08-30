@@ -29,6 +29,13 @@ import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
+# Load application settings (DATABASE_URL etc.) from the backend config/.env
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+try:
+    from app.config import settings as app_settings
+except Exception:  # pragma: no cover - config is required in normal runs
+    app_settings = None
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s  %(levelname)-8s  %(message)s",
@@ -38,10 +45,21 @@ log = logging.getLogger("cyracode.backup")
 
 DEFAULT_DEST = Path(os.getenv("BACKUP_DEST", "/var/backups/cyracode"))
 DEFAULT_RETENTION_DAYS = int(os.getenv("BACKUP_RETENTION_DAYS", "30"))
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "mssql+pyodbc://sa:password@localhost/cyracode?driver=ODBC+Driver+17+for+SQL+Server",
+# Pull the connection string from the app config (or BACKUP/DATABASE env), never
+# hardcode credentials.
+DATABASE_URL = os.getenv("DATABASE_URL") or (
+    getattr(app_settings, "DATABASE_URL", "") if app_settings else ""
 )
+if not DATABASE_URL:
+    raise SystemExit(
+        "DATABASE_URL is not set. Configure backend/.env or export DATABASE_URL "
+        "before running the backup script."
+    )
+if DATABASE_URL.startswith(("sqlite", "sqlite3")):
+    raise SystemExit(
+        "The backup script only supports SQL Server. Set DATABASE_URL to an "
+        "mssql+pyodbc:// connection string in backend/.env."
+    )
 
 
 def _parse_connection(url: str) -> dict:
