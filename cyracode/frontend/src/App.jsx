@@ -42,10 +42,10 @@ function Dashboard() {
   const handleLogout = () => { logout(); navigate('/') }
 
   const actions = [
-    { to: '/register/traditional', icon: Sparkles, title: t('dashboard.card_custom_title'), desc: t('dashboard.card_custom_desc'), primary: true },
-    { to: '/register/auto-generate', icon: Zap, title: t('dashboard.card_auto_title'), desc: t('dashboard.card_auto_desc'), primary: false },
-    { to: '/search', icon: Search, title: t('dashboard.card_search_title'), desc: t('dashboard.card_search_desc'), primary: false },
-    { to: '/edit-address', icon: Pencil, title: t('dashboard.card_edit_title'), desc: t('dashboard.card_edit_desc'), primary: false },
+    { to: '/register/traditional', icon: Sparkles, title: t('dashboard.card_custom_title'), desc: t('dashboard.card_custom_desc') },
+    { to: '/register/auto-generate', icon: Zap, title: t('dashboard.card_auto_title'), desc: t('dashboard.card_auto_desc') },
+    { to: '/search', icon: Search, title: t('dashboard.card_search_title'), desc: t('dashboard.card_search_desc') },
+    { to: '/edit-address', icon: Pencil, title: t('dashboard.card_edit_title'), desc: t('dashboard.card_edit_desc') },
   ]
 
   return (
@@ -80,23 +80,22 @@ function Dashboard() {
         </div>
 
         <div className="grid sm:grid-cols-2 gap-4">
-          {actions.map(({ to, icon: Icon, title, desc, primary }) => (
+          {actions.map(({ to, icon: Icon, title, desc }) => (
             <Link
               key={to}
               to={to}
-              className={`group rounded-2xl p-5 border transition-all hover:shadow-card-hover hover:-translate-y-0.5 ${
-                primary ? 'bg-primary border-primary text-white' : 'bg-white border-border text-ink hover:border-primary/40'
-              }`}
+              className="group relative overflow-hidden rounded-2xl p-5 border border-border bg-white text-ink transition-all duration-300 hover:border-primary/40 hover:shadow-card-hover hover:-translate-y-1"
             >
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-4 ${primary ? 'bg-white/20' : 'bg-primary-light'}`}>
-                <Icon className={`w-5 h-5 ${primary ? 'text-white' : 'text-primary'}`} />
+              <div className="w-9 h-9 rounded-xl bg-primary-light flex items-center justify-center mb-4 transition-all duration-300 group-hover:bg-primary group-hover:shadow-lg group-hover:shadow-primary/25">
+                <Icon className="w-5 h-5 text-primary transition-colors duration-300 group-hover:text-white" aria-hidden="true" />
               </div>
-              <p className={`font-semibold text-sm leading-tight ${primary ? 'text-white' : 'text-ink'}`}>{title}</p>
-              <p className={`text-xs mt-1 leading-snug ${primary ? 'text-white/70' : 'text-muted'}`}>{desc}</p>
-              <div className={`flex items-center gap-1 text-xs font-medium mt-4 ${primary ? 'text-white/80' : 'text-primary'}`}>
+              <p className="font-semibold text-sm leading-tight text-ink">{title}</p>
+              <p className="text-xs mt-1 leading-snug text-muted">{desc}</p>
+              <div className="flex items-center gap-1 text-xs font-medium mt-4 text-primary">
                 {t('dashboard.get_started')}
-                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" aria-hidden="true" />
               </div>
+              <div className="absolute inset-x-0 bottom-0 h-1 bg-primary scale-x-0 origin-left transition-transform duration-300 group-hover:scale-x-100" aria-hidden="true" />
             </Link>
           ))}
         </div>
