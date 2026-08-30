@@ -613,7 +613,7 @@ export default function RegisterTraditional() {
                     <p className="text-xs text-red-500 font-medium mb-1.5">{t('register.name_taken')}</p>
                     <div className="flex flex-wrap gap-2">
                       {suggestions.map((s) => (
-                        <button key={s} onClick={() => setName(s)} className="text-xs px-3 py-1.5 rounded-full bg-primary-light text-primary hover:bg-orange-100 font-medium transition-colors">
+                        <button key={s} onClick={() => setName(s)} className="text-xs px-3 py-1.5 rounded-full bg-primary-light text-primary hover:bg-teal-100 font-medium transition-colors">
                           {s}
                         </button>
                       ))}

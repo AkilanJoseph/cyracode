@@ -402,7 +402,7 @@ export default function SearchPage() {
                 <button
                   key={f.name}
                   onClick={() => { setQuery(f.name); doSearch(f.name) }}
-                  className="text-sm px-3 py-1.5 rounded-full bg-primary-light text-primary hover:bg-orange-100 transition-colors font-medium"
+                  className="text-sm px-3 py-1.5 rounded-full bg-primary-light text-primary hover:bg-teal-100 transition-colors font-medium"
                 >
                   {f.name}
                 </button>

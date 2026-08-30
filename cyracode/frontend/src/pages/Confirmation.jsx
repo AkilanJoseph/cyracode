@@ -10,7 +10,7 @@ import {
 import Button from '../components/common/Button'
 
 function Confetti() {
-  const colors = ['#F97316', '#EA580C', '#FCD34D', '#34D399', '#60A5FA', '#A78BFA']
+  const colors = ['#069494', '#047878', '#2DD4BF', '#34D399', '#60A5FA', '#A78BFA']
   return (
     <div className="pointer-events-none fixed inset-0 overflow-hidden">
       {Array.from({ length: 36 }).map((_, i) => (
@@ -145,7 +145,7 @@ export default function Confirmation() {
 
           <div ref={qrRef} className="flex justify-center py-6 border-b border-border">
             <div className="p-4 bg-white rounded-2xl border border-border shadow-sm">
-              <QRCodeCanvas value={qrValue} size={160} fgColor="#F97316" level="H" />
+              <QRCodeCanvas value={qrValue} size={160} fgColor="#069494" level="H" />
             </div>
           </div>
 
