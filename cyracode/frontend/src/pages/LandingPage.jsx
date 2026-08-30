@@ -497,6 +497,16 @@ export default function LandingPage() {
                 </div>
                 <p className="text-sm text-muted mt-0.5">{t('landing.mode_auto_desc')}</p>
               </button>
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="w-full text-left border border-border rounded-2xl p-4 hover:border-primary hover:bg-primary-light transition-all group"
+              >
+                <div className="flex items-center justify-between">
+                  <p className="font-semibold text-ink">{t('landing.mode_dashboard_title')}</p>
+                  <ArrowRight className="w-4 h-4 text-muted group-hover:text-primary transition-colors" />
+                </div>
+                <p className="text-sm text-muted mt-0.5">{t('landing.mode_dashboard_desc')}</p>
+              </button>
             </div>
             <button
               onClick={() => setShowModeSelect(false)}

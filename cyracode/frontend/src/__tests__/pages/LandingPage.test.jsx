@@ -172,4 +172,20 @@ describe('LandingPage — Sign Up tab', () => {
     await user.click(screen.getByText(/maybe later/i))
     expect(screen.queryByText(/how do you want to register/i)).not.toBeInTheDocument()
   })
+
+  it('mode-select modal offers dashboard option', async () => {
+    const { user } = setup()
+    await switchToSignUp(user)
+    await user.type(screen.getByLabelText(/first name/i), 'Bob')
+    await user.type(screen.getByLabelText(/last name/i), 'Doe')
+    const emailInput = screen.getAllByPlaceholderText('you@example.com')[0]
+    await user.type(emailInput, 'bob@example.com')
+    const pwInput = screen.getAllByPlaceholderText('••••••••')[0]
+    await user.type(pwInput, 'ValidP@ss1')
+    await user.click(screen.getByLabelText(/i agree/i))
+    await user.click(screen.getByRole('button', { name: /create account/i }))
+    await screen.findByText(/how do you want to register/i)
+    await user.click(screen.getByRole('button', { name: /dashboard/i }))
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/dashboard'))
+  })
 })
