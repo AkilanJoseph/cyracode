@@ -82,14 +82,18 @@ export default function EditAddress() {
   }
 
   // Resolve the state ISO code so the India/US state dropdown highlights it.
+  // Matches by ISO code too (e.g. a record storing "CA" instead of "California").
   const resolveStateIso = async (countryCode, stateName) => {
     if (!countryCode || !stateName || ['US', 'IN'].indexOf(countryCode) === -1) return ''
     try {
       const mod = await import('country-state-city/lib/state')
       const states = mod.default.getStatesOfCountry(countryCode)
+      const q = stateName.toLowerCase()
       const match =
-        states.find((s) => s.name.toLowerCase() === stateName.toLowerCase()) ||
-        states.find((s) => stateName.toLowerCase().includes(s.name.toLowerCase()))
+        states.find((s) => s.name.toLowerCase() === q) ||
+        states.find((s) => s.isoCode.toLowerCase() === q) ||
+        states.find((s) => q.includes(s.name.toLowerCase())) ||
+        states.find((s) => s.name.toLowerCase().includes(q))
       return match ? match.isoCode : ''
     } catch {
       return ''
@@ -211,10 +215,15 @@ export default function EditAddress() {
           {t('edit.change_code')}
         </button>
       </div>
-      <MapPicker markerPosition={coords} onLocationSelect={handleLocationSelect} />
-      <div className="grid grid-cols-2 gap-3">
-        <Input label="Latitude" value={coords ? coords.lat.toFixed(6) : ''} placeholder="Select location on map" disabled helperText="Auto-filled from map" />
-        <Input label="Longitude" value={coords ? coords.lng.toFixed(6) : ''} placeholder="Select location on map" disabled helperText="Auto-filled from map" />
+      <MapPicker
+        key={selected.id}
+        markerPosition={coords}
+        onLocationSelect={handleLocationSelect}
+        height="380px"
+      />
+      <div className="grid grid-cols-2 gap-3 mt-5">
+        <Input label="Latitude" value={coords ? coords.lat.toFixed(6) : ''} placeholder="Select location on map" disabled helperText={t('edit.coord_hint')} />
+        <Input label="Longitude" value={coords ? coords.lng.toFixed(6) : ''} placeholder="Select location on map" disabled helperText={t('edit.coord_hint')} />
       </div>
       <div className="flex gap-3">
         <Button variant="secondary" onClick={() => { setSelectedId(''); setSelected(null); setStep(1) }} className="flex-1">{t('common.back')}</Button>
@@ -239,14 +248,17 @@ export default function EditAddress() {
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-2">
           <button
             onClick={() => navigate('/dashboard')}
+            aria-label="Back"
             className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-surface text-muted hover:text-ink transition-colors shrink-0"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
-          <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-            <MapPin className="w-4 h-4 text-white" aria-hidden="true" />
-          </div>
-          <span className="font-bold text-ink">{t('nav.brand')}</span>
+          <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2 shrink-0" aria-label={t('nav.brand')}>
+            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
+              <MapPin className="w-4 h-4 text-white" aria-hidden="true" />
+            </div>
+            <span className="font-bold text-ink">{t('nav.brand')}</span>
+          </button>
           <span className="text-muted mx-2">/</span>
           <span className="text-sm text-muted">{t('edit.title')}</span>
         </div>

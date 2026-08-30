@@ -227,7 +227,8 @@
       "save_changes": "Änderungen speichern",
       "saved_success": "Adresse erfolgreich aktualisiert!",
       "save_failed": "Adresse konnte nicht aktualisiert werden",
-      "pick_hint": "{{name}} wird bearbeitet — passen Sie die Markierung auf der Karte bei Bedarf an"
+      "pick_hint": "{{name}} wird bearbeitet — passen Sie die Markierung auf der Karte bei Bedarf an",
+      "coord_hint": "Automatisch von der Karte ausgefüllt"
     }
   }
 }

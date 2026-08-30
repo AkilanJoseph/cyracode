@@ -85,6 +85,31 @@ function Recenter({ center, zoom }) {
   return null
 }
 
+// Fix Leaflet's blank/blue map: on mount the container may have no measured
+// size yet, so no tiles load. Re-measure the map once it is rendered.
+function InvalidateSizeOnMount() {
+  const map = useMap()
+  useEffect(() => {
+    const t = setTimeout(() => map.invalidateSize(), 0)
+    return () => clearTimeout(t)
+  }, [map])
+  return null
+}
+
+// Re-measure the map whenever its container size changes (e.g. a sibling
+// caption or layout shift) so tiles render correctly.
+function InvalidateOnResize() {
+  const map = useMap()
+  useEffect(() => {
+    if (typeof ResizeObserver === 'undefined') return undefined
+    const container = map.getContainer()
+    const ro = new ResizeObserver(() => map.invalidateSize())
+    ro.observe(container)
+    return () => ro.disconnect()
+  }, [map])
+  return null
+}
+
 // Click-to-select handler; only active when not readonly
 function ClickHandler({ onLocationSelect, readonly }) {
   useMapEvents({
@@ -190,8 +215,8 @@ export default function MapPicker({
   const activeIcon = readonly ? greenIcon : redIcon
 
   return (
-    <div className="w-full" style={{ height }}>
-      <div className="relative w-full h-full rounded-lg overflow-hidden border border-border">
+    <div className="w-full">
+      <div className="relative w-full rounded-lg overflow-hidden border border-border" style={{ height }}>
         <MapContainer
           center={mapCenter}
           zoom={mapZoom}
@@ -200,6 +225,8 @@ export default function MapPicker({
         >
           <TileLayer url={TILE_URL} attribution={ATTRIBUTION} />
           <Recenter center={markerPosition || geoCenter || userLocation} zoom={mapZoom} />
+          <InvalidateSizeOnMount />
+          <InvalidateOnResize />
           <ClickHandler onLocationSelect={handleLocation} readonly={readonly} />
 
           {/* User's current position */}

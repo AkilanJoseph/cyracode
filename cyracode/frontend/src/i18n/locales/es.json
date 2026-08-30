@@ -227,7 +227,8 @@
       "save_changes": "Guardar cambios",
       "saved_success": "¡Dirección actualizada con éxito!",
       "save_failed": "No se pudo actualizar la dirección",
-      "pick_hint": "Editando {{name}} — ajusta el marcador en el mapa si es necesario"
+      "pick_hint": "Editando {{name}} — ajusta el marcador en el mapa si es necesario",
+      "coord_hint": "Rellenado automáticamente desde el mapa"
     }
   }
 }

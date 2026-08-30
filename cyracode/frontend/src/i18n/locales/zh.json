@@ -227,7 +227,8 @@
       "save_changes": "保存更改",
       "saved_success": "地址更新成功！",
       "save_failed": "地址更新失败",
-      "pick_hint": "正在编辑 {{name}} — 如有需要，请调整地图上的图钉"
+      "pick_hint": "正在编辑 {{name}} — 如有需要，请调整地图上的图钉",
+      "coord_hint": "从地图自动填充"
     }
   }
 }

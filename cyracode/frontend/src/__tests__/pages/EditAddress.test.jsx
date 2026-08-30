@@ -86,4 +86,21 @@ describe('EditAddress — editing flow', () => {
       expect(toastMock.success).toHaveBeenCalled()
     )
   })
+
+  it('prefills the address form with the selected code values', async () => {
+    const { user } = setup()
+    const select = await screen.findByRole('combobox')
+    await user.selectOptions(select, 'code-test-id')
+    await screen.findByTestId('map-picker')
+
+    await user.click(screen.getByRole('button', { name: /continue/i }))
+    const area = await screen.findByLabelText(/Area/i)
+    expect(area).toHaveValue('Indiranagar')
+    const city = screen.getByLabelText(/City \/ Town/i)
+    expect(city).toHaveValue('Bangalore')
+    const street = screen.getByLabelText(/Street Name/i)
+    expect(street).toHaveValue('MG Road')
+    const town = screen.getByLabelText('Town')
+    expect(town).toHaveValue('Bengaluru East')
+  })
 })

@@ -139,6 +139,7 @@ export function AddressStep({ address, setAddress, errors }) {
             <Input label={t('register.area')} value={address.area} onChange={(e) => set('area', e.target.value)} error={errors.area} maxLength={100} />
             <Input label={t('register.town')} value={address.town} onChange={(e) => set('town', e.target.value)} error={errors.town} maxLength={100} />
           </div>
+          <Input label={t('register.city')} value={address.city || ''} onChange={(e) => set('city', e.target.value)} error={errors.city} maxLength={100} />
           <Input label={t('register.road_name')} value={address.road_name} onChange={(e) => set('road_name', e.target.value)} error={errors.road_name} maxLength={100} />
           <Input label={t('register.street')} value={address.street_address} onChange={(e) => set('street_address', e.target.value)} error={errors.street_address} maxLength={100} />
           <div className="grid grid-cols-2 gap-3">
@@ -170,6 +171,7 @@ export function AddressStep({ address, setAddress, errors }) {
             <Input label={t('register.area')} value={address.area} onChange={(e) => set('area', e.target.value)} error={errors.area} maxLength={100} />
             <Input label={t('register.town')} value={address.town} onChange={(e) => set('town', e.target.value)} error={errors.town} maxLength={100} />
           </div>
+          <Input label={t('register.city')} value={address.city || ''} onChange={(e) => set('city', e.target.value)} error={errors.city} maxLength={100} />
           <div>
             <label className="block text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">{t('register.state')}</label>
             <select value={address.stateIso || ''} onChange={(e) => { const s = states.find((x) => x.isoCode === e.target.value); setAddress({ ...address, stateIso: e.target.value, state: s?.name || '' }) }} className={selectCls}>
@@ -192,6 +194,7 @@ export function AddressStep({ address, setAddress, errors }) {
             <Input label={t('register.area')} value={address.area} onChange={(e) => set('area', e.target.value)} error={errors.area} maxLength={100} />
             <Input label={t('register.town')} value={address.town} onChange={(e) => set('town', e.target.value)} error={errors.town} maxLength={100} />
           </div>
+          <Input label={t('register.city')} value={address.city || ''} onChange={(e) => set('city', e.target.value)} error={errors.city} maxLength={100} />
           <div className="grid grid-cols-2 gap-3">
             <Input label={t('register.flat_number')} value={address.flat_number} onChange={(e) => set('flat_number', e.target.value)} error={errors.flat_number} maxLength={50} />
             <Input label={t('register.plot_number')} value={address.plot_number} onChange={(e) => set('plot_number', e.target.value)} error={errors.plot_number} maxLength={50} />
@@ -211,6 +214,7 @@ export function AddressStep({ address, setAddress, errors }) {
             <Input label={t('register.area')} value={address.area} onChange={(e) => set('area', e.target.value)} error={errors.area} maxLength={100} />
             <Input label={t('register.town')} value={address.town} onChange={(e) => set('town', e.target.value)} error={errors.town} maxLength={100} />
           </div>
+          <Input label={t('register.city')} value={address.city || ''} onChange={(e) => set('city', e.target.value)} error={errors.city} maxLength={100} />
           <Input label={t('register.road_name')} value={address.road_name} onChange={(e) => set('road_name', e.target.value)} error={errors.road_name} maxLength={100} />
           <Input label={t('register.district_ward')} value={address.district} onChange={(e) => set('district', e.target.value)} maxLength={100} />
           <Input label={t('register.building')} value={address.building_name} onChange={(e) => set('building_name', e.target.value)} error={errors.building_name} maxLength={100} />
@@ -232,6 +236,7 @@ export function AddressStep({ address, setAddress, errors }) {
             <Input label={t('register.area')} value={address.area} onChange={(e) => set('area', e.target.value)} error={errors.area} maxLength={100} />
             <Input label={t('register.town')} value={address.town} onChange={(e) => set('town', e.target.value)} error={errors.town} maxLength={100} />
           </div>
+          <Input label={t('register.city')} value={address.city || ''} onChange={(e) => set('city', e.target.value)} error={errors.city} maxLength={100} />
           {states.length > 0 ? (
             <div>
               <label className="block text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">{t('register.state_province')}</label>
@@ -384,6 +389,7 @@ export function validateAddress(address) {
   else if (address.street_address.length > 100) errors.street_address = 'Must not exceed 100 characters'
   // AC 6.22: optional field length limits
   if (address.area?.length > 100) errors.area = 'Must not exceed 100 characters'
+  if (address.city?.length > 100) errors.city = 'Must not exceed 100 characters'
   if (address.town?.length > 100) errors.town = 'Must not exceed 100 characters'
   if (address.road_name?.length > 100) errors.road_name = 'Must not exceed 100 characters'
   if (address.building_name?.length > 100) errors.building_name = 'Must not exceed 100 characters'
@@ -537,14 +543,17 @@ export default function RegisterTraditional() {
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-2">
           <button
             onClick={() => navigate('/')}
+            aria-label="Back"
             className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-surface text-muted hover:text-ink transition-colors shrink-0"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
-          <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-            <MapPin className="w-4 h-4 text-white" aria-hidden="true" />
-          </div>
-          <span className="font-bold text-ink">{t('nav.brand')}</span>
+          <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2 shrink-0" aria-label={t('nav.brand')}>
+            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
+              <MapPin className="w-4 h-4 text-white" aria-hidden="true" />
+            </div>
+            <span className="font-bold text-ink">{t('nav.brand')}</span>
+          </button>
           <span className="text-muted mx-2">/</span>
           <span className="text-sm text-muted">{t('nav.register')}</span>
         </div>

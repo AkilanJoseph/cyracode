@@ -200,12 +200,12 @@ export default function LandingPage() {
     <div className="min-h-screen bg-surface">
       <nav className="border-b border-border bg-white/80 backdrop-blur-sm sticky top-0 z-20">
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2" aria-label={t('nav.brand')}>
             <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
               <MapPin className="w-4 h-4 text-white" />
             </div>
             <span className="font-bold text-ink">{t('nav.brand')}</span>
-          </div>
+          </button>
           <div className="flex items-center gap-4">
             <LanguageSelector />
             <button

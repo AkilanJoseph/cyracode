@@ -203,7 +203,8 @@
       "save_changes": "Save Changes",
       "saved_success": "Address updated successfully!",
       "save_failed": "Failed to update the address",
-      "pick_hint": "Editing {{name}} — adjust the pin on the map if needed"
+      "pick_hint": "Editing {{name}} — adjust the pin on the map if needed",
+      "coord_hint": "Auto-filled from map"
     },
     "reset": {
       "title": "Reset Password",
