@@ -9,12 +9,13 @@ from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.models import CyraCode, IdempotencyKey, OTPRecord, User
+from app.models.models import CyraCode, IdempotencyKey, User
 from app.rate_limiter import limiter
 from app.services.auth_service import get_current_user
 from app.services.registration_service import (
     check_name_available,
     create_cyracode_entry,
+    deactivate_cyracode_entry,
     generate_cyracode,
     generate_qr_code,
     suggest_alternative_names,
@@ -33,14 +34,6 @@ AUTO_CODE_PATTERN = re.compile(r"^[A-Za-z]{2}\d[A-Za-z]{2}\d{2}[A-Za-z]\d{2}[A-Z
 
 
 # ---------- Helpers ----------
-def _normalize_e164(mobile: str) -> str:
-    """Strip formatting and ensure E.164 (+[digits]) format."""
-    digits = re.sub(r"[^\d+]", "", mobile)
-    if not digits.startswith("+"):
-        digits = "+" + digits
-    return digits
-
-
 def _send_confirmation_email(
     email: str,
     name: str,
@@ -130,7 +123,6 @@ class RegistrationRequest(BaseModel):
     postal_code: str = Field(..., min_length=1, max_length=20)
     digi_pin: Optional[str] = Field(None, max_length=10)
     landmark: Optional[str] = Field(None, max_length=100)
-    verified_mobile: str
 
     @field_validator("name")
     @classmethod
@@ -147,21 +139,6 @@ class RegistrationRequest(BaseModel):
                     "Unicode characters (Hindi, Arabic, Chinese, Cyrillic, etc.) are supported."
                 )
         return v
-
-    @field_validator("verified_mobile")
-    @classmethod
-    def validate_mobile_e164(cls, v: str) -> str:
-        """AC 6.21: Normalize to E.164 and validate length (10–15 digits, country code included)."""
-        digits = re.sub(r"[^\d+]", "", v)
-        if not digits.startswith("+"):
-            digits = "+" + digits
-        digit_count = len(digits) - 1  # digits after the leading '+'
-        if not (10 <= digit_count <= 15):
-            raise ValueError(
-                "Mobile number must be in E.164 format with 10–15 digits "
-                "(e.g. +919876543210)."
-            )
-        return digits
 
 
 class CyraCodeResponse(BaseModel):
@@ -195,9 +172,8 @@ class CyraCodeResponse(BaseModel):
 class UpdateCyraCodeRequest(BaseModel):
     """Address fields that may be edited on an existing CyraCode.
 
-    ``name`` (code_name) and ``verified_mobile`` are deliberately absent:
-    the CyraCode name is unique and immutable, and editing an address does not
-    require re-verifying the mobile number via OTP.
+    ``name`` (code_name) is deliberately absent: the CyraCode name is unique
+    and immutable, so it is never editable.
     """
     latitude: float
     longitude: float
@@ -280,25 +256,6 @@ def _register(
             detail="Selected location appears to be in an uninhabited or ocean area. Please select a valid address.",
         )
 
-    # Normalize mobile early so it can be used in all subsequent checks
-    normalized_mobile = _normalize_e164(payload.verified_mobile)
-
-    # AC 2.23: Confirm mobile was OTP-verified within the last hour
-    verified_otp = (
-        db.query(OTPRecord)
-        .filter(
-            OTPRecord.mobile == normalized_mobile,
-            OTPRecord.is_used == True,  # noqa: E712
-            OTPRecord.verified_at >= datetime.utcnow() - timedelta(hours=1),
-        )
-        .first()
-    )
-    if not verified_otp:
-        raise HTTPException(
-            status_code=400,
-            detail="Mobile number must be verified via OTP before registration.",
-        )
-
     if not check_name_available(db, payload.name):
         raise HTTPException(
             status_code=409, detail="This CyraCode name is already taken."
@@ -320,7 +277,6 @@ def _register(
     data["code_name"] = payload.name
     data["code_type"] = code_type
     data["qr_code_path"] = None
-    data["verified_mobile"] = normalized_mobile
     data["is_flagged"] = should_flag
     data["flag_reason"] = flag_reason if should_flag else None
 
@@ -437,3 +393,32 @@ def update_my_code(
     data = payload.model_dump()
     entry = update_cyracode_entry(db, entry, data)
     return CyraCodeResponse.model_validate(entry)
+
+
+@router.delete("/my-codes/{code_id}", status_code=204)
+def delete_my_code(
+    code_id: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Remove one of the authenticated user's CyraCodes.
+
+    The lookup is scoped to ``CyraCode.user_id == user.id`` so a user can only
+    ever remove their own CyraCode — passing another user's id yields a 404.
+    Removal is a soft delete (``is_active=False``): the unique CyraCode name is
+    never released and the record disappears from search and "my codes".
+    """
+    entry = (
+        db.query(CyraCode)
+        .filter(
+            CyraCode.id == code_id,
+            CyraCode.user_id == user.id,
+            CyraCode.is_active == True,  # noqa: E712
+        )
+        .first()
+    )
+    if not entry:
+        raise HTTPException(status_code=404, detail="CyraCode not found.")
+
+    deactivate_cyracode_entry(db, entry)
+    return None

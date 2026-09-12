@@ -97,11 +97,6 @@ describe('Confirmation page — with record', () => {
     expect(screen.getByRole('link', { name: /dashboard/i })).toBeInTheDocument()
   })
 
-  it('renders Search CyraCodes link', () => {
-    renderWithRecord()
-    expect(screen.getByRole('link', { name: /search cyracodes/i })).toBeInTheDocument()
-  })
-
   it('copy link writes to clipboard', async () => {
     const user = userEvent.setup()
     const writeText = vi.fn().mockResolvedValue(undefined)

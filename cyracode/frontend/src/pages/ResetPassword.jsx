@@ -6,6 +6,7 @@ import { MapPin, KeyRound, ArrowLeft } from 'lucide-react'
 import Button from '../components/common/Button'
 import Input from '../components/common/Input'
 import { auth } from '../services/api'
+import { apiErrorMessage } from '../utils/errors'
 
 function passwordStrength(pw) {
   let score = 0
@@ -56,7 +57,7 @@ export default function ResetPassword() {
       toast.success(t('reset.success'))
       navigate('/')
     } catch (err) {
-      toast.error(err.response?.data?.detail || t('reset.invalid_token'))
+      toast.error(apiErrorMessage(err, t('reset.invalid_token')))
     } finally {
       setLoading(false)
     }

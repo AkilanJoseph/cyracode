@@ -1,6 +1,5 @@
 import os
 import uuid
-from datetime import datetime, timedelta
 
 import pytest
 
@@ -102,21 +101,6 @@ def make_cyracode(db, name, lat=12.9716, lng=77.5946, country_code="IN",
     return entry
 
 
-def make_verified_otp(db, mobile="+911234567890"):
-    """Create a pre-verified OTP record so registration tests bypass the OTP check."""
-    from app.models.models import OTPRecord
-    record = OTPRecord(
-        mobile=mobile,
-        otp_hash="test-placeholder-not-verified",
-        expires_at=datetime.utcnow() + timedelta(minutes=5),
-        is_used=True,
-        verified_at=datetime.utcnow(),
-    )
-    db.add(record)
-    db.commit()
-    return record
-
-
 def base_registration_payload(**overrides):
     payload = {
         "name": "MyHome",
@@ -128,7 +112,6 @@ def base_registration_payload(**overrides):
         "city": "Bangalore",
         "street_address": "MG Road",
         "postal_code": "560001",
-        "verified_mobile": "+911234567890",
     }
     payload.update(overrides)
     return payload

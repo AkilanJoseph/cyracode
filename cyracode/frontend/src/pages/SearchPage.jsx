@@ -11,6 +11,7 @@ import Button from '../components/common/Button'
 import BackButton from '../components/common/BackButton'
 import { search } from '../services/api'
 import { useAuth } from '../context/AuthContext'
+import { apiErrorMessage } from '../utils/errors'
 
 const HISTORY_KEY = 'cyracode_search_history'
 const CACHE_PREFIX = 'cyracode_result_'
@@ -156,11 +157,11 @@ export default function SearchPage() {
       saveHistory(name)
     } catch (err) {
       const detail = err.response?.data?.detail
-      if (detail && typeof detail === 'object') {
+      if (detail && typeof detail === 'object' && !Array.isArray(detail)) {
         setFuzzy(detail.suggestions || [])
-        toast.error(detail.message || t('search.not_found'))
+        toast.error(typeof detail.message === 'string' ? detail.message : t('search.not_found'))
       } else {
-        toast.error(detail || t('search.not_found'))
+        toast.error(apiErrorMessage(err, t('search.not_found')))
       }
     } finally {
       setLoading(false)

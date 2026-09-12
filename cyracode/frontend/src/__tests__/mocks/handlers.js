@@ -30,6 +30,18 @@ export const mockCyraCode = {
   qr_code: null,
 }
 
+const seedCodes = () => [
+  { ...mockCyraCode },
+  { ...mockCyraCode, id: 'code-test-id-2', code_name: 'MyOffice', area: 'Koramangala' },
+]
+
+export const cyracodeStore = {
+  codes: seedCodes(),
+  reset() {
+    this.codes = seedCodes()
+  },
+}
+
 export const handlers = [
   // Auth
   http.post(`${BASE}/auth/register`, () =>
@@ -48,14 +60,6 @@ export const handlers = [
     HttpResponse.json(mockUser)
   ),
 
-  // OTP
-  http.post(`${BASE}/otp/send`, () =>
-    HttpResponse.json({ success: true, message: 'OTP sent successfully.', expires_in: 300 })
-  ),
-  http.post(`${BASE}/otp/verify`, () =>
-    HttpResponse.json({ success: true, message: 'OTP verified successfully.', verified: true })
-  ),
-
   // Registration
   http.get(`${BASE}/registration/check-name/:name`, ({ params }) =>
     HttpResponse.json({ available: true, suggestions: [] })
@@ -70,11 +74,17 @@ export const handlers = [
     HttpResponse.json({ ...mockCyraCode, code_type: 'auto_generate' }, { status: 201 })
   ),
   http.get(`${BASE}/registration/my-codes`, () =>
-    HttpResponse.json([mockCyraCode])
+    HttpResponse.json(cyracodeStore.codes)
   ),
-  http.put(`${BASE}/registration/my-codes/:id`, () =>
-    HttpResponse.json({ ...mockCyraCode, street_address: 'Edited Road' })
-  ),
+  http.put(`${BASE}/registration/my-codes/:id`, ({ params }) => {
+    const entry = cyracodeStore.codes.find((c) => c.id === params.id)
+    if (!entry) return HttpResponse.json({ detail: 'CyraCode not found.' }, { status: 404 })
+    return HttpResponse.json({ ...entry, street_address: 'Edited Road' })
+  }),
+  http.delete(`${BASE}/registration/my-codes/:id`, ({ params }) => {
+    cyracodeStore.codes = cyracodeStore.codes.filter((c) => c.id !== params.id)
+    return new HttpResponse(null, { status: 204 })
+  }),
 
   // Search
   http.get(`${BASE}/search/autocomplete`, () =>

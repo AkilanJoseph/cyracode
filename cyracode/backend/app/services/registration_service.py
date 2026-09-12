@@ -179,6 +179,20 @@ def update_cyracode_entry(db: Session, entry: CyraCode, data: dict) -> CyraCode:
     return entry
 
 
+def deactivate_cyracode_entry(db: Session, entry: CyraCode) -> CyraCode:
+    """Soft-delete a CyraCode so it no longer appears in searches or "my codes".
+
+    The row is kept (``is_active=False``) so the unique ``code_name`` cannot be
+    re-registered by someone else and any historical references are preserved.
+    """
+    entry.is_active = False
+    entry.updated_at = datetime.utcnow()
+    db.add(entry)
+    db.commit()
+    db.refresh(entry)
+    return entry
+
+
 def generate_qr_code(cyracode_name: str, lat: float, lng: float) -> str:
     """Generate a QR code and return it as a base64 data URI.
 

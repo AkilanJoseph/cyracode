@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { MapPin, Sparkles, Search, ArrowRight, Zap } from 'lucide-react'
+import { MapPin, Sparkles, ArrowRight, Zap } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useGoogleLogin } from '@react-oauth/google'
 import Button from '../components/common/Button'
@@ -9,6 +9,7 @@ import Input from '../components/common/Input'
 import LanguageSelector from '../components/common/LanguageSelector'
 import { useAuth } from '../context/AuthContext'
 import { auth } from '../services/api'
+import { apiErrorMessage } from '../utils/errors'
 
 const REMEMBER_EMAIL_KEY = 'cyracode_remember_email'
 
@@ -116,7 +117,7 @@ export default function LandingPage() {
       toast.success('Welcome back!')
       navigate('/dashboard')
     } catch (err) {
-      toast.error(err.response?.data?.detail || t('errors.login_failed'))
+      toast.error(apiErrorMessage(err, t('errors.login_failed')))
     } finally {
       setLoading(false)
     }
@@ -167,10 +168,10 @@ export default function LandingPage() {
       setShowModeSelect(true)
     } catch (err) {
       if (err.response?.status === 409) {
-        setRegErrors((prev) => ({ ...prev, email: err.response.data.detail }))
+        setRegErrors((prev) => ({ ...prev, email: apiErrorMessage(err, t('errors.register_failed')) }))
         setTimeout(() => document.getElementById('reg-email')?.focus(), 0)
       } else {
-        toast.error(err.response?.data?.detail || t('errors.register_failed'))
+        toast.error(apiErrorMessage(err, t('errors.register_failed')))
       }
     } finally {
       setLoading(false)
@@ -188,7 +189,7 @@ export default function LandingPage() {
       toast.success('Signed in with Google!')
       setShowModeSelect(true)
     } catch (err) {
-      toast.error(err.response?.data?.detail || t('errors.google_failed'))
+      toast.error(apiErrorMessage(err, t('errors.google_failed')))
     } finally {
       setLoading(false)
     }
@@ -208,12 +209,6 @@ export default function LandingPage() {
           </button>
           <div className="flex items-center gap-4">
             <LanguageSelector />
-            <button
-              onClick={() => navigate('/search')}
-              className="text-sm text-muted hover:text-ink flex items-center gap-1.5 transition-colors"
-            >
-              <Search className="w-4 h-4" /> {t('nav.search')}
-            </button>
           </div>
         </div>
       </nav>

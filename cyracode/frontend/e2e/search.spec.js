@@ -34,7 +34,6 @@ async function seedCode(request) {
       city: 'Bangalore',
       street_address: 'MG Road',
       postal_code: '560001',
-      verified_mobile: '+911234567890',
     },
   })
   return codeResp

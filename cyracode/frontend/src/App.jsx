@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useRef } from 'react'
 import { BrowserRouter, Routes, Route, Link, Navigate, useNavigate } from 'react-router-dom'
 import { Toaster, toast } from 'react-hot-toast'
-import { MapPin, Sparkles, Zap, Search, LogOut, ArrowRight, Loader2, Pencil } from 'lucide-react'
+import { MapPin, Sparkles, Zap, LogOut, ArrowRight, Loader2, Pencil } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import { AuthProvider, useAuth } from './context/AuthContext'
@@ -13,7 +13,7 @@ const RegisterTraditional = lazy(() => import('./pages/RegisterTraditional'))
 const RegisterAutoGenerate = lazy(() => import('./pages/RegisterAutoGenerate'))
 const Confirmation = lazy(() => import('./pages/Confirmation'))
 const SearchPage = lazy(() => import('./pages/SearchPage'))
-const EditAddress = lazy(() => import('./pages/EditAddress'))
+const ManageCyraCodes = lazy(() => import('./pages/ManageCyraCodes'))
 const ResetPassword = lazy(() => import('./pages/ResetPassword'))
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
@@ -92,8 +92,7 @@ function Dashboard() {
   const actions = [
     { to: '/register/traditional', icon: Sparkles, title: t('dashboard.card_custom_title'), desc: t('dashboard.card_custom_desc') },
     { to: '/register/auto-generate', icon: Zap, title: t('dashboard.card_auto_title'), desc: t('dashboard.card_auto_desc') },
-    { to: '/search', icon: Search, title: t('dashboard.card_search_title'), desc: t('dashboard.card_search_desc') },
-    { to: '/edit-address', icon: Pencil, title: t('dashboard.card_edit_title'), desc: t('dashboard.card_edit_desc') },
+    { to: '/manage-cyracodes', icon: Pencil, title: t('dashboard.card_edit_title'), desc: t('dashboard.card_edit_desc') },
   ]
 
   return (
@@ -173,7 +172,7 @@ function AppRoutes() {
           <Route path="/register/auto-generate" element={<ProtectedRoute><RegisterAutoGenerate /></ProtectedRoute>} />
           <Route path="/confirmation" element={<ProtectedRoute><Confirmation /></ProtectedRoute>} />
           <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
-          <Route path="/edit-address" element={<ProtectedRoute><EditAddress /></ProtectedRoute>} />
+          <Route path="/manage-cyracodes" element={<ProtectedRoute><ManageCyraCodes /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />

@@ -4,7 +4,7 @@ import { QRCodeCanvas } from 'qrcode.react'
 import toast from 'react-hot-toast'
 import { useTranslation } from 'react-i18next'
 import {
-  CheckCircle2, Download, Share2, Mail, Copy, MessageCircle,
+  CheckCircle2, Download, Mail, Copy, MessageCircle,
   MapPin, ArrowRight, Facebook, UserCircle, Truck, Users,
 } from 'lucide-react'
 import Button from '../components/common/Button'
@@ -202,15 +202,10 @@ export default function Confirmation() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 mt-4">
+        <div className="mt-4">
           <Link to="/dashboard">
             <Button className="w-full" size="md">
               {t('confirmation.go_dashboard')} <ArrowRight className="w-4 h-4" />
-            </Button>
-          </Link>
-          <Link to="/search">
-            <Button variant="secondary" className="w-full" size="md">
-              <Share2 className="w-4 h-4" /> {t('confirmation.search_codes')}
             </Button>
           </Link>
         </div>

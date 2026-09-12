@@ -36,11 +36,6 @@ export const auth = {
   getMe: () => api.get('/auth/me'),
 }
 
-export const otp = {
-  sendOTP: (mobile) => api.post('/otp/send', { mobile }),
-  verifyOTP: (mobile, otp) => api.post('/otp/verify', { mobile, otp }),
-}
-
 export const registration = {
   checkName: (name) => api.get(`/registration/check-name/${encodeURIComponent(name)}`),
   generateCode: (lat, lng) => api.post('/registration/generate-code', { lat, lng }),
@@ -59,6 +54,7 @@ export const registration = {
     }),
   getMyCodes: () => api.get('/registration/my-codes'),
   updateMyCode: (id, payload) => api.put(`/registration/my-codes/${id}`, payload),
+  deleteMyCode: (id) => api.delete(`/registration/my-codes/${id}`),
 }
 
 export const search = {

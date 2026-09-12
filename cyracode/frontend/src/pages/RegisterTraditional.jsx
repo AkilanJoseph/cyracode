@@ -8,9 +8,9 @@ import ProgressSteps from '../components/common/ProgressSteps'
 import Button from '../components/common/Button'
 import Input from '../components/common/Input'
 import MapPicker from '../components/MapPicker'
-import OTPInput from '../components/OTPInput'
 import BackButton from '../components/common/BackButton'
-import { registration, otp } from '../services/api'
+import { registration } from '../services/api'
+import { apiErrorMessage } from '../utils/errors'
 
 // Haversine distance in meters (client-side, for AC 2.17 warning)
 function haversineMeters(lat1, lng1, lat2, lng2) {
@@ -300,126 +300,6 @@ export function AddressStep({ address, setAddress, errors }) {
   )
 }
 
-export function MobileStep({ mobile, setMobile, verified, setVerified }) {
-  const { t, i18n } = useTranslation()
-  const [otpValue, setOtpValue] = useState('')
-  const [sending, setSending] = useState(false)
-  const [verifying, setVerifying] = useState(false)
-  const [cooldown, setCooldown] = useState(0)
-  const [sent, setSent] = useState(false)
-  const [otpExpiresAt, setOtpExpiresAt] = useState(null)  // UTC Date from server
-  const [otpSecondsLeft, setOtpSecondsLeft] = useState(0)
-  const timerRef = useRef(null)
-  const expiryRef = useRef(null)
-
-  useEffect(() => {
-    if (cooldown <= 0) return
-    timerRef.current = setTimeout(() => setCooldown((c) => c - 1), 1000)
-    return () => clearTimeout(timerRef.current)
-  }, [cooldown])
-
-  // Timezone: tick down OTP validity using browser local clock vs server UTC expiry
-  useEffect(() => {
-    if (!otpExpiresAt || verified) return
-    const tick = () => {
-      const remaining = Math.max(0, Math.round((otpExpiresAt - Date.now()) / 1000))
-      setOtpSecondsLeft(remaining)
-      if (remaining > 0) expiryRef.current = setTimeout(tick, 1000)
-    }
-    tick()
-    return () => clearTimeout(expiryRef.current)
-  }, [otpExpiresAt, verified])
-
-  const sendOtp = async () => {
-    // AC 2.18: ITU E.164 standard — ^\+?[1-9]\d{1,14}$
-    if (!/^\+?[1-9]\d{1,14}$/.test(mobile.replace(/\s/g, ''))) {
-      toast.error('Enter a valid mobile number in international format (e.g. +919876543210)')
-      return
-    }
-    setSending(true)
-    try {
-      const { data: otpData } = await otp.sendOTP(mobile)
-      toast.success('OTP sent!')
-      setSent(true)
-      setCooldown(30)
-      // Timezone: parse UTC expiry from server; browser's Date converts to local time
-      if (otpData?.expires_at) {
-        setOtpExpiresAt(new Date(otpData.expires_at))
-      } else {
-        setOtpExpiresAt(new Date(Date.now() + 5 * 60 * 1000))
-      }
-      setOtpSecondsLeft(300)
-    } catch (err) {
-      toast.error(err.response?.data?.detail || t('errors.otp_send_failed'))
-    } finally {
-      setSending(false)
-    }
-  }
-
-  const verifyOtp = async () => {
-    if (otpValue.length !== 4) { toast.error(t('errors.otp_six_digits')); return }
-    setVerifying(true)
-    try {
-      await otp.verifyOTP(mobile, otpValue)
-      toast.success('Mobile verified!')
-      setVerified(true)
-    } catch (err) {
-      toast.error(err.response?.data?.detail || t('errors.otp_invalid'))
-    } finally {
-      setVerifying(false)
-    }
-  }
-
-  return (
-    <div className="space-y-5">
-      <Input
-        label={t('register.mobile_label')}
-        placeholder={t('register.mobile_placeholder')}
-        value={mobile}
-        onChange={(e) => setMobile(e.target.value)}
-        disabled={verified}
-      />
-      {!verified && (
-        <>
-          <Button onClick={sendOtp} loading={sending} disabled={cooldown > 0} variant="outline">
-            {cooldown > 0 ? t('register.resend_wait', { n: cooldown }) : sent ? t('register.resend_otp') : t('register.send_otp')}
-          </Button>
-          {/* AC 2.22: explicit message when cooldown is active */}
-          {cooldown > 0 && (
-            <p aria-live="polite" className="text-xs text-amber-600 font-medium">{t('register.otp_cooldown')}</p>
-          )}
-        </>
-      )}
-
-      {sent && !verified && (
-        <div className="space-y-4">
-          <p className="text-sm text-gray-600 text-center">{t('register.otp_prompt', { mobile })}</p>
-          {/* AC 6.15: OTP expiry in user's locale and timezone */}
-          {otpSecondsLeft > 0 ? (
-            <p aria-live="polite" aria-atomic="true" className="text-xs text-center text-gray-500">
-              {t('register.otp_expires_at', {
-                time: otpExpiresAt?.toLocaleTimeString(i18n.language),
-                min: Math.floor(otpSecondsLeft / 60),
-                sec: String(otpSecondsLeft % 60).padStart(2, '0'),
-              })}
-            </p>
-          ) : (
-            <p role="alert" className="text-xs text-center text-red-500 font-medium">{t('register.otp_expired')}</p>
-          )}
-          <OTPInput length={4} onChange={setOtpValue} />
-          <Button onClick={verifyOtp} loading={verifying} disabled={otpSecondsLeft === 0} className="w-full">{t('register.verify_otp')}</Button>
-        </div>
-      )}
-
-      {verified && (
-        <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 border border-emerald-100 p-3 rounded-xl text-sm font-medium">
-          <Check className="w-4 h-4" /> {t('register.mobile_verified')}
-        </div>
-      )}
-    </div>
-  )
-}
-
 export function validateAddress(address) {
   const errors = {}
   // AC 2.16: "This field is required" for all mandatory fields
@@ -476,10 +356,7 @@ export default function RegisterTraditional() {
   const [addressErrors, setAddressErrors] = useState({})
   const [showMismatch, setShowMismatch] = useState(false)
 
-  const [mobile, setMobile] = useState('')
-  const [verified, setVerified] = useState(false)
-
-  const STEPS = [t('register.step_location_name'), t('register.step_address'), t('register.step_verify')]
+  const STEPS = [t('register.step_location_name'), t('register.step_address')]
 
   useEffect(() => {
     if (!name || name.length < 3) { setNameStatus(null); setSuggestions([]); return }
@@ -538,11 +415,10 @@ export default function RegisterTraditional() {
     const errors = validateAddress(address)
     setAddressErrors(errors)
     if (Object.keys(errors).length) return toast.error(t('errors.fix_fields'))
-    setStep(3)
+    submit()
   }
 
   const submit = async () => {
-    if (!verified) return toast.error(t('errors.verify_mobile'))
     setSubmitting(true)
     try {
       const payload = {
@@ -565,12 +441,11 @@ export default function RegisterTraditional() {
         postal_code: address.postal_code,
         digi_pin: address.digi_pin || null,
         landmark: address.landmark || null,
-        verified_mobile: mobile,
       }
       const { data } = await registration.registerTraditional(payload, idempotencyKeyRef.current)
       navigate('/confirmation', { state: { record: data, mode: 'traditional' } })
     } catch (err) {
-      toast.error(err.response?.data?.detail || t('errors.register_failed'))
+      toast.error(apiErrorMessage(err, t('errors.register_failed')))
     } finally {
       setSubmitting(false)
     }
@@ -595,7 +470,7 @@ export default function RegisterTraditional() {
       <div id="main-content" className="max-w-2xl mx-auto px-4 py-10">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-ink">{t('register.title_traditional')}</h1>
-          <p className="text-muted mt-1">{t('common.step_of', { current: step, total: 3, name: STEPS[step - 1] })}</p>
+          <p className="text-muted mt-1">{t('common.step_of', { current: step, total: 2, name: STEPS[step - 1] })}</p>
         </div>
         <ProgressSteps steps={STEPS} current={step} />
 
@@ -686,19 +561,7 @@ export default function RegisterTraditional() {
               <AddressStep address={address} setAddress={setAddress} errors={addressErrors} />
               <div className="flex gap-3">
                 <Button variant="secondary" onClick={() => setStep(1)} className="flex-1">{t('common.back')}</Button>
-                <Button onClick={nextFromStep2} className="flex-1">{t('common.continue')}</Button>
-              </div>
-            </div>
-          )}
-
-          {step === 3 && (
-            <div className="space-y-5">
-              <MobileStep mobile={mobile} setMobile={setMobile} verified={verified} setVerified={setVerified} />
-              <div className="flex gap-3">
-                <Button variant="secondary" onClick={() => setStep(2)} className="flex-1">{t('common.back')}</Button>
-                <Button onClick={submit} loading={submitting} disabled={!verified} className="flex-1">
-                  {t('register.complete')}
-                </Button>
+                <Button onClick={nextFromStep2} loading={submitting} className="flex-1">{t('register.complete')}</Button>
               </div>
             </div>
           )}

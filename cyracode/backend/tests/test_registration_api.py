@@ -1,5 +1,5 @@
 """Integration tests for /registration endpoints."""
-from tests.conftest import auth_headers, base_registration_payload, make_cyracode, make_verified_otp
+from tests.conftest import auth_headers, base_registration_payload, make_cyracode
 
 
 class TestCheckName:
@@ -43,7 +43,6 @@ class TestGenerateCode:
 
 class TestRegisterTraditional:
     def test_success_creates_cyracode(self, client, db):
-        make_verified_otp(db)
         headers = auth_headers(client)
         resp = client.post(
             "/registration/traditional",
@@ -61,7 +60,6 @@ class TestRegisterTraditional:
         assert resp.status_code == 401
 
     def test_duplicate_name_returns_409(self, client, db):
-        make_verified_otp(db)
         headers = auth_headers(client)
         make_cyracode(db, "MyHome")
         resp = client.post(
@@ -74,7 +72,6 @@ class TestRegisterTraditional:
 
     def test_same_address_different_name_allowed(self, client, db):
         """Multiple residents in one flat may register the same address under different names."""
-        make_verified_otp(db)
         headers = auth_headers(client)
         make_cyracode(db, "Occupied", lat=12.9716, lng=77.5946, country_code="IN")
         payload = base_registration_payload(
@@ -104,7 +101,6 @@ class TestRegisterTraditional:
         assert resp.status_code == 422
 
     def test_optional_fields_nullable(self, client, db):
-        make_verified_otp(db)
         headers = auth_headers(client)
         payload = base_registration_payload()
         payload.pop("state", None)
@@ -114,7 +110,6 @@ class TestRegisterTraditional:
 
 class TestRegisterAutoGenerate:
     def test_success(self, client, db):
-        make_verified_otp(db)
         headers = auth_headers(client)
         # Name must match the backend generator format LL#LL##L##L# (12 chars),
         # e.g. Aa2DF43T91q5
@@ -139,7 +134,6 @@ class TestMyCodes:
         assert resp.json() == []
 
     def test_returns_own_codes_only(self, client, db):
-        make_verified_otp(db)
         headers = auth_headers(client)
         client.post("/registration/traditional", json=base_registration_payload(), headers=headers)
         resp = client.get("/registration/my-codes", headers=headers)
@@ -152,7 +146,6 @@ class TestMyCodes:
         assert resp.status_code == 401
 
     def test_does_not_include_inactive_codes(self, client, db):
-        make_verified_otp(db)
         headers = auth_headers(client)
         client.post("/registration/traditional", json=base_registration_payload(), headers=headers)
         from app.models.models import CyraCode
@@ -165,7 +158,6 @@ class TestMyCodes:
 
 class TestUpdateMyCode:
     def _create_code(self, client, db, name="MyHome"):
-        make_verified_otp(db)
         headers = auth_headers(client)
         client.post("/registration/traditional", json=base_registration_payload(name=name), headers=headers)
         return headers
@@ -271,15 +263,67 @@ class TestUpdateMyCode:
         assert resp.status_code == 422
 
 
+class TestDeleteMyCode:
+    def _create_code(self, client, db, name="MyHome"):
+        headers = auth_headers(client)
+        client.post(
+            "/registration/traditional",
+            json=base_registration_payload(name=name),
+            headers=headers,
+        )
+        return headers
+
+    def test_removes_own_code(self, client, db):
+        headers = self._create_code(client, db)
+        code_id = client.get("/registration/my-codes", headers=headers).json()[0]["id"]
+        resp = client.delete(f"/registration/my-codes/{code_id}", headers=headers)
+        assert resp.status_code == 204
+        # no longer returned by my-codes
+        assert client.get("/registration/my-codes", headers=headers).json() == []
+        # soft-deleted: the record still exists but is inactive
+        from app.models.models import CyraCode
+        entry = db.query(CyraCode).filter(CyraCode.id == code_id).first()
+        assert entry is not None
+        assert entry.is_active is False
+
+    def test_cannot_remove_another_users_code(self, client, db):
+        headers1 = self._create_code(client, db)
+        code_id = client.get("/registration/my-codes", headers=headers1).json()[0]["id"]
+
+        # Second user cannot delete the first user's code
+        headers2 = auth_headers(client, email="other@example.com")
+        resp = client.delete(f"/registration/my-codes/{code_id}", headers=headers2)
+        assert resp.status_code == 404
+
+        # Owner still sees the code afterwards
+        assert len(client.get("/registration/my-codes", headers=headers1).json()) == 1
+
+    def test_delete_nonexistent_returns_404(self, client):
+        headers = auth_headers(client)
+        resp = client.delete("/registration/my-codes/does-not-exist", headers=headers)
+        assert resp.status_code == 404
+
+    def test_unauthenticated_returns_401(self, client):
+        resp = client.delete("/registration/my-codes/abc")
+        assert resp.status_code == 401
+
+    def test_removed_code_not_searchable(self, client, db):
+        headers = self._create_code(client, db, name="SearchMe")
+        code_id = client.get("/registration/my-codes", headers=headers).json()[0]["id"]
+        client.delete(f"/registration/my-codes/{code_id}", headers=headers)
+
+        from app.services.search_service import search_by_name
+        assert search_by_name(db, "SearchMe") is None
+
+
 class TestDataIntegrity:
     """Tests for AC 6.17–6.22: idempotency, coordinate validation, duplicate prevention,
-    email uniqueness, mobile validation, and address field length limits."""
+    email uniqueness, and address field length limits."""
 
     # --- AC 6.17: Idempotency ---
 
     def test_idempotency_key_returns_cached_response(self, client, db):
         """Same key on rapid re-submit returns identical response; no duplicate record created."""
-        make_verified_otp(db)
         headers = auth_headers(client)
         headers["X-Idempotency-Key"] = "idem-test-key-abc-001"
 
@@ -296,7 +340,6 @@ class TestDataIntegrity:
 
     def test_no_idempotency_key_second_submit_rejected_as_duplicate(self, client, db):
         """Without a key, the second submit is blocked by the name-already-taken check."""
-        make_verified_otp(db)
         headers = auth_headers(client)
 
         resp1 = client.post("/registration/traditional", json=base_registration_payload(), headers=headers)
@@ -307,7 +350,6 @@ class TestDataIntegrity:
 
     def test_idempotency_cache_scoped_to_owning_user(self, client, db):
         """Reusing another user's idempotency key must never leak their cached data."""
-        make_verified_otp(db)
 
         # User A registers and caches a response under the idempotency key
         headers_a = auth_headers(client, email="user-a@example.com")
@@ -346,43 +388,9 @@ class TestDataIntegrity:
 
     def test_same_address_allows_multiple_entries(self, client, db):
         """A flat may house many people; registration must not be blocked by proximity."""
-        make_verified_otp(db)
         headers = auth_headers(client)
         make_cyracode(db, "Existing", lat=12.9716, lng=77.5946, country_code="IN")
         payload = base_registration_payload(name="NewName", latitude=12.97161, longitude=77.59461)
-        resp = client.post("/registration/traditional", json=payload, headers=headers)
-        assert resp.status_code == 201
-
-    # --- AC 6.21: Mobile Number Validation ---
-
-    def test_mobile_too_short_returns_422(self, client):
-        """AC 6.21: mobile with fewer than 10 digits (after '+') is rejected."""
-        headers = auth_headers(client)
-        payload = base_registration_payload(verified_mobile="+123456789")  # 9 digits
-        resp = client.post("/registration/traditional", json=payload, headers=headers)
-        assert resp.status_code == 422
-
-    def test_mobile_too_long_returns_422(self, client):
-        """AC 6.21: mobile with more than 15 digits (after '+') is rejected."""
-        headers = auth_headers(client)
-        payload = base_registration_payload(verified_mobile="+1234567890123456")  # 16 digits
-        resp = client.post("/registration/traditional", json=payload, headers=headers)
-        assert resp.status_code == 422
-
-    def test_mobile_formatted_normalized_to_e164(self, client, db):
-        """AC 6.21: '+1 (555) 123-4567' normalizes to '+15551234567' and matches OTP record."""
-        make_verified_otp(db, mobile="+15551234567")
-        headers = auth_headers(client)
-        payload = base_registration_payload(verified_mobile="+1 (555) 123-4567")
-        resp = client.post("/registration/traditional", json=payload, headers=headers)
-        assert resp.status_code == 201
-
-    def test_mobile_without_plus_normalized(self, client, db):
-        """AC 6.21: mobile without leading '+' is normalized by prepending '+'."""
-        make_verified_otp(db, mobile="+911234567890")
-        headers = auth_headers(client)
-        # Omit '+' — validator adds it back
-        payload = base_registration_payload(verified_mobile="911234567890")
         resp = client.post("/registration/traditional", json=payload, headers=headers)
         assert resp.status_code == 201
 
@@ -397,7 +405,6 @@ class TestDataIntegrity:
 
     def test_street_address_at_100_chars_accepted(self, client, db):
         """AC 6.22: street_address of exactly 100 characters is accepted."""
-        make_verified_otp(db)
         headers = auth_headers(client)
         payload = base_registration_payload(street_address="A" * 100)
         resp = client.post("/registration/traditional", json=payload, headers=headers)

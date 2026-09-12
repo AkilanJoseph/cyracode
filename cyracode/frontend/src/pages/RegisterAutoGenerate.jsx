@@ -7,8 +7,9 @@ import ProgressSteps from '../components/common/ProgressSteps'
 import Button from '../components/common/Button'
 import MapPicker from '../components/MapPicker'
 import BackButton from '../components/common/BackButton'
-import { AddressStep, MobileStep, validateAddress } from './RegisterTraditional'
+import { AddressStep, validateAddress } from './RegisterTraditional'
 import { registration } from '../services/api'
+import { apiErrorMessage } from '../utils/errors'
 
 const MAX_REGENERATIONS = 10
 
@@ -36,10 +37,8 @@ export default function RegisterAutoGenerate() {
     floor_unit: '', postal_code: '', digi_pin: '', landmark: '',
   })
   const [addressErrors, setAddressErrors] = useState({})
-  const [mobile, setMobile] = useState('')
-  const [verified, setVerified] = useState(false)
 
-  const STEPS = [t('register.step_location_code'), t('register.step_address'), t('register.step_verify')]
+  const STEPS = [t('register.step_location_code'), t('register.step_address')]
 
   const generate = async (lat, lng) => {
     setGenerating(true)
@@ -47,7 +46,9 @@ export default function RegisterAutoGenerate() {
       const { data } = await registration.generateCode(lat, lng)
       setCode(data.code)
     } catch (err) {
-      toast.error(err.response?.data?.detail || t('errors.generate_failed'))
+      // slowapi rate-limit responses carry `error` (not `detail`), so surface
+      // both to avoid showing the generic "Could not generate code" on a 429.
+      toast.error(err.response?.data?.detail || err.response?.data?.error || t('errors.generate_failed'))
     } finally {
       setGenerating(false)
     }
@@ -83,11 +84,10 @@ export default function RegisterAutoGenerate() {
     const errors = validateAddress(address)
     setAddressErrors(errors)
     if (Object.keys(errors).length) return toast.error(t('errors.fix_fields'))
-    setStep(3)
+    submit()
   }
 
   const submit = async () => {
-    if (!verified) return toast.error(t('errors.verify_mobile'))
     setSubmitting(true)
     try {
       const payload = {
@@ -110,12 +110,11 @@ export default function RegisterAutoGenerate() {
         postal_code: address.postal_code,
         digi_pin: address.digi_pin || null,
         landmark: address.landmark || null,
-        verified_mobile: mobile,
       }
       const { data } = await registration.registerAutoGenerate(payload, idempotencyKeyRef.current)
       navigate('/confirmation', { state: { record: data, mode: 'auto_generate' } })
-    } catch (err) {
-      toast.error(err.response?.data?.detail || t('errors.register_failed'))
+} catch (err) {
+      toast.error(apiErrorMessage(err, t('errors.register_failed')))
     } finally {
       setSubmitting(false)
     }
@@ -140,7 +139,7 @@ export default function RegisterAutoGenerate() {
       <div className="max-w-2xl mx-auto px-4 py-10">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-ink">{t('register.title_auto')}</h1>
-          <p className="text-muted mt-1">{t('common.step_of', { current: step, total: 3, name: STEPS[step - 1] })}</p>
+          <p className="text-muted mt-1">{t('common.step_of', { current: step, total: 2, name: STEPS[step - 1] })}</p>
         </div>
         <ProgressSteps steps={STEPS} current={step} />
 
@@ -190,19 +189,7 @@ export default function RegisterAutoGenerate() {
               <AddressStep address={address} setAddress={setAddress} errors={addressErrors} />
               <div className="flex gap-3">
                 <Button variant="secondary" onClick={() => setStep(1)} className="flex-1">{t('common.back')}</Button>
-                <Button onClick={nextFromStep2} className="flex-1">{t('common.continue')}</Button>
-              </div>
-            </div>
-          )}
-
-          {step === 3 && (
-            <div className="space-y-5">
-              <MobileStep mobile={mobile} setMobile={setMobile} verified={verified} setVerified={setVerified} />
-              <div className="flex gap-3">
-                <Button variant="secondary" onClick={() => setStep(2)} className="flex-1">{t('common.back')}</Button>
-                <Button onClick={submit} loading={submitting} disabled={!verified} className="flex-1">
-                  {t('register.complete')}
-                </Button>
+                <Button onClick={nextFromStep2} loading={submitting} className="flex-1">{t('register.complete')}</Button>
               </div>
             </div>
           )}
