@@ -1,12 +1,13 @@
 import re
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.models import OTPRecord
+from app.rate_limiter import limiter
 from app.services.otp_service import create_otp_record, send_otp, verify_otp
 
 router = APIRouter(prefix="/otp", tags=["otp"])
@@ -32,7 +33,8 @@ class VerifyOTPRequest(BaseModel):
 
 
 @router.post("/send")
-def send(payload: SendOTPRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")  # SMS is a paid resource — cap sends per IP
+def send(request: Request, payload: SendOTPRequest, db: Session = Depends(get_db)):
     payload.mobile = _normalize_e164(payload.mobile)
     last = (
         db.query(OTPRecord)
@@ -61,7 +63,8 @@ def send(payload: SendOTPRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/verify")
-def verify(payload: VerifyOTPRequest, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")  # bounds OTP brute-force attempts per IP
+def verify(request: Request, payload: VerifyOTPRequest, db: Session = Depends(get_db)):
     payload.mobile = _normalize_e164(payload.mobile)
     result = verify_otp(db, payload.mobile, payload.otp)
     if not result["success"]:

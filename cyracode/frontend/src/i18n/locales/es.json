@@ -195,6 +195,9 @@
       "mismatch": "Las contraseñas no coinciden",
       "back_login": "Volver al inicio de sesión"
     },
+    "session": {
+      "inactivity_message": "Se cerró tu sesión por inactividad"
+    },
     "errors": {
       "login_failed": "Error al iniciar sesión",
       "register_failed": "Error al registrarse",

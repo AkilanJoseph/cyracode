@@ -195,6 +195,9 @@
       "mismatch": "Пароли не совпадают",
       "back_login": "Вернуться к входу"
     },
+    "session": {
+      "inactivity_message": "Вы вышли из системы из-за неактивности"
+    },
     "errors": {
       "login_failed": "Ошибка входа",
       "register_failed": "Ошибка регистрации",

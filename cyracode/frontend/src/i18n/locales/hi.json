@@ -195,6 +195,9 @@
       "mismatch": "पासवर्ड मेल नहीं खाते",
       "back_login": "लॉगिन पर वापस"
     },
+    "session": {
+      "inactivity_message": "निष्क्रियता के कारण आपको लॉग आउट कर दिया गया है"
+    },
     "errors": {
       "login_failed": "लॉगिन विफल",
       "register_failed": "पंजीकरण विफल",

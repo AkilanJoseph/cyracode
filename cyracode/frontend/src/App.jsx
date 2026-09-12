@@ -1,6 +1,6 @@
-import { lazy, Suspense, useEffect } from 'react'
+import { lazy, Suspense, useEffect, useRef } from 'react'
 import { BrowserRouter, Routes, Route, Link, Navigate, useNavigate } from 'react-router-dom'
-import { Toaster } from 'react-hot-toast'
+import { Toaster, toast } from 'react-hot-toast'
 import { MapPin, Sparkles, Zap, Search, LogOut, ArrowRight, Loader2, Pencil } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { GoogleOAuthProvider } from '@react-oauth/google'
@@ -26,12 +26,60 @@ function PageLoader() {
   )
 }
 
+const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000
+
+// Logs the user out automatically after 15 minutes without user interaction,
+// showing a message so they know why they were signed out.
+function InactivityLogout() {
+  const { logout, isAuthenticated } = useAuth()
+  const navigate = useNavigate()
+  const { t } = useTranslation()
+  const lastActivityRef = useRef(Date.now())
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+    lastActivityRef.current = Date.now()
+
+    const reset = () => {
+      lastActivityRef.current = Date.now()
+    }
+    const events = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'wheel']
+    events.forEach((ev) => window.addEventListener(ev, reset, { passive: true }))
+
+    const check = setInterval(() => {
+      if (Date.now() - lastActivityRef.current >= INACTIVITY_TIMEOUT_MS) {
+        logout()
+        toast(t('session.inactivity_message'), { id: 'inactivity-logout', duration: 6000 })
+        navigate('/', { replace: true })
+      }
+    }, 30000)
+
+    return () => {
+      events.forEach((ev) => window.removeEventListener(ev, reset))
+      clearInterval(check)
+    }
+  }, [isAuthenticated, logout, navigate, t])
+
+  return null
+}
+
 const VITE_GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth()
   if (loading) return null
   if (!isAuthenticated) return <Navigate to="/" replace />
+  return children
+}
+
+// The login/landing page is only reachable when signed out. If an authenticated
+// user lands on "/" (e.g. browser back from a protected page), send them to the
+// dashboard instead. Logout clears the token first, then navigates to "/", so
+// the login page is only ever shown after an explicit logout.
+function HomeRoute({ children }) {
+  const { isAuthenticated, loading } = useAuth()
+  if (loading) return null
+  if (isAuthenticated) return <Navigate to="/dashboard" replace />
   return children
 }
 
@@ -117,13 +165,14 @@ function AppRoutes() {
       <a href="#main-content" className="skip-link">{t('common.skip_to_content')}</a>
       <BrowserRouter>
       <Toaster position="top-right" />
+      <InactivityLogout />
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          <Route path="/" element={<LandingPage />} />
+          <Route path="/" element={<HomeRoute><LandingPage /></HomeRoute>} />
           <Route path="/register/traditional" element={<ProtectedRoute><RegisterTraditional /></ProtectedRoute>} />
           <Route path="/register/auto-generate" element={<ProtectedRoute><RegisterAutoGenerate /></ProtectedRoute>} />
           <Route path="/confirmation" element={<ProtectedRoute><Confirmation /></ProtectedRoute>} />
-          <Route path="/search" element={<SearchPage />} />
+          <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
           <Route path="/edit-address" element={<ProtectedRoute><EditAddress /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/reset-password" element={<ResetPassword />} />

@@ -2,13 +2,15 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import {
-  Search, MapPin, Navigation, Share2, X, Clock, ArrowLeft,
+  Search, MapPin, Navigation, Share2, X, Clock,
   Mail, Copy, MessageCircle, Facebook, WifiOff, Route,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import MapPicker from '../components/MapPicker'
 import Button from '../components/common/Button'
+import BackButton from '../components/common/BackButton'
 import { search } from '../services/api'
+import { useAuth } from '../context/AuthContext'
 
 const HISTORY_KEY = 'cyracode_search_history'
 const CACHE_PREFIX = 'cyracode_result_'
@@ -33,31 +35,45 @@ function formatDistance(km) {
   return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`
 }
 
-function loadHistory() {
-  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]') }
+// Search history/cache is scoped to the logged-in user (when present) so one
+// account never surfaces another account's previously viewed entries. They fall
+// back to the legacy unscoped keys when no user is available (e.g. in tests).
+function historyKey(userId) {
+  return userId ? `${HISTORY_KEY}_${userId}` : HISTORY_KEY
+}
+
+function cacheKey(userId, name) {
+  const prefix = userId ? `${CACHE_PREFIX}${userId}_` : CACHE_PREFIX
+  return prefix + name.toLowerCase()
+}
+
+function loadHistory(userId) {
+  try { return JSON.parse(localStorage.getItem(historyKey(userId)) || '[]') }
   catch { return [] }
 }
 
-function loadCachedResult(name) {
-  try { return JSON.parse(localStorage.getItem(CACHE_PREFIX + name.toLowerCase()) || 'null') }
+function loadCachedResult(userId, name) {
+  try { return JSON.parse(localStorage.getItem(cacheKey(userId, name)) || 'null') }
   catch { return null }
 }
 
-function cacheResult(name, data) {
-  try { localStorage.setItem(CACHE_PREFIX + name.toLowerCase(), JSON.stringify(data)) }
+function cacheResult(userId, name, data) {
+  try { localStorage.setItem(cacheKey(userId, name), JSON.stringify(data)) }
   catch {}
 }
 
 export default function SearchPage() {
   const navigate = useNavigate()
   const { t } = useTranslation()
+  const { user } = useAuth()
+  const userId = user?.id || null
   const [query, setQuery] = useState('')
   const [suggestions, setSuggestions] = useState([])
   const [isFocused, setIsFocused] = useState(false)
   const [result, setResult] = useState(null)
   const [fuzzy, setFuzzy] = useState([])
   const [loading, setLoading] = useState(false)
-  const [history, setHistory] = useState(loadHistory)
+  const [history, setHistory] = useState(() => loadHistory(userId))
   const [userPos, setUserPos] = useState(null)
   const [showShareSheet, setShowShareSheet] = useState(false)
   const [isOffline, setIsOffline] = useState(!navigator.onLine)
@@ -103,12 +119,12 @@ export default function SearchPage() {
   const saveHistory = (name) => {
     const next = [name, ...history.filter((h) => h !== name)].slice(0, 10)
     setHistory(next)
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(next))
+    localStorage.setItem(historyKey(userId), JSON.stringify(next))
   }
 
   const clearHistory = () => {
     setHistory([])
-    localStorage.removeItem(HISTORY_KEY)
+    localStorage.removeItem(historyKey(userId))
   }
 
   const doSearch = async (name) => {
@@ -121,7 +137,7 @@ export default function SearchPage() {
 
     // Edge case: offline mode — serve from cache
     if (!navigator.onLine) {
-      const cached = loadCachedResult(name)
+      const cached = loadCachedResult(userId, name)
       if (cached) {
         setResult(cached)
         saveHistory(name)
@@ -136,7 +152,7 @@ export default function SearchPage() {
     try {
       const { data } = await search.searchByName(name)
       setResult(data)
-      cacheResult(name, data)
+      cacheResult(userId, name, data)
       saveHistory(name)
     } catch (err) {
       const detail = err.response?.data?.detail
@@ -234,12 +250,7 @@ export default function SearchPage() {
         {/* Search bar */}
         <div className="bg-white rounded-2xl shadow-card-hover border border-border p-3">
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => navigate('/')}
-              className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-surface text-muted hover:text-ink transition-colors shrink-0"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </button>
+            <BackButton />
             <div className="relative flex-1">
               <Search className="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input

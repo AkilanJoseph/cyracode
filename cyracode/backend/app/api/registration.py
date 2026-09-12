@@ -58,11 +58,17 @@ def _send_confirmation_email(
     print(f"  Google Maps: https://maps.google.com/?q={lat},{lng}")
 
 
-def _get_idempotency(db: Session, key: str) -> Optional[dict]:
+def _get_idempotency(db: Session, key: str, user_id: str) -> Optional[dict]:
+    """Return a cached idempotency response only if it belongs to this user.
+
+    The cache is scoped by ``user_id`` so a user can never see another user's
+    cached registration data (code name, coordinates, full address).
+    """
     record = (
         db.query(IdempotencyKey)
         .filter(
             IdempotencyKey.key == key,
+            IdempotencyKey.user_id == user_id,
             IdempotencyKey.expires_at > datetime.utcnow(),
         )
         .first()
@@ -72,12 +78,14 @@ def _get_idempotency(db: Session, key: str) -> Optional[dict]:
     return None
 
 
-def _store_idempotency(db: Session, key: str, endpoint: str, response: dict) -> None:
+def _store_idempotency(db: Session, key: str, endpoint: str, response: dict, user_id: str) -> None:
     existing = db.query(IdempotencyKey).filter(IdempotencyKey.key == key).first()
     if existing:
+        # A key is unique; never overwrite another user's cached entry.
         return
     record = IdempotencyKey(
         key=key,
+        user_id=user_id,
         endpoint=endpoint,
         response_json=json.dumps(response),
         expires_at=datetime.utcnow() + timedelta(hours=IDEMPOTENCY_TTL_HOURS),
@@ -258,7 +266,7 @@ def _register(
 ) -> CyraCodeResponse:
     # Idempotency check
     if idempotency_key:
-        cached = _get_idempotency(db, idempotency_key)
+        cached = _get_idempotency(db, idempotency_key, user.id)
         if cached:
             return CyraCodeResponse(**cached)
 
@@ -353,6 +361,7 @@ def _register(
             idempotency_key,
             code_type,
             response.model_dump(),
+            user.id,
         )
 
     return response

@@ -195,6 +195,9 @@
       "mismatch": "密码不匹配",
       "back_login": "返回登录"
     },
+    "session": {
+      "inactivity_message": "由于长时间不活动，您已退出登录"
+    },
     "errors": {
       "login_failed": "登录失败",
       "register_failed": "注册失败",

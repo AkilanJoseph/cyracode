@@ -195,6 +195,9 @@
       "mismatch": "Les mots de passe ne correspondent pas",
       "back_login": "Retour à la connexion"
     },
+    "session": {
+      "inactivity_message": "Vous avez été déconnecté(e) en raison de l'inactivité"
+    },
     "errors": {
       "login_failed": "Échec de connexion",
       "register_failed": "Échec d'inscription",

@@ -19,6 +19,33 @@ try:
 except Exception as exc:  # pragma: no cover
     print(f"[STARTUP] Could not create tables automatically: {exc}")
 
+
+def _ensure_schema_upgrades():
+    """Lightweight startup migration for pre-existing dev databases.
+
+    IdempotencyKey is now scoped to the owning user (UserId column) so one user
+    can never receive another user's cached registration data. ``create_all``
+    only creates missing tables, so the column must be added in place here.
+    Handles both SQLite (''ADD COLUMN'') and MSSQL (''ADD'') dialects.
+    """
+    from sqlalchemy import inspect, text
+
+    try:
+        inspector = inspect(engine)
+        columns = {c["name"] for c in inspector.get_columns("IdempotencyKeys")}
+        if "UserId" in columns:
+            return
+        add_clause = " ADD COLUMN " if engine.dialect.name == "sqlite" else " ADD "
+        with engine.begin() as conn:
+            conn.execute(
+                text(f'ALTER TABLE "IdempotencyKeys"{add_clause}"UserId" VARCHAR(36) NULL')
+            )
+    except Exception as exc:  # pragma: no cover
+        print(f"[STARTUP] Schema upgrade skipped for IdempotencyKeys: {exc}")
+
+
+_ensure_schema_upgrades()
+
 app = FastAPI(title="CyraCode API", version="1.0")
 
 app.state.limiter = limiter
@@ -35,8 +62,16 @@ app.add_middleware(
     allow_origins=origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    # X-API-Key added for AC 6.26 logistics partner authentication
-    allow_headers=["Authorization", "Content-Type", "Accept", "X-Requested-With", "X-API-Key"],
+    # X-API-Key added for AC 6.26 logistics partner authentication;
+    # X-Idempotency-Key added for AC 6.17 (frontend sends it on registration submits)
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "Accept",
+        "X-Requested-With",
+        "X-API-Key",
+        "X-Idempotency-Key",
+    ],
 )
 
 

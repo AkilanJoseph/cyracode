@@ -80,11 +80,11 @@ def auth_headers(client, email="user@example.com", password="ValidP@ss1"):
 
 
 def make_cyracode(db, name, lat=12.9716, lng=77.5946, country_code="IN",
-                  is_active=True):
+                  is_active=True, user_id=None):
     from app.models.models import CyraCode
     entry = CyraCode(
         id=str(uuid.uuid4()),
-        user_id=str(uuid.uuid4()),
+        user_id=user_id or str(uuid.uuid4()),
         code_name=name,
         code_type="traditional",
         latitude=lat,

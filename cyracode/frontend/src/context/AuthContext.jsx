@@ -33,6 +33,19 @@ export function AuthProvider({ children }) {
     setUser(null)
     localStorage.removeItem('cyracode_token')
     localStorage.removeItem('cyracode_user')
+    // Search history/result cache is per-browser and may contain codes from a
+    // previous login — purge it so the next user can't see another user's entries.
+    const purge = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (
+        key &&
+        (key.startsWith('cyracode_search_history') || key.startsWith('cyracode_result_'))
+      ) {
+        purge.push(key)
+      }
+    }
+    purge.forEach((key) => localStorage.removeItem(key))
   }
 
   return (

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   MapContainer,
   TileLayer,
@@ -76,12 +76,15 @@ function formatDist(km) {
 
 const containerStyle = { width: '100%', height: '100%' }
 
-// Recenter/rezoom the map when the marker position changes
-function Recenter({ center, zoom }) {
+// Recenter/rezoom the map when the marker position changes.
+// `skip` is used when the marker change is an echo of a click that happened
+// inside this map, so the view is left exactly where the user clicked.
+function Recenter({ center, zoom, skip }) {
   const map = useMap()
   useEffect(() => {
-    if (center) map.setView(center, zoom, { animate: true })
-  }, [center, zoom, map])
+    if (skip || !center) return
+    map.setView(center, zoom, { animate: true })
+  }, [center, zoom, map, skip])
   return null
 }
 
@@ -112,10 +115,19 @@ function InvalidateOnResize() {
 
 // Click-to-select handler; only active when not readonly
 function ClickHandler({ onLocationSelect, readonly }) {
+  const map = useMap()
   useMapEvents({
     click(e) {
       if (readonly) return
-      onLocationSelect(e.latlng.lat, e.latlng.lng)
+      const { lat, lng } = e.latlng
+      onLocationSelect(lat, lng, { fromClick: true })
+      // Keep the clicked point anchored under the cursor while zooming in to
+      // the selection zoom, so the pin lands exactly on the spot instead of
+      // being re-centered (which makes it appear to jump).
+      const targetZoom = Math.max(map.getZoom(), 16)
+      if (targetZoom > map.getZoom()) {
+        map.setZoomAround({ lat, lng }, targetZoom, { animate: true })
+      }
     },
   })
   return null
@@ -149,6 +161,9 @@ export default function MapPicker({
   const [geoCenter, setGeoCenter] = useState(null)
   const [userLocation, setUserLocation] = useState(userPos)
   const [locating, setLocating] = useState(false)
+  // Coordinates of the last point chosen by clicking inside this map; used to
+  // detect the parent echoing the click back via `markerPosition`.
+  const lastClickRef = useRef(null)
 
   // AC 5.1: Center map on user's current location; default zoom 15
   useEffect(() => {
@@ -167,10 +182,16 @@ export default function MapPicker({
     setUserLocation(userPos)
   }, [userPos])
 
-  const handleLocation = (lat, lng) => {
+  const handleLocation = (lat, lng, opts = {}) => {
     const pt = { lat, lng }
     setMarker(pt)
-    setGeoCenter(pt)
+    if (opts.fromClick) {
+      // The user placed the pin by clicking the map: keep the current view so
+      // the pin lands exactly where they clicked instead of re-centering it.
+      lastClickRef.current = pt
+    } else {
+      setGeoCenter(pt)
+    }
     reverseGeocode(lat, lng).then((raw) => {
       const address = raw?.display_name || ''
       onLocationSelect && onLocationSelect(lat, lng, address, raw)
@@ -200,6 +221,16 @@ export default function MapPicker({
   // AC 5.1: zoom 16 with a marker selected, 15 for user location, 5 for the world default
   const mapZoom = active ? 16 : geoCenter || userLocation ? 15 : 5
 
+  // A click inside this map flows back from the parent as a new markerPosition
+  // prop. Detect that echo so Recenter does not yank the map back to the pin
+  // (which makes the pin appear to jump to a different location).
+  const recenterCenter = markerPosition || geoCenter || userLocation
+  const isClickEcho =
+    lastClickRef.current &&
+    markerPosition &&
+    Number(markerPosition.lat) === Number(lastClickRef.current.lat) &&
+    Number(markerPosition.lng) === Number(lastClickRef.current.lng)
+
   const infoDistance =
     userLocation && active
       ? formatDist(
@@ -224,7 +255,7 @@ export default function MapPicker({
           style={containerStyle}
         >
           <TileLayer url={TILE_URL} attribution={ATTRIBUTION} />
-          <Recenter center={markerPosition || geoCenter || userLocation} zoom={mapZoom} />
+          <Recenter center={recenterCenter} zoom={mapZoom} skip={isClickEcho} />
           <InvalidateSizeOnMount />
           <InvalidateOnResize />
           <ClickHandler onLocationSelect={handleLocation} readonly={readonly} />

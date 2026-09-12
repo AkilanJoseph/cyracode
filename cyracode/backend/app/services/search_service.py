@@ -1,4 +1,5 @@
 import math
+from typing import Optional
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -39,7 +40,18 @@ def _uses_mssql_ci(db: Session) -> bool:
     return db.get_bind().dialect.name == "mssql"
 
 
-def search_by_name(db: Session, name: str):
+def _filter_owner(query, user_id: Optional[str]):
+    """Restrict results to the authenticated user's own CyraCodes when asked.
+
+    ``user_id`` is optional so logistics (partner) lookups keep searching the
+    full directory while end-user search stays private to the logged-in user.
+    """
+    if user_id:
+        query = query.filter(CyraCode.user_id == user_id)
+    return query
+
+
+def search_by_name(db: Session, name: str, user_id: Optional[str] = None):
     # AC 6.8: Direct equality lets MSSQL's CI (case-insensitive) collation use
     # IX_CyraCodes_CodeName. On case-sensitive dialects, lower() both sides so
     # search is case-insensitive there too (func.lower() on MSSQL would force a
@@ -48,17 +60,16 @@ def search_by_name(db: Session, name: str):
         name_clause = CyraCode.code_name == name
     else:
         name_clause = func.lower(CyraCode.code_name) == name.lower()
-    return (
-        db.query(CyraCode)
-        .filter(
-            name_clause,
-            CyraCode.is_active == True,  # noqa: E712
-        )
-        .first()
+    query = db.query(CyraCode).filter(
+        name_clause,
+        CyraCode.is_active == True,  # noqa: E712
     )
+    return _filter_owner(query, user_id).first()
 
 
-def autocomplete_names(db: Session, query: str, limit: int = 5) -> list:
+def autocomplete_names(
+    db: Session, query: str, limit: int = 5, user_id: Optional[str] = None
+) -> list:
     if not query:
         return []
     # AC 6.8: Prefix LIKE (no leading wildcard) performs an index range scan on
@@ -67,15 +78,12 @@ def autocomplete_names(db: Session, query: str, limit: int = 5) -> list:
         name_clause = CyraCode.code_name.like(f"{query}%")
     else:
         name_clause = func.lower(CyraCode.code_name).like(f"{query.lower()}%")
-    results = (
-        db.query(CyraCode)
-        .filter(
-            name_clause,
-            CyraCode.is_active == True,  # noqa: E712
-        )
-        .limit(limit)
-        .all()
+    query = db.query(CyraCode).filter(
+        name_clause,
+        CyraCode.is_active == True,  # noqa: E712
     )
+    query = _filter_owner(query, user_id)
+    results = query.limit(limit).all()
     return [
         {
             "name": c.code_name,
@@ -87,40 +95,41 @@ def autocomplete_names(db: Session, query: str, limit: int = 5) -> list:
     ]
 
 
-def fuzzy_search(db: Session, name: str, limit: int = 5) -> list:
+def fuzzy_search(db: Session, name: str, limit: int = 5, user_id: Optional[str] = None) -> list:
     if not name:
         return []
     if _uses_mssql_ci(db):
         name_clause = CyraCode.code_name.like(f"%{name}%")
     else:
         name_clause = func.lower(CyraCode.code_name).like(f"%{name.lower()}%")
-    results = (
-        db.query(CyraCode)
-        .filter(
-            name_clause,
-            CyraCode.is_active == True,  # noqa: E712
-        )
-        .limit(limit)
-        .all()
+    query = db.query(CyraCode).filter(
+        name_clause,
+        CyraCode.is_active == True,  # noqa: E712
     )
+    query = _filter_owner(query, user_id)
+    results = query.limit(limit).all()
     return [
         {"name": c.code_name, "address": _brief_address(c)} for c in results
     ]
 
 
-def reverse_geocode_search(db: Session, lat: float, lng: float, radius_m: float = 50):
+def reverse_geocode_search(
+    db: Session,
+    lat: float,
+    lng: float,
+    radius_m: float = 50,
+    user_id: Optional[str] = None,
+):
     delta = 0.01  # ~1.1km bounding box pre-filter
-    candidates = (
-        db.query(CyraCode)
-        .filter(
-            CyraCode.is_active == True,  # noqa: E712
-            CyraCode.latitude >= lat - delta,
-            CyraCode.latitude <= lat + delta,
-            CyraCode.longitude >= lng - delta,
-            CyraCode.longitude <= lng + delta,
-        )
-        .all()
+    query = db.query(CyraCode).filter(
+        CyraCode.is_active == True,  # noqa: E712
+        CyraCode.latitude >= lat - delta,
+        CyraCode.latitude <= lat + delta,
+        CyraCode.longitude >= lng - delta,
+        CyraCode.longitude <= lng + delta,
     )
+    query = _filter_owner(query, user_id)
+    candidates = query.all()
     nearest = None
     nearest_dist = None
     for c in candidates:

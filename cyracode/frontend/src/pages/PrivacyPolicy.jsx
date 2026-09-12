@@ -1,7 +1,8 @@
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { MapPin, ArrowLeft } from 'lucide-react'
 
 export default function PrivacyPolicy() {
+  const navigate = useNavigate()
   return (
     <div className="min-h-screen bg-surface">
       <nav className="border-b border-border bg-white/80 backdrop-blur-sm sticky top-0 z-20">
@@ -12,9 +13,12 @@ export default function PrivacyPolicy() {
             </div>
             <span className="font-bold text-ink">CyraCode</span>
           </div>
-          <Link to="/" className="flex items-center gap-1.5 text-sm text-muted hover:text-ink transition-colors">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-1.5 text-sm text-muted hover:text-ink transition-colors"
+          >
             <ArrowLeft className="w-4 h-4" /> Back
-          </Link>
+          </button>
         </div>
       </nav>
 

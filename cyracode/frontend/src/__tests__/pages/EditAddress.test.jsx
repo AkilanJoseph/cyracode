@@ -96,7 +96,7 @@ describe('EditAddress — editing flow', () => {
     await user.click(screen.getByRole('button', { name: /continue/i }))
     const area = await screen.findByLabelText(/Area/i)
     expect(area).toHaveValue('Indiranagar')
-    const city = screen.getByLabelText(/City \/ Town/i)
+    const city = screen.getByLabelText(/City/i)
     expect(city).toHaveValue('Bangalore')
     const street = screen.getByLabelText(/Street Name/i)
     expect(street).toHaveValue('MG Road')

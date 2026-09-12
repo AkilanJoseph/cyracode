@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Check, X, Loader2, MapPin, AlertTriangle, ArrowLeft } from 'lucide-react'
+import { Check, X, Loader2, MapPin, AlertTriangle } from 'lucide-react'
 import Country from 'country-state-city/lib/country'
 import { useTranslation } from 'react-i18next'
 import ProgressSteps from '../components/common/ProgressSteps'
@@ -9,6 +9,7 @@ import Button from '../components/common/Button'
 import Input from '../components/common/Input'
 import MapPicker from '../components/MapPicker'
 import OTPInput from '../components/OTPInput'
+import BackButton from '../components/common/BackButton'
 import { registration, otp } from '../services/api'
 
 // Haversine distance in meters (client-side, for AC 2.17 warning)
@@ -29,6 +30,20 @@ const POSTAL_REGEX = {
   JP: /^\d{3}-?\d{4}$/,
 }
 
+export function SelectWithLoader({ loading, className, children, ...rest }) {
+  return (
+    <div className="relative">
+      <select {...rest} className={className}>{children}</select>
+      {loading && (
+        <Loader2
+          className="w-4 h-4 animate-spin text-primary absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
+          aria-hidden="true"
+        />
+      )}
+    </div>
+  )
+}
+
 export function AddressStep({ address, setAddress, errors }) {
   const { t } = useTranslation()
   const [postalError, setPostalError] = useState('')
@@ -44,34 +59,58 @@ export function AddressStep({ address, setAddress, errors }) {
   // AC 2.12: State/province dropdown — state dataset is lazy-loaded only when a
   // country is chosen so it is split into an on-demand chunk.
   const [states, setStates] = useState([])
+  const [loadingStates, setLoadingStates] = useState(false)
   useEffect(() => {
     let active = true
     if (!address.country_code) {
       setStates([])
+      setLoadingStates(false)
       return undefined
     }
-    import('country-state-city/lib/state').then((mod) => {
-      if (active) setStates(mod.default.getStatesOfCountry(address.country_code))
-    })
+    setLoadingStates(true)
+    import('country-state-city/lib/state')
+      .then((mod) => {
+        if (active) setStates(mod.default.getStatesOfCountry(address.country_code))
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setLoadingStates(false)
+      })
     return () => { active = false }
   }, [address.country_code])
 
   // AC 2.9: District dropdown (India) — city dataset is ~7 MB, so lazy-load it
   // only when a state is selected; Vite splits it into an on-demand chunk.
   const [districts, setDistricts] = useState([])
+  const [loadingDistricts, setLoadingDistricts] = useState(false)
   useEffect(() => {
     let active = true
     if (!address.country_code || !address.stateIso) {
       setDistricts([])
+      setLoadingDistricts(false)
       return undefined
     }
-    import('country-state-city/lib/city').then((mod) => {
-      if (active) {
-        setDistricts(mod.default.getCitiesOfState(address.country_code, address.stateIso))
-      }
-    })
+    setLoadingDistricts(true)
+    import('country-state-city/lib/city')
+      .then((mod) => {
+        if (active) {
+          setDistricts(mod.default.getCitiesOfState(address.country_code, address.stateIso))
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setLoadingDistricts(false)
+      })
     return () => { active = false }
   }, [address.country_code, address.stateIso])
+
+  // Preload both datasets when the form mounts so selecting a country then a
+  // state populates the district dropdown immediately (module is cached by the
+  // bundler, so later import() calls resolve instantly).
+  useEffect(() => {
+    import('country-state-city/lib/state').catch(() => {})
+    import('country-state-city/lib/city').catch(() => {})
+  }, [])
 
   // AC 2.13: Real-time postal code validation
   const validatePostal = (code, countryCode) => {
@@ -122,17 +161,17 @@ export function AddressStep({ address, setAddress, errors }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">{t('register.state')}</label>
-              <select value={address.stateIso || ''} onChange={(e) => { const s = states.find((x) => x.isoCode === e.target.value); setAddress({ ...address, stateIso: e.target.value, state: s?.name || '', district: '' }) }} className={selectCls}>
+              <SelectWithLoader loading={loadingStates} value={address.stateIso || ''} onChange={(e) => { const s = states.find((x) => x.isoCode === e.target.value); setAddress({ ...address, stateIso: e.target.value, state: s?.name || '', district: '' }) }} className={selectCls}>
                 <option value="">{t('register.select_state')}</option>
                 {states.map((s) => <option key={s.isoCode} value={s.isoCode}>{s.name}</option>)}
-              </select>
+              </SelectWithLoader>
             </div>
             <div>
               <label className="block text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">{t('register.district')}</label>
-              <select value={address.district || ''} onChange={(e) => set('district', e.target.value)} className={selectCls}>
+              <SelectWithLoader loading={loadingDistricts} value={address.district || ''} onChange={(e) => set('district', e.target.value)} className={selectCls}>
                 <option value="">{t('register.select_district')}</option>
                 {districts.map((d) => <option key={d.name} value={d.name}>{d.name}</option>)}
-              </select>
+              </SelectWithLoader>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -174,10 +213,10 @@ export function AddressStep({ address, setAddress, errors }) {
           <Input label={t('register.city')} value={address.city || ''} onChange={(e) => set('city', e.target.value)} error={errors.city} maxLength={100} />
           <div>
             <label className="block text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">{t('register.state')}</label>
-            <select value={address.stateIso || ''} onChange={(e) => { const s = states.find((x) => x.isoCode === e.target.value); setAddress({ ...address, stateIso: e.target.value, state: s?.name || '' }) }} className={selectCls}>
+            <SelectWithLoader loading={loadingStates} value={address.stateIso || ''} onChange={(e) => { const s = states.find((x) => x.isoCode === e.target.value); setAddress({ ...address, stateIso: e.target.value, state: s?.name || '' }) }} className={selectCls}>
               <option value="">{t('register.select_state')}</option>
               {states.map((s) => <option key={s.isoCode} value={s.isoCode}>{s.name}</option>)}
-            </select>
+            </SelectWithLoader>
           </div>
           <Input label={t('register.landmark')} value={address.landmark || ''} onChange={(e) => set('landmark', e.target.value)} maxLength={100} />
           <Input label={t('register.postal_us')} value={address.postal_code} onChange={(e) => handlePostalChange(e.target.value)} error={postalErr} helperText={!postalErr ? t('register.postal_hint_us') : undefined} />
@@ -240,10 +279,10 @@ export function AddressStep({ address, setAddress, errors }) {
           {states.length > 0 ? (
             <div>
               <label className="block text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">{t('register.state_province')}</label>
-              <select value={address.stateIso || ''} onChange={(e) => { const s = states.find((x) => x.isoCode === e.target.value); setAddress({ ...address, stateIso: e.target.value, state: s?.name || '' }) }} className={selectCls}>
+              <SelectWithLoader loading={loadingStates} value={address.stateIso || ''} onChange={(e) => { const s = states.find((x) => x.isoCode === e.target.value); setAddress({ ...address, stateIso: e.target.value, state: s?.name || '' }) }} className={selectCls}>
                 <option value="">{t('register.select_state')}</option>
                 {states.map((s) => <option key={s.isoCode} value={s.isoCode}>{s.name}</option>)}
-              </select>
+              </SelectWithLoader>
             </div>
           ) : (
             <Input label={t('register.state_province')} value={address.state} onChange={(e) => set('state', e.target.value)} />
@@ -541,13 +580,7 @@ export default function RegisterTraditional() {
     <div className="min-h-screen bg-surface">
       <nav aria-label={t('nav.brand')} className="border-b border-border bg-white/80 backdrop-blur-sm sticky top-0 z-20">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-2">
-          <button
-            onClick={() => navigate('/')}
-            aria-label="Back"
-            className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-surface text-muted hover:text-ink transition-colors shrink-0"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </button>
+          <BackButton />
           <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2 shrink-0" aria-label={t('nav.brand')}>
             <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
               <MapPin className="w-4 h-4 text-white" aria-hidden="true" />

@@ -4,6 +4,8 @@ const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000'
 const UNIQUE = Date.now()
 const TEST_CODE = `E2ECode${UNIQUE}`
 
+let SEED_TOKEN = null
+
 async function seedCode(request) {
   const regResp = await request.post(`${BACKEND_URL}/auth/register`, {
     data: {
@@ -14,6 +16,7 @@ async function seedCode(request) {
     },
   })
   const { access_token } = await regResp.json()
+  SEED_TOKEN = access_token
 
   // Use UNIQUE-derived coordinates to avoid collisions across successive test runs.
   const lat = 10 + (UNIQUE % 70)
@@ -37,18 +40,29 @@ async function seedCode(request) {
   return codeResp
 }
 
+// Search is restricted to the authenticated user's own codes, so each test
+// session logs in as the seeded owner before visiting /search.
+async function loginAsSeed(page) {
+  await page.goto('/')
+  await page.evaluate((token) => {
+    localStorage.setItem('cyracode_token', token)
+    localStorage.setItem('cyracode_user', JSON.stringify({ first_name: 'Seed', last_name: 'User' }))
+  }, SEED_TOKEN)
+  await page.goto('/search')
+}
+
 test.describe('Search flow', () => {
   test.beforeAll(async ({ request }) => {
     await seedCode(request)
   })
 
   test('search page loads with input', async ({ page }) => {
-    await page.goto('/search')
+    await loginAsSeed(page)
     await expect(page.getByPlaceholder(/search a cyracode/i)).toBeVisible()
   })
 
   test('searching for seeded code shows result', async ({ page }) => {
-    await page.goto('/search')
+    await loginAsSeed(page)
     const input = page.getByPlaceholder(/search a cyracode/i)
     await input.fill(TEST_CODE)
     await input.press('Enter')
@@ -57,7 +71,7 @@ test.describe('Search flow', () => {
   })
 
   test('result shows address fields', async ({ page }) => {
-    await page.goto('/search')
+    await loginAsSeed(page)
     const input = page.getByPlaceholder(/search a cyracode/i)
     await input.fill(TEST_CODE)
     await input.press('Enter')
@@ -66,7 +80,7 @@ test.describe('Search flow', () => {
   })
 
   test('searching by Enter key works', async ({ page }) => {
-    await page.goto('/search')
+    await loginAsSeed(page)
     const input = page.getByPlaceholder(/search a cyracode/i)
     await input.fill(TEST_CODE)
     await input.press('Enter')
@@ -74,7 +88,7 @@ test.describe('Search flow', () => {
   })
 
   test('unknown code shows not found message', async ({ page }) => {
-    await page.goto('/search')
+    await loginAsSeed(page)
     await page.fill('[placeholder*="Search"]', 'AbsolutelyNotExistCode')
     await page.getByRole('button', { name: /go/i }).click()
     await expect(
@@ -83,19 +97,19 @@ test.describe('Search flow', () => {
   })
 
   test('search history is saved after successful search', async ({ page }) => {
-    await page.goto('/search')
+    await loginAsSeed(page)
     const input = page.getByPlaceholder(/search a cyracode/i)
     await input.fill(TEST_CODE)
     await input.press('Enter')
     await expect(page.locator('h2').filter({ hasText: TEST_CODE })).toBeVisible({ timeout: 8000 })
     // Navigate away and back — history should persist
-    await page.goto('/')
+    await page.goto('/dashboard')
     await page.goto('/search')
     await expect(page.getByRole('button', { name: TEST_CODE })).toBeVisible()
   })
 
   test('autocomplete suggestions appear while typing', async ({ page }) => {
-    await page.goto('/search')
+    await loginAsSeed(page)
     const prefix = TEST_CODE.slice(0, 5)
     await page.fill('[placeholder*="Search"]', prefix)
     // Suggestions are debounced — wait a bit
@@ -107,7 +121,7 @@ test.describe('Search flow', () => {
 
   test('Share button copies link to clipboard', async ({ page, context }) => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write'])
-    await page.goto('/search')
+    await loginAsSeed(page)
     const input = page.getByPlaceholder(/search a cyracode/i)
     await input.fill(TEST_CODE)
     await input.press('Enter')

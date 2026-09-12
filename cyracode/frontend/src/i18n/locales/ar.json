@@ -195,6 +195,9 @@
       "mismatch": "كلمتا المرور غير متطابقتين",
       "back_login": "العودة إلى تسجيل الدخول"
     },
+    "session": {
+      "inactivity_message": "تم تسجيل خروجك بسبب عدم النشاط"
+    },
     "errors": {
       "login_failed": "فشل تسجيل الدخول",
       "register_failed": "فشل التسجيل",

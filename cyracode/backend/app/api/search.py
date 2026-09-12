@@ -1,10 +1,13 @@
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_read_db
+from app.models.models import User
+from app.rate_limiter import limiter
+from app.services.auth_service import get_current_user
 from app.services.search_service import (
     autocomplete_names,
     fuzzy_search,
@@ -61,19 +64,29 @@ def _full_address(c) -> str:
 
 
 @router.get("/autocomplete", response_model=List[AutocompleteItem])
+@limiter.limit("60/minute")
 def autocomplete(
+    request: Request,
     response: Response,
     q: str = Query("", min_length=0),
     db: Session = Depends(get_read_db),
+    user: User = Depends(get_current_user),
 ):
-    # AC 6.9: short TTL lets a CDN absorb autocomplete bursts without stale data
-    response.headers["Cache-Control"] = "public, max-age=30, s-maxage=60"
-    return autocomplete_names(db, q, limit=5)
+    # Results are scoped to the authenticated user, so responses are private
+    # and must not be cached by shared/CDN caches.
+    response.headers["Cache-Control"] = "private, max-age=30"
+    return autocomplete_names(db, q, limit=5, user_id=user.id)
 
 
 @router.post("/reverse")
-def reverse_post(payload: ReverseRequest, db: Session = Depends(get_read_db)):
-    result = reverse_geocode_search(db, payload.lat, payload.lng, radius_m=50)
+@limiter.limit("20/minute")
+def reverse_post(
+    request: Request,
+    payload: ReverseRequest,
+    db: Session = Depends(get_read_db),
+    user: User = Depends(get_current_user),
+):
+    result = reverse_geocode_search(db, payload.lat, payload.lng, radius_m=50, user_id=user.id)
     if not result:
         raise HTTPException(
             status_code=404, detail="No CyraCode found within 50 meters."
@@ -94,10 +107,17 @@ def reverse_post(payload: ReverseRequest, db: Session = Depends(get_read_db)):
 
 
 @router.get("/{name}")
-def search(name: str, response: Response, db: Session = Depends(get_read_db)):
-    result = search_by_name(db, name)
+@limiter.limit("30/minute")
+def search(
+    request: Request,
+    name: str,
+    response: Response,
+    db: Session = Depends(get_read_db),
+    user: User = Depends(get_current_user),
+):
+    result = search_by_name(db, name, user_id=user.id)
     if not result:
-        suggestions = fuzzy_search(db, name, limit=5)
+        suggestions = fuzzy_search(db, name, limit=5, user_id=user.id)
         raise HTTPException(
             status_code=404,
             detail={
@@ -105,9 +125,9 @@ def search(name: str, response: Response, db: Session = Depends(get_read_db)):
                 "suggestions": suggestions,
             },
         )
-    # AC 6.9: CyraCode names are immutable after registration; 5-min client
-    # cache and 10-min CDN cache keep p95 latency well under 500 ms.
-    response.headers["Cache-Control"] = "public, max-age=300, s-maxage=600"
+    # AC 6.9: results are private to the logged-in user, so no shared caching;
+    # a short private max-age keeps repeated lookups snappy.
+    response.headers["Cache-Control"] = "private, max-age=300"
     return SearchResult(
         name=result.code_name,
         code_type=result.code_type,

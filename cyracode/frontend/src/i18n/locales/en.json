@@ -218,6 +218,9 @@
       "back_login": "Back to Login",
       "invalid_token": "Invalid or expired reset link"
     },
+    "session": {
+      "inactivity_message": "You have been logged out due to inactivity"
+    },
     "errors": {
       "login_failed": "Login failed",
       "register_failed": "Registration failed",

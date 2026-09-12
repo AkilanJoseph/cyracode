@@ -195,6 +195,9 @@
       "mismatch": "パスワードが一致しません",
       "back_login": "ログインに戻る"
     },
+    "session": {
+      "inactivity_message": "長時間操作がなかったため、ログアウトされました"
+    },
     "errors": {
       "login_failed": "ログイン失敗",
       "register_failed": "登録失敗",

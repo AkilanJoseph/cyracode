@@ -195,6 +195,9 @@
       "mismatch": "Passwörter stimmen nicht überein",
       "back_login": "Zurück zur Anmeldung"
     },
+    "session": {
+      "inactivity_message": "Sie wurden wegen Inaktivität abgemeldet"
+    },
     "errors": {
       "login_failed": "Anmeldung fehlgeschlagen",
       "register_failed": "Registrierung fehlgeschlagen",

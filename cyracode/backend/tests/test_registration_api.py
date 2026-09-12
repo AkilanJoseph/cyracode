@@ -305,6 +305,43 @@ class TestDataIntegrity:
         resp2 = client.post("/registration/traditional", json=base_registration_payload(), headers=headers)
         assert resp2.status_code == 409
 
+    def test_idempotency_cache_scoped_to_owning_user(self, client, db):
+        """Reusing another user's idempotency key must never leak their cached data."""
+        make_verified_otp(db)
+
+        # User A registers and caches a response under the idempotency key
+        headers_a = auth_headers(client, email="user-a@example.com")
+        headers_a["X-Idempotency-Key"] = "shared-idem-key-777"
+        resp_a = client.post(
+            "/registration/traditional",
+            json=base_registration_payload(name="AlphaHome"),
+            headers=headers_a,
+        )
+        assert resp_a.status_code == 201
+
+        # User B submits with the SAME idempotency key — must get their own
+        # registration, never user A's cached code_name/address.
+        headers_b = auth_headers(client, email="user-b@example.com")
+        headers_b["X-Idempotency-Key"] = "shared-idem-key-777"
+        resp_b = client.post(
+            "/registration/traditional",
+            json=base_registration_payload(name="BetaHome"),
+            headers=headers_b,
+        )
+        assert resp_b.status_code == 201
+        assert resp_b.json()["code_name"] == "BetaHome"
+        assert resp_b.json()["id"] != resp_a.json()["id"]
+        assert resp_b.json()["street_address"] == "MG Road"
+
+        # User A's retry with the key still returns their cached response
+        resp_a_retry = client.post(
+            "/registration/traditional",
+            json=base_registration_payload(name="MyHome"),
+            headers=headers_a,
+        )
+        assert resp_a_retry.status_code == 201
+        assert resp_a_retry.json()["id"] == resp_a.json()["id"]
+
     # --- Multiple residents allowed at the same address ---
 
     def test_same_address_allows_multiple_entries(self, client, db):

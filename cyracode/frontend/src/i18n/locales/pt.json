@@ -195,6 +195,9 @@
       "mismatch": "As senhas não coincidem",
       "back_login": "Voltar ao login"
     },
+    "session": {
+      "inactivity_message": "Você foi desconectado por inatividade"
+    },
     "errors": {
       "login_failed": "Falha no login",
       "register_failed": "Falha no cadastro",

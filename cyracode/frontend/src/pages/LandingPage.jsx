@@ -236,14 +236,14 @@ export default function LandingPage() {
           </p>
 
           <div className="mt-8 flex flex-col sm:flex-row md:flex-col lg:flex-row gap-3">
-            <Button size="lg" onClick={() => navigate('/register/traditional')} className="group">
+            <div className="inline-flex items-center justify-center gap-2 py-3 px-6 text-base font-medium bg-primary text-white shadow-sm cursor-default select-none rounded-xl">
               <Sparkles className="w-4 h-4" />
               {t('landing.btn_custom')}
-              <ArrowRight className="w-4 h-4 ml-1 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-            </Button>
-            <Button size="lg" variant="secondary" onClick={() => navigate('/register/auto-generate')}>
+            </div>
+            <div className="inline-flex items-center justify-center gap-2 py-3 px-6 text-base font-medium bg-primary text-white shadow-sm cursor-default select-none rounded-xl">
+              <Zap className="w-4 h-4" />
               {t('landing.btn_auto')}
-            </Button>
+            </div>
           </div>
 
           <div className="mt-10 pt-8 border-t border-border grid grid-cols-3 gap-4">

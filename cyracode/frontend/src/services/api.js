@@ -1,7 +1,11 @@
 import axios from 'axios'
 
+// In dev, Vite proxies /api to VITE_BACKEND_URL. In production there is no
+// proxy, so a build-time absolute URL is injected via VITE_API_BASE_URL.
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
 })
 

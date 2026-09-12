@@ -99,6 +99,9 @@ class IdempotencyKey(Base):
     __tablename__ = "IdempotencyKeys"
 
     id = Column("Id", String(36), primary_key=True, default=_uuid)
+    # AC 6.17: cached responses are scoped to the user who created them so one
+    # user can never receive another user's cached registration data.
+    user_id = Column("UserId", String(36), ForeignKey("Users.Id"), nullable=True, index=True)
     key = Column("Key", String(128), unique=True, nullable=False, index=True)
     endpoint = Column("Endpoint", String(100), nullable=False)
     response_json = Column("ResponseJson", Text, nullable=True)
