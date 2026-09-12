@@ -438,10 +438,10 @@ class TestDataIntegrity:
         resp = client.post("/registration/traditional", json=payload, headers=headers)
         assert resp.status_code == 422
 
-    def test_digi_pin_over_10_chars_returns_422(self, client):
-        """AC 6.22: digi_pin exceeding 10 characters is rejected."""
+    def test_po_box_over_10_chars_returns_422(self, client):
+        """AC 6.22: po_box exceeding 10 characters is rejected."""
         headers = auth_headers(client)
-        payload = base_registration_payload(digi_pin="D" * 11)
+        payload = base_registration_payload(po_box="D" * 11)
         resp = client.post("/registration/traditional", json=payload, headers=headers)
         assert resp.status_code == 422
 

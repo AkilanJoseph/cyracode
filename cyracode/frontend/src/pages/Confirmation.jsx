@@ -5,10 +5,10 @@ import toast from 'react-hot-toast'
 import { useTranslation } from 'react-i18next'
 import {
   CheckCircle2, Download, Mail, Copy, MessageCircle,
-  MapPin, ArrowRight, Facebook, UserCircle, Truck, Users,
+  ArrowRight, Facebook,
 } from 'lucide-react'
 import Button from '../components/common/Button'
-import BackButton from '../components/common/BackButton'
+import Header from '../components/common/Header'
 
 function Confetti() {
   const colors = ['#069494', '#047878', '#2DD4BF', '#34D399', '#60A5FA', '#A78BFA']
@@ -52,9 +52,11 @@ export default function Confirmation() {
 
   const addressLine = [
     record.flat_number,
+    record.suite_name,
     record.plot_number,
     record.building_name,
     record.street_address,
+    record.avenue_name,
     record.road_name,
     record.area,
     record.town,
@@ -101,28 +103,11 @@ export default function Confirmation() {
     window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareLink)}`, '_blank')
   }
 
-  // AC 4.9: Next steps
-  const nextSteps = [
-    { icon: UserCircle, title: t('confirmation.next_profile_title'), desc: t('confirmation.next_profile_desc') },
-    { icon: Truck, title: t('confirmation.next_delivery_title'), desc: t('confirmation.next_delivery_desc') },
-    { icon: Users, title: t('confirmation.next_share_title'), desc: t('confirmation.next_share_desc') },
-  ]
-
   return (
     <div className="min-h-screen bg-surface">
       <Confetti />
 
-      <nav className="border-b border-border bg-white/80 backdrop-blur-sm sticky top-0 z-20">
-        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-2">
-          <BackButton />
-          <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2 shrink-0" aria-label={t('nav.brand')}>
-            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-              <MapPin className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-bold text-ink">{t('nav.brand')}</span>
-          </button>
-        </div>
-      </nav>
+      <Header showBack maxWidth="max-w-2xl" />
 
       <div className="max-w-lg mx-auto px-4 py-12 animate-fade-in-up">
         <div className="text-center mb-8">
@@ -183,22 +168,6 @@ export default function Confirmation() {
                 </button>
               ))}
             </div>
-          </div>
-        </div>
-
-        {/* AC 4.9: Next Steps */}
-        <div className="mt-6">
-          <h2 className="text-sm font-semibold text-muted uppercase tracking-wide mb-3">{t('confirmation.next_steps')}</h2>
-          <div className="grid sm:grid-cols-3 gap-3">
-            {nextSteps.map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="bg-white rounded-2xl border border-border p-4">
-                <div className="w-8 h-8 rounded-xl bg-primary-light flex items-center justify-center mb-3">
-                  <Icon className="w-4 h-4 text-primary" />
-                </div>
-                <p className="text-sm font-semibold text-ink">{title}</p>
-                <p className="text-xs text-muted mt-0.5 leading-snug">{desc}</p>
-              </div>
-            ))}
           </div>
         </div>
 

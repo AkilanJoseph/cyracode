@@ -1,17 +1,20 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { MapPin, Sparkles, ArrowRight, Zap } from 'lucide-react'
+import { MapPin, Sparkles, ArrowRight, Zap, Users } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useGoogleLogin } from '@react-oauth/google'
 import Button from '../components/common/Button'
 import Input from '../components/common/Input'
-import LanguageSelector from '../components/common/LanguageSelector'
+import Header from '../components/common/Header'
 import { useAuth } from '../context/AuthContext'
-import { auth } from '../services/api'
+import { auth, registration } from '../services/api'
 import { apiErrorMessage } from '../utils/errors'
+import { PENDING_MODE_SELECT_KEY } from '../constants'
 
 const REMEMBER_EMAIL_KEY = 'cyracode_remember_email'
+
+const formatRegisteredCount = (value) => new Intl.NumberFormat('en-US').format(value)
 
 function passwordStrength(pw) {
   let score = 0
@@ -70,6 +73,7 @@ export default function LandingPage() {
   const [tab, setTab] = useState('login')
   const [loading, setLoading] = useState(false)
   const [showModeSelect, setShowModeSelect] = useState(false)
+  const [registrationCount, setRegistrationCount] = useState(null)
 
   const [loginForm, setLoginForm] = useState({ email: '', password: '', remember: false })
   const [loginErrors, setLoginErrors] = useState({})
@@ -81,6 +85,28 @@ export default function LandingPage() {
   useEffect(() => {
     const savedEmail = localStorage.getItem(REMEMBER_EMAIL_KEY)
     if (savedEmail) setLoginForm((f) => ({ ...f, email: savedEmail, remember: true }))
+  }, [])
+
+  // Social-proof registration count, served by the backend (source of truth).
+  // Re-fetched when the page reloads or the window regains focus so the figure
+  // stays current as new CyraCodes are registered.
+  useEffect(() => {
+    let active = true
+    const fetchCount = async () => {
+      try {
+        const { data } = await registration.registrationCount()
+        if (active) setRegistrationCount(data.display_count)
+      } catch {
+        if (active) setRegistrationCount(null)
+      }
+    }
+    fetchCount()
+    const onFocus = () => fetchCount()
+    window.addEventListener('focus', onFocus)
+    return () => {
+      active = false
+      window.removeEventListener('focus', onFocus)
+    }
   }, [])
 
   const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
@@ -105,6 +131,9 @@ export default function LandingPage() {
 
     setLoading(true)
     try {
+      // A login is always a fresh session — ignore any leftover pending
+      // mode-select flag so HomeRoute sends the user straight to the dashboard.
+      sessionStorage.removeItem(PENDING_MODE_SELECT_KEY)
       const { data } = await auth.login(loginForm.email, loginForm.password, loginForm.remember)
       login(data.access_token, data.user)
 
@@ -165,6 +194,7 @@ export default function LandingPage() {
       )
       login(data.access_token, data.user)
       toast.success('Account created!')
+      sessionStorage.setItem(PENDING_MODE_SELECT_KEY, '1')
       setShowModeSelect(true)
     } catch (err) {
       if (err.response?.status === 409) {
@@ -184,10 +214,12 @@ export default function LandingPage() {
       // For token response (implicit flow), use access_token to fetch user info
       // then pass id_token if available, or handle with backend
       const credential = tokenResponse.credential || tokenResponse.access_token
+      sessionStorage.removeItem(PENDING_MODE_SELECT_KEY)
       const { data } = await auth.googleAuth(credential)
       login(data.access_token, data.user)
       toast.success('Signed in with Google!')
-      setShowModeSelect(true)
+      // Sign-in is a login, not a fresh registration — go straight to the dashboard.
+      navigate('/dashboard')
     } catch (err) {
       toast.error(apiErrorMessage(err, t('errors.google_failed')))
     } finally {
@@ -197,21 +229,20 @@ export default function LandingPage() {
 
   const strength = passwordStrength(regForm.password)
 
+  // The pending flag lets HomeRoute keep the landing page mounted for the
+  // mode-select modal; clear it once the user picks a path or dismisses it.
+  const chooseMode = (path) => {
+    sessionStorage.removeItem(PENDING_MODE_SELECT_KEY)
+    navigate(path)
+  }
+  const dismissModeSelect = () => {
+    sessionStorage.removeItem(PENDING_MODE_SELECT_KEY)
+    setShowModeSelect(false)
+  }
+
   return (
     <div className="min-h-screen bg-surface">
-      <nav className="border-b border-border bg-white/80 backdrop-blur-sm sticky top-0 z-20">
-        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-          <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2" aria-label={t('nav.brand')}>
-            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-              <MapPin className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-bold text-ink">{t('nav.brand')}</span>
-          </button>
-          <div className="flex items-center gap-4">
-            <LanguageSelector />
-          </div>
-        </div>
-      </nav>
+      <Header maxWidth="max-w-6xl" />
 
       <div className="max-w-6xl mx-auto px-4 py-8 md:py-16 grid md:grid-cols-2 gap-8 md:gap-16 items-center">
         {/* Hero */}
@@ -229,6 +260,18 @@ export default function LandingPage() {
           <p className="mt-5 text-lg text-muted leading-relaxed max-w-md">
             {t('landing.hero_subtitle')}
           </p>
+
+          {registrationCount != null && (
+            <div className="mt-6 inline-flex flex-wrap items-center gap-x-2.5 gap-y-1 rounded-2xl border border-primary/20 bg-primary-light/50 px-4 py-3 animate-fade-in-up">
+              <Users className="w-5 h-5 text-primary shrink-0" />
+              <p className="text-sm text-ink leading-snug">
+                <span className="font-extrabold text-primary">
+                  {formatRegisteredCount(registrationCount)}+
+                </span>{' '}
+                {t('landing.social_proof')}
+              </p>
+            </div>
+          )}
 
           <div className="mt-8 flex flex-col sm:flex-row md:flex-col lg:flex-row gap-3">
             <div className="inline-flex items-center justify-center gap-2 py-3 px-6 text-base font-medium bg-primary text-white shadow-sm cursor-default select-none rounded-xl">
@@ -473,7 +516,7 @@ export default function LandingPage() {
             <p className="text-sm text-muted mt-1 mb-6">{t('landing.mode_subtitle')}</p>
             <div className="space-y-3">
               <button
-                onClick={() => navigate('/register/traditional')}
+                onClick={() => chooseMode('/register/traditional')}
                 className="w-full text-left border border-border rounded-2xl p-4 hover:border-primary hover:bg-primary-light transition-all group"
               >
                 <div className="flex items-center justify-between">
@@ -483,7 +526,7 @@ export default function LandingPage() {
                 <p className="text-sm text-muted mt-0.5">{t('landing.mode_custom_desc')}</p>
               </button>
               <button
-                onClick={() => navigate('/register/auto-generate')}
+                onClick={() => chooseMode('/register/auto-generate')}
                 className="w-full text-left border border-border rounded-2xl p-4 hover:border-primary hover:bg-primary-light transition-all group"
               >
                 <div className="flex items-center justify-between">
@@ -493,7 +536,7 @@ export default function LandingPage() {
                 <p className="text-sm text-muted mt-0.5">{t('landing.mode_auto_desc')}</p>
               </button>
               <button
-                onClick={() => navigate('/dashboard')}
+                onClick={() => chooseMode('/dashboard')}
                 className="w-full text-left border border-border rounded-2xl p-4 hover:border-primary hover:bg-primary-light transition-all group"
               >
                 <div className="flex items-center justify-between">
@@ -504,7 +547,7 @@ export default function LandingPage() {
               </button>
             </div>
             <button
-              onClick={() => setShowModeSelect(false)}
+              onClick={dismissModeSelect}
               className="mt-5 w-full text-sm text-muted hover:text-ink transition-colors py-1"
             >
               {t('landing.maybe_later')}

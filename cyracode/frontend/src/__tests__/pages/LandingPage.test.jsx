@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { http, HttpResponse } from 'msw'
 import { server } from '../mocks/server'
-import { mockToken, mockUser } from '../mocks/handlers'
+import { mockToken, mockUser, registrationCountStore } from '../mocks/handlers'
 import { AuthProvider } from '../../context/AuthContext'
 import LandingPage from '../../pages/LandingPage'
 
@@ -50,6 +50,53 @@ describe('LandingPage — layout', () => {
     setup()
     expect(screen.getByRole('button', { name: /^login$/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^sign up$/i })).toBeInTheDocument()
+  })
+})
+
+describe('LandingPage — registration count', () => {
+  it('shows the registration count with comma separators and a social proof message', async () => {
+    setup()
+    expect(await screen.findByText('10,100+')).toBeInTheDocument()
+    expect(screen.getByText(/CyraCodes registered/i)).toBeInTheDocument()
+  })
+
+  it('uses the count returned by the backend API', async () => {
+    registrationCountStore.actualCount = 123456
+    setup()
+    expect(await screen.findByText('133,456+')).toBeInTheDocument()
+  })
+
+  it('does not render the count before the API responds', () => {
+    setup()
+    expect(screen.queryByText(/CyraCodes registered/i)).not.toBeInTheDocument()
+  })
+
+  it('refreshes the count on window focus after a new CyraCode is registered', async () => {
+    const { user } = setup()
+    await screen.findByText('10,100+')
+
+    // Simulate a CyraCode registration happening server-side (mock increments on
+    // /registration/traditional) then the user returning to the landing page.
+    registrationCountStore.actualCount += 1
+    fireEvent(window, new Event('focus'))
+
+    expect(await screen.findByText('10,101+')).toBeInTheDocument()
+    expect(screen.queryByText('10,100+')).not.toBeInTheDocument()
+  })
+
+  it('hides the count banner when the count API fails', async () => {
+    setup()
+    await screen.findByText('10,100+')
+
+    server.use(
+      http.get('http://localhost:5173/api/registration/count', () =>
+        HttpResponse.json({ detail: 'Service unavailable.' }, { status: 500 })
+      )
+    )
+    fireEvent(window, new Event('focus'))
+
+    await waitFor(() => expect(screen.queryByText('10,100+')).not.toBeInTheDocument())
+    expect(screen.queryByText(/CyraCodes registered/i)).not.toBeInTheDocument()
   })
 })
 

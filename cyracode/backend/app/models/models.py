@@ -58,13 +58,17 @@ class CyraCode(Base):
     area = Column("Area", String(100), nullable=True)
     town = Column("Town", String(100), nullable=True)
     road_name = Column("RoadName", String(100), nullable=True)
+    avenue_name = Column("AvenueName", String(100), nullable=True)
     street_address = Column("StreetAddress", String(255), nullable=False)
     building_name = Column("BuildingName", String(100), nullable=True)
     flat_number = Column("FlatNumber", String(50), nullable=True)
+    suite_name = Column("SuiteName", String(50), nullable=True)
     plot_number = Column("PlotNumber", String(50), nullable=True)
     floor_unit = Column("FloorUnit", String(50), nullable=True)
     postal_code = Column("PostalCode", String(20), nullable=False)
-    digi_pin = Column("DigiPin", String(10), nullable=True)
+    # Renamed to "P.O. Box" in the UI/API; DB column stays "DigiPin" to
+    # preserve existing stored data without a schema migration.
+    po_box = Column("DigiPin", String(10), nullable=True)
     landmark = Column("Landmark", String(100), nullable=True)
     is_active = Column("IsActive", Boolean, default=True)
     qr_code_path = Column("QrCodePath", String(500), nullable=True)

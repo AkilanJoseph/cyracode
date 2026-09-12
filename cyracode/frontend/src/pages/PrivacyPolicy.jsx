@@ -1,26 +1,9 @@
-import { useNavigate } from 'react-router-dom'
-import { MapPin, ArrowLeft } from 'lucide-react'
+import Header from '../components/common/Header'
 
 export default function PrivacyPolicy() {
-  const navigate = useNavigate()
   return (
     <div className="min-h-screen bg-surface">
-      <nav className="border-b border-border bg-white/80 backdrop-blur-sm sticky top-0 z-20">
-        <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-              <MapPin className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-bold text-ink">CyraCode</span>
-          </div>
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-1.5 text-sm text-muted hover:text-ink transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back
-          </button>
-        </div>
-      </nav>
+      <Header showBack />
 
       <main className="max-w-3xl mx-auto px-4 py-12 prose prose-sm text-ink">
         <h1 className="text-2xl font-bold text-ink mb-2">Privacy Policy</h1>

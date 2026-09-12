@@ -50,7 +50,8 @@
       "gdpr_text": "Ich stimme der",
       "gdpr_policy": "Datenschutzerklärung",
       "gdpr_and": "zu und willige in die Datenverarbeitung ein",
-      "password_hint": "Mind. 8 Zeichen mit Großbuchstabe, Zahl und Sonderzeichen"
+      "password_hint": "Mind. 8 Zeichen mit Großbuchstabe, Zahl und Sonderzeichen",
+      "social_proof": "CyraCodes registriert — registriere noch heute deinen!"
     },
     "strength": {
       "0": "Sehr schwach",

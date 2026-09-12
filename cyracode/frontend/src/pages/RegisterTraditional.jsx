@@ -1,14 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Check, X, Loader2, MapPin, AlertTriangle } from 'lucide-react'
+import { Check, X, Loader2, AlertTriangle } from 'lucide-react'
 import Country from 'country-state-city/lib/country'
 import { useTranslation } from 'react-i18next'
 import ProgressSteps from '../components/common/ProgressSteps'
 import Button from '../components/common/Button'
 import Input from '../components/common/Input'
 import MapPicker from '../components/MapPicker'
-import BackButton from '../components/common/BackButton'
+import Header from '../components/common/Header'
 import { registration } from '../services/api'
 import { apiErrorMessage } from '../utils/errors'
 
@@ -180,6 +180,7 @@ export function AddressStep({ address, setAddress, errors }) {
           </div>
           <Input label={t('register.city')} value={address.city || ''} onChange={(e) => set('city', e.target.value)} error={errors.city} maxLength={100} />
           <Input label={t('register.road_name')} value={address.road_name} onChange={(e) => set('road_name', e.target.value)} error={errors.road_name} maxLength={100} />
+          <Input label={t('register.avenue_name')} value={address.avenue_name} onChange={(e) => set('avenue_name', e.target.value)} error={errors.avenue_name} maxLength={100} />
           <Input label={t('register.street')} value={address.street_address} onChange={(e) => set('street_address', e.target.value)} error={errors.street_address} maxLength={100} />
           <div className="grid grid-cols-2 gap-3">
             <Input label={t('register.building')} value={address.building_name} onChange={(e) => set('building_name', e.target.value)} error={errors.building_name} maxLength={100} />
@@ -189,11 +190,12 @@ export function AddressStep({ address, setAddress, errors }) {
             <Input label={t('register.flat_number')} value={address.flat_number} onChange={(e) => set('flat_number', e.target.value)} error={errors.flat_number} maxLength={50} />
             <Input label={t('register.plot_number')} value={address.plot_number} onChange={(e) => set('plot_number', e.target.value)} error={errors.plot_number} maxLength={50} />
           </div>
+          <Input label={t('register.suite_name')} value={address.suite_name} onChange={(e) => set('suite_name', e.target.value)} error={errors.suite_name} maxLength={50} />
           {/* AC 2.14: Landmark optional, max 100 chars */}
           <Input label={t('register.landmark')} value={address.landmark || ''} onChange={(e) => set('landmark', e.target.value)} maxLength={100} />
           {/* AC 2.13: Real-time postal validation */}
           <Input label={t('register.postal_in')} value={address.postal_code} onChange={(e) => handlePostalChange(e.target.value)} error={postalErr} helperText={!postalErr ? t('register.postal_hint_in') : undefined} />
-          <Input label={t('register.digi_pin')} value={address.digi_pin || ''} onChange={(e) => set('digi_pin', e.target.value)} error={errors.digi_pin} maxLength={10} />
+          <Input label={t('register.po_box')} value={address.po_box || ''} onChange={(e) => set('po_box', e.target.value)} error={errors.po_box} maxLength={10} />
         </>
       )}
 
@@ -202,10 +204,12 @@ export function AddressStep({ address, setAddress, errors }) {
         <>
           <Input label={t('register.street')} value={address.street_address} onChange={(e) => set('street_address', e.target.value)} error={errors.street_address} maxLength={100} />
           <Input label={t('register.road_name')} value={address.road_name} onChange={(e) => set('road_name', e.target.value)} error={errors.road_name} maxLength={100} />
+          <Input label={t('register.avenue_name')} value={address.avenue_name} onChange={(e) => set('avenue_name', e.target.value)} error={errors.avenue_name} maxLength={100} />
           <div className="grid grid-cols-2 gap-3">
             <Input label={t('register.flat_number')} value={address.flat_number} onChange={(e) => set('flat_number', e.target.value)} error={errors.flat_number} maxLength={50} />
             <Input label={t('register.plot_number')} value={address.plot_number} onChange={(e) => set('plot_number', e.target.value)} error={errors.plot_number} maxLength={50} />
           </div>
+          <Input label={t('register.suite_name')} value={address.suite_name} onChange={(e) => set('suite_name', e.target.value)} error={errors.suite_name} maxLength={50} />
           <div className="grid grid-cols-2 gap-3">
             <Input label={t('register.area')} value={address.area} onChange={(e) => set('area', e.target.value)} error={errors.area} maxLength={100} />
             <Input label={t('register.town')} value={address.town} onChange={(e) => set('town', e.target.value)} error={errors.town} maxLength={100} />
@@ -229,6 +233,7 @@ export function AddressStep({ address, setAddress, errors }) {
           <Input label={t('register.building_num')} value={address.building_name} onChange={(e) => set('building_name', e.target.value)} error={errors.building_name} maxLength={100} />
           <Input label={t('register.street')} value={address.street_address} onChange={(e) => set('street_address', e.target.value)} error={errors.street_address} maxLength={100} />
           <Input label={t('register.road_name')} value={address.road_name} onChange={(e) => set('road_name', e.target.value)} error={errors.road_name} maxLength={100} />
+          <Input label={t('register.avenue_name')} value={address.avenue_name} onChange={(e) => set('avenue_name', e.target.value)} error={errors.avenue_name} maxLength={100} />
           <div className="grid grid-cols-2 gap-3">
             <Input label={t('register.area')} value={address.area} onChange={(e) => set('area', e.target.value)} error={errors.area} maxLength={100} />
             <Input label={t('register.town')} value={address.town} onChange={(e) => set('town', e.target.value)} error={errors.town} maxLength={100} />
@@ -238,6 +243,7 @@ export function AddressStep({ address, setAddress, errors }) {
             <Input label={t('register.flat_number')} value={address.flat_number} onChange={(e) => set('flat_number', e.target.value)} error={errors.flat_number} maxLength={50} />
             <Input label={t('register.plot_number')} value={address.plot_number} onChange={(e) => set('plot_number', e.target.value)} error={errors.plot_number} maxLength={50} />
           </div>
+          <Input label={t('register.suite_name')} value={address.suite_name} onChange={(e) => set('suite_name', e.target.value)} error={errors.suite_name} maxLength={50} />
           <Input label={t('register.floor')} value={address.floor_unit} onChange={(e) => set('floor_unit', e.target.value)} error={errors.floor_unit} maxLength={50} />
           <Input label={t('register.landmark')} value={address.landmark || ''} onChange={(e) => set('landmark', e.target.value)} maxLength={100} />
           <Input label={t('register.postal_gb')} value={address.postal_code} onChange={(e) => handlePostalChange(e.target.value)} error={postalErr} />
@@ -255,12 +261,14 @@ export function AddressStep({ address, setAddress, errors }) {
           </div>
           <Input label={t('register.city')} value={address.city || ''} onChange={(e) => set('city', e.target.value)} error={errors.city} maxLength={100} />
           <Input label={t('register.road_name')} value={address.road_name} onChange={(e) => set('road_name', e.target.value)} error={errors.road_name} maxLength={100} />
+          <Input label={t('register.avenue_name')} value={address.avenue_name} onChange={(e) => set('avenue_name', e.target.value)} error={errors.avenue_name} maxLength={100} />
           <Input label={t('register.district_ward')} value={address.district} onChange={(e) => set('district', e.target.value)} maxLength={100} />
           <Input label={t('register.building')} value={address.building_name} onChange={(e) => set('building_name', e.target.value)} error={errors.building_name} maxLength={100} />
           <div className="grid grid-cols-2 gap-3">
             <Input label={t('register.flat_number')} value={address.flat_number} onChange={(e) => set('flat_number', e.target.value)} error={errors.flat_number} maxLength={50} />
             <Input label={t('register.plot_number')} value={address.plot_number} onChange={(e) => set('plot_number', e.target.value)} error={errors.plot_number} maxLength={50} />
           </div>
+          <Input label={t('register.suite_name')} value={address.suite_name} onChange={(e) => set('suite_name', e.target.value)} error={errors.suite_name} maxLength={50} />
           <Input label={t('register.street_block')} value={address.street_address} onChange={(e) => set('street_address', e.target.value)} error={errors.street_address} maxLength={100} />
           <Input label={t('register.landmark')} value={address.landmark || ''} onChange={(e) => set('landmark', e.target.value)} maxLength={100} />
         </>
@@ -271,6 +279,7 @@ export function AddressStep({ address, setAddress, errors }) {
         <>
           <Input label={t('register.street')} value={address.street_address} onChange={(e) => set('street_address', e.target.value)} error={errors.street_address} maxLength={100} />
           <Input label={t('register.road_name')} value={address.road_name} onChange={(e) => set('road_name', e.target.value)} error={errors.road_name} maxLength={100} />
+          <Input label={t('register.avenue_name')} value={address.avenue_name} onChange={(e) => set('avenue_name', e.target.value)} error={errors.avenue_name} maxLength={100} />
           <div className="grid grid-cols-2 gap-3">
             <Input label={t('register.area')} value={address.area} onChange={(e) => set('area', e.target.value)} error={errors.area} maxLength={100} />
             <Input label={t('register.town')} value={address.town} onChange={(e) => set('town', e.target.value)} error={errors.town} maxLength={100} />
@@ -292,6 +301,7 @@ export function AddressStep({ address, setAddress, errors }) {
             <Input label={t('register.flat_number')} value={address.flat_number} onChange={(e) => set('flat_number', e.target.value)} error={errors.flat_number} maxLength={50} />
           </div>
           <Input label={t('register.plot_number')} value={address.plot_number} onChange={(e) => set('plot_number', e.target.value)} error={errors.plot_number} maxLength={50} />
+          <Input label={t('register.suite_name')} value={address.suite_name} onChange={(e) => set('suite_name', e.target.value)} error={errors.suite_name} maxLength={50} />
           <Input label={t('register.landmark')} value={address.landmark || ''} onChange={(e) => set('landmark', e.target.value)} error={errors.landmark} maxLength={100} />
           <Input label={t('register.postal_other')} value={address.postal_code} onChange={(e) => handlePostalChange(e.target.value)} error={postalErr} maxLength={20} />
         </>
@@ -311,12 +321,14 @@ export function validateAddress(address) {
   if (address.city?.length > 100) errors.city = 'Must not exceed 100 characters'
   if (address.town?.length > 100) errors.town = 'Must not exceed 100 characters'
   if (address.road_name?.length > 100) errors.road_name = 'Must not exceed 100 characters'
+  if (address.avenue_name?.length > 100) errors.avenue_name = 'Must not exceed 100 characters'
   if (address.building_name?.length > 100) errors.building_name = 'Must not exceed 100 characters'
   if (address.flat_number?.length > 50) errors.flat_number = 'Must not exceed 50 characters'
+  if (address.suite_name?.length > 50) errors.suite_name = 'Must not exceed 50 characters'
   if (address.plot_number?.length > 50) errors.plot_number = 'Must not exceed 50 characters'
   if (address.floor_unit?.length > 50) errors.floor_unit = 'Must not exceed 50 characters'
   if (address.landmark?.length > 100) errors.landmark = 'Must not exceed 100 characters'
-  if (address.digi_pin?.length > 10) errors.digi_pin = 'Must not exceed 10 characters'
+  if (address.po_box?.length > 10) errors.po_box = 'Must not exceed 10 characters'
   if (!address.postal_code?.trim()) {
     errors.postal_code = 'This field is required'
   } else {
@@ -350,8 +362,8 @@ export default function RegisterTraditional() {
 
   const [address, setAddress] = useState({
     country_code: '', country: '', state: '', stateIso: '', district: '',
-    city: '', area: '', town: '', road_name: '', street_address: '', building_name: '', flat_number: '', plot_number: '',
-    floor_unit: '', postal_code: '', digi_pin: '', landmark: '',
+    city: '', area: '', town: '', road_name: '', avenue_name: '', street_address: '', building_name: '', flat_number: '', suite_name: '', plot_number: '',
+    floor_unit: '', postal_code: '', po_box: '', landmark: '',
   })
   const [addressErrors, setAddressErrors] = useState({})
   const [showMismatch, setShowMismatch] = useState(false)
@@ -433,13 +445,15 @@ export default function RegisterTraditional() {
         area: address.area || null,
         town: address.town || null,
         road_name: address.road_name || null,
+        avenue_name: address.avenue_name || null,
         street_address: address.street_address,
         building_name: address.building_name || null,
         flat_number: address.flat_number || null,
+        suite_name: address.suite_name || null,
         plot_number: address.plot_number || null,
         floor_unit: address.floor_unit || null,
         postal_code: address.postal_code,
-        digi_pin: address.digi_pin || null,
+        po_box: address.po_box || null,
         landmark: address.landmark || null,
       }
       const { data } = await registration.registerTraditional(payload, idempotencyKeyRef.current)
@@ -453,19 +467,7 @@ export default function RegisterTraditional() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <nav aria-label={t('nav.brand')} className="border-b border-border bg-white/80 backdrop-blur-sm sticky top-0 z-20">
-        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-2">
-          <BackButton />
-          <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2 shrink-0" aria-label={t('nav.brand')}>
-            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-              <MapPin className="w-4 h-4 text-white" aria-hidden="true" />
-            </div>
-            <span className="font-bold text-ink">{t('nav.brand')}</span>
-          </button>
-          <span className="text-muted mx-2">/</span>
-          <span className="text-sm text-muted">{t('nav.register')}</span>
-        </div>
-      </nav>
+      <Header showBack breadcrumb={t('nav.register')} maxWidth="max-w-2xl" />
 
       <div id="main-content" className="max-w-2xl mx-auto px-4 py-10">
         <div className="mb-8">

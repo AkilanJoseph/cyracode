@@ -54,7 +54,8 @@
       "gdpr_text": "I agree to the",
       "gdpr_policy": "Privacy Policy",
       "gdpr_and": "and consent to data processing",
-      "password_hint": "Min 8 chars with uppercase, number, and special character"
+      "password_hint": "Min 8 chars with uppercase, number, and special character",
+      "social_proof": "CyraCodes registered — register yours today!"
     },
     "strength": {
       "0": "Very weak",
@@ -92,13 +93,15 @@
       "city": "City",
       "area": "Area",
       "town": "Town",
-      "road_name": "Road Name",
+"road_name": "Road Name",
+      "avenue_name": "Avenue Name",
       "street": "Street Name",
       "building": "Building Name",
       "flat": "Flat / Plot Number",
       "flat_number": "Flat Number",
+      "suite_name": "Suite Name or Number",
       "plot_number": "Plot Number",
-      "digi_pin": "Digi Pin",
+      "po_box": "P.O. Box",
       "landmark": "Landmark",
       "postal_in": "PIN Code",
       "postal_us": "ZIP Code",

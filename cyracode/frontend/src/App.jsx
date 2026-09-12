@@ -1,12 +1,13 @@
 import { lazy, Suspense, useEffect, useRef } from 'react'
 import { BrowserRouter, Routes, Route, Link, Navigate, useNavigate } from 'react-router-dom'
 import { Toaster, toast } from 'react-hot-toast'
-import { MapPin, Sparkles, Zap, LogOut, ArrowRight, Loader2, Pencil } from 'lucide-react'
+import { Sparkles, Zap, ArrowRight, Loader2, Pencil } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import { AuthProvider, useAuth } from './context/AuthContext'
-import { applyDirection, SUPPORTED_LANGUAGES } from './i18n/index'
-import LanguageSelector from './components/common/LanguageSelector'
+import { applyDirection } from './i18n/index'
+import Header from './components/common/Header'
+import { PENDING_MODE_SELECT_KEY } from './constants'
 
 const LandingPage = lazy(() => import('./pages/LandingPage'))
 const RegisterTraditional = lazy(() => import('./pages/RegisterTraditional'))
@@ -76,18 +77,20 @@ function ProtectedRoute({ children }) {
 // user lands on "/" (e.g. browser back from a protected page), send them to the
 // dashboard instead. Logout clears the token first, then navigates to "/", so
 // the login page is only ever shown after an explicit logout.
+// Exception: right after registration the LandingPage sets a pending flag so it
+// can stay mounted and show the mode-select modal before the redirect kicks in.
 function HomeRoute({ children }) {
   const { isAuthenticated, loading } = useAuth()
   if (loading) return null
-  if (isAuthenticated) return <Navigate to="/dashboard" replace />
+  if (isAuthenticated && !sessionStorage.getItem(PENDING_MODE_SELECT_KEY)) {
+    return <Navigate to="/dashboard" replace />
+  }
   return children
 }
 
 function Dashboard() {
-  const { user, logout } = useAuth()
-  const { t, i18n } = useTranslation()
-  const navigate = useNavigate()
-  const handleLogout = () => { logout(); navigate('/') }
+  const { user } = useAuth()
+  const { t } = useTranslation()
 
   const actions = [
     { to: '/register/traditional', icon: Sparkles, title: t('dashboard.card_custom_title'), desc: t('dashboard.card_custom_desc') },
@@ -97,25 +100,7 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <nav aria-label={t('nav.brand')} className="border-b border-border bg-white/80 backdrop-blur-sm sticky top-0 z-20">
-        <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
-          <Link to="/dashboard" className="flex items-center gap-2" aria-label={t('nav.brand')}>
-            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-              <MapPin className="w-4 h-4 text-white" aria-hidden="true" />
-            </div>
-            <span className="font-bold text-ink">{t('nav.brand')}</span>
-          </Link>
-          <div className="flex items-center gap-4">
-            <LanguageSelector />
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-1.5 text-sm text-muted hover:text-red-500 transition-colors"
-            >
-              <LogOut className="w-4 h-4" aria-hidden="true" /> {t('nav.logout')}
-            </button>
-          </div>
-        </div>
-      </nav>
+      <Header />
 
       <main id="main-content" className="max-w-3xl mx-auto px-4 py-12">
         <div className="mb-8">

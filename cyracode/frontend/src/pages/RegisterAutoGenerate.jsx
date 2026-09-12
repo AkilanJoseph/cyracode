@@ -1,12 +1,12 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Copy, RefreshCw, Check, MapPin } from 'lucide-react'
+import { Copy, RefreshCw, Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import ProgressSteps from '../components/common/ProgressSteps'
 import Button from '../components/common/Button'
 import MapPicker from '../components/MapPicker'
-import BackButton from '../components/common/BackButton'
+import Header from '../components/common/Header'
 import { AddressStep, validateAddress } from './RegisterTraditional'
 import { registration } from '../services/api'
 import { apiErrorMessage } from '../utils/errors'
@@ -33,8 +33,8 @@ export default function RegisterAutoGenerate() {
 
   const [address, setAddress] = useState({
     country_code: '', country: '', state: '', stateIso: '', district: '',
-    city: '', area: '', town: '', road_name: '', street_address: '', building_name: '', flat_number: '', plot_number: '',
-    floor_unit: '', postal_code: '', digi_pin: '', landmark: '',
+    city: '', area: '', town: '', road_name: '', avenue_name: '', street_address: '', building_name: '', flat_number: '', suite_name: '', plot_number: '',
+    floor_unit: '', postal_code: '', po_box: '', landmark: '',
   })
   const [addressErrors, setAddressErrors] = useState({})
 
@@ -102,13 +102,15 @@ export default function RegisterAutoGenerate() {
         area: address.area || null,
         town: address.town || null,
         road_name: address.road_name || null,
+        avenue_name: address.avenue_name || null,
         street_address: address.street_address,
         building_name: address.building_name || null,
         flat_number: address.flat_number || null,
+        suite_name: address.suite_name || null,
         plot_number: address.plot_number || null,
         floor_unit: address.floor_unit || null,
         postal_code: address.postal_code,
-        digi_pin: address.digi_pin || null,
+        po_box: address.po_box || null,
         landmark: address.landmark || null,
       }
       const { data } = await registration.registerAutoGenerate(payload, idempotencyKeyRef.current)
@@ -122,19 +124,7 @@ export default function RegisterAutoGenerate() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <nav className="border-b border-border bg-white/80 backdrop-blur-sm sticky top-0 z-20">
-        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-2">
-          <BackButton />
-          <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2 shrink-0" aria-label={t('nav.brand')}>
-            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-              <MapPin className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-bold text-ink">{t('nav.brand')}</span>
-          </button>
-          <span className="text-muted mx-2">/</span>
-          <span className="text-sm text-muted">{t('nav.auto_generate')}</span>
-        </div>
-      </nav>
+      <Header showBack breadcrumb={t('nav.auto_generate')} maxWidth="max-w-2xl" />
 
       <div className="max-w-2xl mx-auto px-4 py-10">
         <div className="mb-8">

@@ -39,6 +39,7 @@ export const auth = {
 export const registration = {
   checkName: (name) => api.get(`/registration/check-name/${encodeURIComponent(name)}`),
   generateCode: (lat, lng) => api.post('/registration/generate-code', { lat, lng }),
+  registrationCount: () => api.get('/registration/count'),
   // AC 6.17: idempotencyKey prevents duplicate registrations on rapid double-submit
   registerTraditional: (payload, idempotencyKey) =>
     api.post('/registration/traditional', payload, {

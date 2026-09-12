@@ -42,6 +42,18 @@ export const cyracodeStore = {
   },
 }
 
+export const registrationCountStore = {
+  initialCount: 10000,
+  actualCount: 100,
+  reset() {
+    this.initialCount = 10000
+    this.actualCount = 100
+  },
+  displayCount() {
+    return this.initialCount + this.actualCount
+  },
+}
+
 export const handlers = [
   // Auth
   http.post(`${BASE}/auth/register`, () =>
@@ -61,18 +73,27 @@ export const handlers = [
   ),
 
   // Registration
+  http.get(`${BASE}/registration/count`, () =>
+    HttpResponse.json({
+      initial_count: registrationCountStore.initialCount,
+      actual_count: registrationCountStore.actualCount,
+      display_count: registrationCountStore.displayCount(),
+    })
+  ),
   http.get(`${BASE}/registration/check-name/:name`, ({ params }) =>
     HttpResponse.json({ available: true, suggestions: [] })
   ),
   http.post(`${BASE}/registration/generate-code`, () =>
     HttpResponse.json({ code: 'ABC12xyz7890' })
   ),
-  http.post(`${BASE}/registration/traditional`, () =>
-    HttpResponse.json(mockCyraCode, { status: 201 })
-  ),
-  http.post(`${BASE}/registration/auto-generate`, () =>
-    HttpResponse.json({ ...mockCyraCode, code_type: 'auto_generate' }, { status: 201 })
-  ),
+  http.post(`${BASE}/registration/traditional`, () => {
+    registrationCountStore.actualCount += 1
+    return HttpResponse.json(mockCyraCode, { status: 201 })
+  }),
+  http.post(`${BASE}/registration/auto-generate`, () => {
+    registrationCountStore.actualCount += 1
+    return HttpResponse.json({ ...mockCyraCode, code_type: 'auto_generate' }, { status: 201 })
+  }),
   http.get(`${BASE}/registration/my-codes`, () =>
     HttpResponse.json(cyracodeStore.codes)
   ),

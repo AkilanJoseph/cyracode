@@ -13,6 +13,7 @@ async function seedCode(request) {
       last_name: 'User',
       email: `seed_${UNIQUE}@testcyra.com`,
       password: 'SeedP@ss1',
+      gdpr_consent: true,
     },
   })
   const { access_token } = await regResp.json()
@@ -126,7 +127,10 @@ test.describe('Search flow', () => {
     await input.press('Enter')
     await expect(page.locator('h2').filter({ hasText: TEST_CODE })).toBeVisible({ timeout: 8000 })
     await page.getByRole('button', { name: /share/i }).click()
-    const clip = await page.evaluate(() => navigator.clipboard.readText())
-    expect(clip).toContain(TEST_CODE)
+    await page.getByRole('button', { name: /copy link/i }).click()
+    // writeText is async and fire-and-forget in the app, so poll until it lands
+    await expect
+      .poll(() => page.evaluate(() => navigator.clipboard.readText()))
+      .toContain(TEST_CODE)
   })
 })

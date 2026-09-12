@@ -50,7 +50,8 @@
       "gdpr_text": "Concordo com a",
       "gdpr_policy": "Política de Privacidade",
       "gdpr_and": "e consinto o processamento de dados",
-      "password_hint": "Mín. 8 caracteres com maiúscula, número e caractere especial"
+      "password_hint": "Mín. 8 caracteres com maiúscula, número e caractere especial",
+      "social_proof": "CyraCodes registrados — registre o seu hoje!"
     },
     "strength": {
       "0": "Muito fraca",

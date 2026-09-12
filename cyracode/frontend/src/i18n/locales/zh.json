@@ -50,7 +50,8 @@
       "gdpr_text": "我同意",
       "gdpr_policy": "隐私政策",
       "gdpr_and": "并同意数据处理",
-      "password_hint": "最少8个字符，包含大写字母、数字和特殊字符"
+      "password_hint": "最少8个字符，包含大写字母、数字和特殊字符",
+      "social_proof": "个 CyraCode 已注册——今天就注册你的！"
     },
     "strength": {
       "0": "非常弱",

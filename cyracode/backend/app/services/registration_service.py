@@ -38,6 +38,27 @@ def check_name_available(db: Session, name: str) -> bool:
     return existing is None
 
 
+def count_active_cyracodes(db: Session) -> int:
+    """Return the number of currently registered (active) CyraCodes.
+
+    Only rows that were persisted by a successfully completed registration are
+    counted, so failed, cancelled, or duplicate registrations never inflate the
+    total. The count is derived live from committed rows, which keeps it
+    identical across users, devices, sessions, and application instances and
+    immune to concurrent-registration races.
+
+    An explicit ``func.count`` on the primary key is used (rather than the
+    legacy ORM ``Query.count()``) so the query never selects columns the table
+    may be missing in a pre-existing dev database, and it stays cheap at scale.
+    """
+    return (
+        db.query(func.count(CyraCode.id))
+        .filter(CyraCode.is_active == True)  # noqa: E712
+        .scalar()
+        or 0
+    )
+
+
 def suggest_alternative_names(db: Session, name: str) -> list:
     suggestions = []
     candidates = []
@@ -131,13 +152,15 @@ def create_cyracode_entry(db: Session, user_id: str, data: dict) -> CyraCode:
         area=data.get("area"),
         town=data.get("town"),
         road_name=data.get("road_name"),
+        avenue_name=data.get("avenue_name"),
         street_address=data["street_address"],
         building_name=data.get("building_name"),
         flat_number=data.get("flat_number"),
+        suite_name=data.get("suite_name"),
         plot_number=data.get("plot_number"),
         floor_unit=data.get("floor_unit"),
         postal_code=data["postal_code"],
-        digi_pin=data.get("digi_pin"),
+        po_box=data.get("po_box"),
         landmark=data.get("landmark"),
         qr_code_path=data.get("qr_code_path"),
         is_flagged=data.get("is_flagged", False),
@@ -164,13 +187,15 @@ def update_cyracode_entry(db: Session, entry: CyraCode, data: dict) -> CyraCode:
     entry.area = data.get("area")
     entry.town = data.get("town")
     entry.road_name = data.get("road_name")
+    entry.avenue_name = data.get("avenue_name")
     entry.street_address = data["street_address"]
     entry.building_name = data.get("building_name")
     entry.flat_number = data.get("flat_number")
+    entry.suite_name = data.get("suite_name")
     entry.plot_number = data.get("plot_number")
     entry.floor_unit = data.get("floor_unit")
     entry.postal_code = data["postal_code"]
-    entry.digi_pin = data.get("digi_pin")
+    entry.po_box = data.get("po_box")
     entry.landmark = data.get("landmark")
     entry.updated_at = datetime.utcnow()
     db.add(entry)

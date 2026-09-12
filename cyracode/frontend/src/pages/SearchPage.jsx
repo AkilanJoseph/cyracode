@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next'
 import MapPicker from '../components/MapPicker'
 import Button from '../components/common/Button'
 import BackButton from '../components/common/BackButton'
+import Header from '../components/common/Header'
 import { search } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { apiErrorMessage } from '../utils/errors'
@@ -80,6 +81,13 @@ export default function SearchPage() {
   const [isOffline, setIsOffline] = useState(!navigator.onLine)
   const debounceRef = useRef(null)
   const resultCardRef = useRef(null)
+  const searchInputRef = useRef(null)
+
+  // AC 5.10: A returning user lands back on the search page with the box focused,
+  // so their recent searches are immediately visible in the dropdown.
+  useEffect(() => {
+    searchInputRef.current?.focus()
+  }, [])
 
   // AC 5.5 / geolocation permission: silently get user position
   useEffect(() => {
@@ -240,6 +248,8 @@ export default function SearchPage() {
 
   return (
     <div className="min-h-screen bg-slate-100">
+      <Header maxWidth="max-w-md" />
+
       {/* Offline banner */}
       {isOffline && (
         <div className="top-0 left-0 right-0 z-20 bg-yellow-400/90 text-yellow-900 text-xs font-semibold text-center py-1.5 flex items-center justify-center gap-1.5">
@@ -255,6 +265,7 @@ export default function SearchPage() {
             <div className="relative flex-1">
               <Search className="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
+                ref={searchInputRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && doSearch(query)}
@@ -363,8 +374,9 @@ export default function SearchPage() {
                 variant="secondary"
                 size="sm"
                 className="shrink-0 px-3"
+                aria-label={t('search.share')}
               >
-                <Share2 className="w-3.5 h-3.5" />
+                <Share2 className="w-3.5 h-3.5" aria-hidden="true" />
               </Button>
             </div>
 

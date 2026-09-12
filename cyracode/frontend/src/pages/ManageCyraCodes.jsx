@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 import Button from '../components/common/Button'
 import Input from '../components/common/Input'
 import MapPicker from '../components/MapPicker'
-import BackButton from '../components/common/BackButton'
+import Header from '../components/common/Header'
 import { AddressStep, validateAddress } from './RegisterTraditional'
 import { registration } from '../services/api'
 import { apiErrorMessage } from '../utils/errors'
@@ -15,9 +15,11 @@ import { apiErrorMessage } from '../utils/errors'
 function formatAddress(rec) {
   return [
     rec.flat_number,
+    rec.suite_name,
     rec.plot_number,
     rec.building_name,
     rec.street_address,
+    rec.avenue_name,
     rec.road_name,
     rec.area,
     rec.town,
@@ -68,8 +70,8 @@ export default function ManageCyraCodes() {
   const [coords, setCoords] = useState(null)
   const [address, setAddress] = useState({
     country_code: '', country: '', state: '', stateIso: '', district: '',
-    city: '', area: '', town: '', road_name: '', street_address: '', building_name: '', flat_number: '', plot_number: '',
-    floor_unit: '', postal_code: '', digi_pin: '', landmark: '',
+    city: '', area: '', town: '', road_name: '', avenue_name: '', street_address: '', building_name: '', flat_number: '', suite_name: '', plot_number: '',
+    floor_unit: '', postal_code: '', po_box: '', landmark: '',
   })
   const [addressErrors, setAddressErrors] = useState({})
   const [saving, setSaving] = useState(false)
@@ -100,13 +102,15 @@ export default function ManageCyraCodes() {
     prefill.area = rec.area || ''
     prefill.town = rec.town || ''
     prefill.road_name = rec.road_name || ''
+    prefill.avenue_name = rec.avenue_name || ''
     prefill.street_address = rec.street_address || ''
     prefill.building_name = rec.building_name || ''
     prefill.flat_number = rec.flat_number || ''
+    prefill.suite_name = rec.suite_name || ''
     prefill.plot_number = rec.plot_number || ''
     prefill.floor_unit = rec.floor_unit || ''
     prefill.postal_code = rec.postal_code || ''
-    prefill.digi_pin = rec.digi_pin || ''
+    prefill.po_box = rec.po_box || ''
     prefill.landmark = rec.landmark || ''
     prefill.stateIso = ''
 
@@ -157,13 +161,15 @@ export default function ManageCyraCodes() {
         area: address.area || null,
         town: address.town || null,
         road_name: address.road_name || null,
+        avenue_name: address.avenue_name || null,
         street_address: address.street_address,
         building_name: address.building_name || null,
         flat_number: address.flat_number || null,
+        suite_name: address.suite_name || null,
         plot_number: address.plot_number || null,
         floor_unit: address.floor_unit || null,
         postal_code: address.postal_code,
-        digi_pin: address.digi_pin || null,
+        po_box: address.po_box || null,
         landmark: address.landmark || null,
       }
       await registration.updateMyCode(editing.id, payload)
@@ -280,32 +286,22 @@ export default function ManageCyraCodes() {
         { label: t('register.area'), value: viewing.area },
         { label: t('register.town'), value: viewing.town },
         { label: t('register.road_name'), value: viewing.road_name },
+        { label: t('register.avenue_name'), value: viewing.avenue_name },
         { label: t('register.street'), value: viewing.street_address },
         { label: t('register.building'), value: viewing.building_name },
         { label: t('register.flat_number'), value: viewing.flat_number },
+        { label: t('register.suite_name'), value: viewing.suite_name },
         { label: t('register.plot_number'), value: viewing.plot_number },
         { label: t('register.floor'), value: viewing.floor_unit },
         { label: t('register.postal_other'), value: viewing.postal_code },
-        { label: t('register.digi_pin'), value: viewing.digi_pin },
+        { label: t('register.po_box'), value: viewing.po_box },
         { label: t('register.landmark'), value: viewing.landmark },
       ].filter((r) => r.value)
     : []
 
   return (
     <div className="min-h-screen bg-surface">
-      <nav aria-label={t('nav.brand')} className="border-b border-border bg-white/80 backdrop-blur-sm sticky top-0 z-20">
-        <div className="max-w-3xl mx-auto px-4 h-14 flex items-center gap-2">
-          <BackButton />
-          <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2 shrink-0" aria-label={t('nav.brand')}>
-            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-              <MapPin className="w-4 h-4 text-white" aria-hidden="true" />
-            </div>
-            <span className="font-bold text-ink">{t('nav.brand')}</span>
-          </button>
-          <span className="text-muted mx-2">/</span>
-          <span className="text-sm text-muted">{t('edit.title')}</span>
-        </div>
-      </nav>
+      <Header showBack breadcrumb={t('edit.title')} />
 
       <div id="main-content" className="max-w-3xl mx-auto px-4 py-10">
         <div className="mb-8">

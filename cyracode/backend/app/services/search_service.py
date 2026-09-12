@@ -25,6 +25,7 @@ def haversine_distance(lat1, lng1, lat2, lng2) -> float:
 def _brief_address(code: CyraCode) -> str:
     parts = [
         code.street_address,
+        code.avenue_name,
         code.road_name,
         code.area,
         code.town,

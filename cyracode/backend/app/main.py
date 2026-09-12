@@ -44,7 +44,37 @@ def _ensure_schema_upgrades():
         print(f"[STARTUP] Schema upgrade skipped for IdempotencyKeys: {exc}")
 
 
+def _ensure_cyracode_columns():
+    """Add CyraCodes columns that were introduced after older dev DBs were created.
+
+    ``create_all`` never alters existing tables, so columns added to the ORM
+    model later (AvenueName, SuiteName) are missing from pre-existing dev
+    databases and cause "no such column" errors on any full-row query. Both are
+    nullable and added in place, mirroring the IdempotencyKeys upgrade above.
+    """
+    from sqlalchemy import inspect, text
+
+    expected = {
+        "AvenueName": "VARCHAR(100) NULL",
+        "SuiteName": "VARCHAR(50) NULL",
+    }
+    try:
+        inspector = inspect(engine)
+        existing = {c["name"] for c in inspector.get_columns("CyraCodes")}
+        missing = {name: ddl for name, ddl in expected.items() if name not in existing}
+        if not missing:
+            return
+        add_clause = " ADD COLUMN " if engine.dialect.name == "sqlite" else " ADD "
+        with engine.begin() as conn:
+            for name, ddl in missing.items():
+                conn.execute(text(f'ALTER TABLE "CyraCodes"{add_clause}"{name}" {ddl}'))
+        print(f"[STARTUP] Added missing CyraCodes columns: {list(missing)}")
+    except Exception as exc:  # pragma: no cover
+        print(f"[STARTUP] Schema upgrade skipped for CyraCodes: {exc}")
+
+
 _ensure_schema_upgrades()
+_ensure_cyracode_columns()
 
 app = FastAPI(title="CyraCode API", version="1.0")
 

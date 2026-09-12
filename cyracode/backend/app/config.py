@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     SMTP_FROM: str = "noreply@cyracode.com"
     PASSWORD_RESET_TOKEN_EXPIRE_HOURS: int = 24
+    # Social-proof baseline added to the live CyraCode registration count:
+    # Displayed Count = REGISTRATION_COUNT_INITIAL + CyraCodes actually registered.
+    REGISTRATION_COUNT_INITIAL: int = 10000
 
 
 settings = Settings()

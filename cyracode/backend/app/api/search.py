@@ -47,9 +47,11 @@ class ReverseRequest(BaseModel):
 def _full_address(c) -> str:
     parts = [
         c.flat_number,
+        c.suite_name,
         c.plot_number,
         c.building_name,
         c.street_address,
+        c.avenue_name,
         c.road_name,
         c.area,
         c.town,

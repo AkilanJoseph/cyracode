@@ -8,12 +8,14 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.database import get_db
 from app.models.models import CyraCode, IdempotencyKey, User
 from app.rate_limiter import limiter
 from app.services.auth_service import get_current_user
 from app.services.registration_service import (
     check_name_available,
+    count_active_cyracodes,
     create_cyracode_entry,
     deactivate_cyracode_entry,
     generate_cyracode,
@@ -93,6 +95,12 @@ class CheckNameResponse(BaseModel):
     suggestions: List[str] = []
 
 
+class RegistrationCountResponse(BaseModel):
+    initial_count: int
+    actual_count: int
+    display_count: int
+
+
 class GenerateCodeRequest(BaseModel):
     lat: float
     lng: float
@@ -115,13 +123,15 @@ class RegistrationRequest(BaseModel):
     area: Optional[str] = Field(None, max_length=100)
     town: Optional[str] = Field(None, max_length=100)
     road_name: Optional[str] = Field(None, max_length=100)
+    avenue_name: Optional[str] = Field(None, max_length=100)
     street_address: str = Field(..., min_length=1, max_length=100)
     building_name: Optional[str] = Field(None, max_length=100)
     flat_number: Optional[str] = Field(None, max_length=50)
+    suite_name: Optional[str] = Field(None, max_length=50)
     plot_number: Optional[str] = Field(None, max_length=50)
     floor_unit: Optional[str] = Field(None, max_length=50)
     postal_code: str = Field(..., min_length=1, max_length=20)
-    digi_pin: Optional[str] = Field(None, max_length=10)
+    po_box: Optional[str] = Field(None, max_length=10)
     landmark: Optional[str] = Field(None, max_length=100)
 
     @field_validator("name")
@@ -155,13 +165,15 @@ class CyraCodeResponse(BaseModel):
     area: Optional[str] = None
     town: Optional[str] = None
     road_name: Optional[str] = None
+    avenue_name: Optional[str] = None
     street_address: str
     building_name: Optional[str] = None
     flat_number: Optional[str] = None
+    suite_name: Optional[str] = None
     plot_number: Optional[str] = None
     floor_unit: Optional[str] = None
     postal_code: str
-    digi_pin: Optional[str] = None
+    po_box: Optional[str] = None
     landmark: Optional[str] = None
     qr_code: Optional[str] = None
 
@@ -185,13 +197,15 @@ class UpdateCyraCodeRequest(BaseModel):
     area: Optional[str] = Field(None, max_length=100)
     town: Optional[str] = Field(None, max_length=100)
     road_name: Optional[str] = Field(None, max_length=100)
+    avenue_name: Optional[str] = Field(None, max_length=100)
     street_address: str = Field(..., min_length=1, max_length=100)
     building_name: Optional[str] = Field(None, max_length=100)
     flat_number: Optional[str] = Field(None, max_length=50)
+    suite_name: Optional[str] = Field(None, max_length=50)
     plot_number: Optional[str] = Field(None, max_length=50)
     floor_unit: Optional[str] = Field(None, max_length=50)
     postal_code: str = Field(..., min_length=1, max_length=20)
-    digi_pin: Optional[str] = Field(None, max_length=10)
+    po_box: Optional[str] = Field(None, max_length=10)
     landmark: Optional[str] = Field(None, max_length=100)
 
 
@@ -208,6 +222,25 @@ class AutoGenerateRegistrationRequest(RegistrationRequest):
                 "(e.g. Aa2DF43T91q5)."
             )
         return v
+
+
+@router.get("/count", response_model=RegistrationCountResponse)
+def registration_count(db: Session = Depends(get_db)):
+    """Public social-proof counter: Displayed = Initial + Actually Registered.
+
+    ``initial_count`` is the configurable baseline (REGISTRATION_COUNT_INITIAL,
+    default 10,000) so the marketing figure can be tuned without frontend or
+    code changes. ``actual_count`` is the live number of successfully registered
+    (active) CyraCodes, computed from committed rows. The backend is the single
+    source of truth and stays consistent across users and instances.
+    """
+    actual_count = count_active_cyracodes(db)
+    initial_count = settings.REGISTRATION_COUNT_INITIAL
+    return RegistrationCountResponse(
+        initial_count=initial_count,
+        actual_count=actual_count,
+        display_count=initial_count + actual_count,
+    )
 
 
 @router.get("/check-name/{name}", response_model=CheckNameResponse)
@@ -288,16 +321,18 @@ def _register(
     # Send confirmation email (mocked)
     address_parts = [
         payload.flat_number,
+        payload.suite_name,
         payload.plot_number,
         payload.building_name,
         payload.street_address,
+        payload.avenue_name,
         payload.road_name,
         payload.area,
         payload.town,
         payload.city,
         payload.state,
         payload.postal_code,
-        payload.digi_pin,
+        payload.po_box,
         payload.country,
     ]
     address_line = ", ".join(p for p in address_parts if p)

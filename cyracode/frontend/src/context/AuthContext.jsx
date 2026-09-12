@@ -33,6 +33,8 @@ export function AuthProvider({ children }) {
     setUser(null)
     localStorage.removeItem('cyracode_token')
     localStorage.removeItem('cyracode_user')
+    // Clear any leftover registration flow so a later login always redirects home.
+    sessionStorage.removeItem('cyracode_pending_mode_select')
     // Search history/result cache is per-browser and may contain codes from a
     // previous login — purge it so the next user can't see another user's entries.
     const purge = []
