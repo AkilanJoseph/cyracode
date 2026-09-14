@@ -8,6 +8,16 @@ export const mockUser = {
   first_name: 'Test',
   last_name: 'User',
   is_email_verified: false,
+  role: 'user',
+}
+
+export const mockClientUser = {
+  ...mockUser,
+  id: 'client-user-test-id',
+  email: 'client.user@example.com',
+  first_name: 'Client',
+  last_name: 'User',
+  role: 'client',
 }
 
 export const mockToken = 'mock-jwt-token'
@@ -136,3 +146,501 @@ export const handlers = [
     })
   ),
 ]
+
+// ---------- Admin portal ----------
+
+export const mockAdminUser = {
+  ...mockUser,
+  id: 'admin-test-id',
+  email: 'admin@example.com',
+  first_name: 'Admin',
+  last_name: 'User',
+  role: 'admin',
+  is_admin: true,
+  is_active: true,
+  created_at: '2026-01-01T00:00:00Z',
+}
+
+export const adminStatsStore = {
+  stats: {
+    total_cyracodes: 2,
+    active_cyracodes: 2,
+    flagged_cyracodes: 0,
+    total_clients: 1,
+    active_clients: 1,
+    total_users: 3,
+  },
+  reset() {
+    this.stats = {
+      total_cyracodes: 2,
+      active_cyracodes: 2,
+      flagged_cyracodes: 0,
+      total_clients: 1,
+      active_clients: 1,
+      total_users: 3,
+    }
+  },
+}
+
+const seedAdminCodes = () => [
+  { ...mockCyraCode, owner_name: 'Test User', owner_email: 'test@example.com', is_active: true },
+  { ...mockCyraCode, id: 'code-test-id-2', code_name: 'MyOffice', is_active: false, owner_email: 'test@example.com' },
+]
+
+export const adminCyracodeStore = {
+  codes: seedAdminCodes(),
+  reset() {
+    this.codes = seedAdminCodes()
+  },
+}
+
+const seedClients = () => [
+  {
+    id: 'client-1',
+    name: 'Courier Partner',
+    key_tail: 'Ab12',
+    contact_email: 'integrations@courier.example',
+    is_active: true,
+    permissions: ['cyracode.lookup'],
+    created_at: '2026-01-02T00:00:00Z',
+    subscription_id: 'sub-1',
+    plan_code: 'basic',
+    plan_name: 'Basic',
+    monthly_cost: 500,
+    subscription_start: '2026-01-02T00:00:00Z',
+    expiry_date: '2026-12-31T00:00:00Z',
+    subscription_status: 'active',
+  },
+]
+
+export const adminClientStore = {
+  clients: seedClients(),
+  reset() {
+    this.clients = seedClients()
+  },
+}
+
+const seedPlans = () => [
+  { code: 'basic', name: 'Basic', monthly_cost: 500 },
+  { code: 'pro', name: 'Pro', monthly_cost: 2000 },
+  { code: 'enterprise', name: 'Enterprise', monthly_cost: 5000 },
+]
+
+export const adminPlanStore = {
+  plans: seedPlans(),
+  reset() {
+    this.plans = seedPlans()
+  },
+}
+
+export const adminDashboardStore = {
+  data: {
+    total_clients: 1,
+    active_clients: 1,
+    total_subscriptions: 1,
+    active_subscriptions: 1,
+    expiring_soon: 0,
+    monthly_recurring_revenue: 500,
+    renewal_rate: 100,
+    api_calls_24h: 12,
+    api_issues_24h: 0,
+    revenue_trend: [
+      { month: 'Jan', amount: 0 },
+      { month: 'Feb', amount: 500 },
+      { month: 'Mar', amount: 500 },
+    ],
+    subscriptions_by_plan: [{ name: 'Basic', clients: 1 }],
+    recent_transactions: [
+      {
+        id: 'tx-1',
+        client_name: 'Courier Partner',
+        plan_name: 'Basic',
+        amount: 500,
+        status: 'paid',
+        created_at: '2026-02-01T00:00:00Z',
+      },
+    ],
+  },
+  reset() {
+    this.data = {
+      total_clients: 1,
+      active_clients: 1,
+      total_subscriptions: 1,
+      active_subscriptions: 1,
+      expiring_soon: 0,
+      monthly_recurring_revenue: 500,
+      renewal_rate: 100,
+      api_calls_24h: 12,
+      api_issues_24h: 0,
+      revenue_trend: [
+        { month: 'Jan', amount: 0 },
+        { month: 'Feb', amount: 500 },
+        { month: 'Mar', amount: 500 },
+      ],
+      subscriptions_by_plan: [{ name: 'Basic', clients: 1 }],
+      recent_transactions: [
+        {
+          id: 'tx-1',
+          client_name: 'Courier Partner',
+          plan_name: 'Basic',
+          amount: 500,
+          status: 'paid',
+          created_at: '2026-02-01T00:00:00Z',
+        },
+      ],
+    }
+  },
+}
+
+const seedUsers = () => [
+  { ...mockAdminUser },
+  {
+    ...mockUser,
+    id: 'user-client-1',
+    email: 'client@example.com',
+    first_name: 'Client',
+    role: 'client',
+    is_admin: false,
+    is_active: true,
+    created_at: '2026-01-03T00:00:00Z',
+  },
+]
+
+export const adminUserStore = {
+  users: seedUsers(),
+  reset() {
+    this.users = seedUsers()
+  },
+}
+
+export const adminAuditStore = {
+  logs: [
+    {
+      id: 'audit-1',
+      user_id: 'admin-test-id',
+      user_email: 'admin@example.com',
+      action: 'admin_login',
+      ip_address: '127.0.0.1',
+      created_at: '2026-09-13T10:00:00Z',
+    },
+    {
+      id: 'audit-2',
+      user_id: 'admin-test-id',
+      user_email: 'admin@example.com',
+      action: 'cyracode_create:TestHome',
+      ip_address: '127.0.0.1',
+      created_at: '2026-09-13T11:00:00Z',
+    },
+  ],
+  reset() {
+    this.logs = [
+      {
+        id: 'audit-1',
+        user_id: 'admin-test-id',
+        user_email: 'admin@example.com',
+        action: 'admin_login',
+        ip_address: '127.0.0.1',
+        created_at: '2026-09-13T10:00:00Z',
+      },
+      {
+        id: 'audit-2',
+        user_id: 'admin-test-id',
+        user_email: 'admin@example.com',
+        action: 'cyracode_create:TestHome',
+        ip_address: '127.0.0.1',
+        created_at: '2026-09-13T11:00:00Z',
+      },
+    ]
+  },
+}
+
+export const adminHandlers = [
+  http.get(`${BASE}/admin/auth/me`, () => HttpResponse.json(mockAdminUser)),
+  http.get(`${BASE}/admin/stats`, () => HttpResponse.json(adminStatsStore.stats)),
+
+  http.get(`${BASE}/admin/cyracodes`, ({ request }) => {
+    const url = new URL(request.url)
+    const q = url.searchParams.get('q')?.toLowerCase()
+    const isActive = url.searchParams.get('is_active')
+    let items = adminCyracodeStore.codes
+    if (q) {
+      items = items.filter((c) => c.code_name.toLowerCase().includes(q))
+    }
+    if (isActive === 'true') items = items.filter((c) => c.is_active)
+    if (isActive === 'false') items = items.filter((c) => !c.is_active)
+    return HttpResponse.json({ items, total: items.length, page: 1, page_size: 20 })
+  }),
+  http.get(`${BASE}/admin/cyracodes/:id`, ({ params }) => {
+    const entry = adminCyracodeStore.codes.find((c) => c.id === params.id)
+    if (!entry) return HttpResponse.json({ detail: 'CyraCode not found.' }, { status: 404 })
+    return HttpResponse.json({ ...entry, area: entry.area, state: entry.state })
+  }),
+  http.post(`${BASE}/admin/cyracodes`, async ({ request }) => {
+    const body = await request.json()
+    const entry = {
+      id: `code-${Date.now()}`,
+      code_name: body.name,
+      code_type: 'traditional',
+      latitude: body.latitude,
+      longitude: body.longitude,
+      country: body.country,
+      country_code: body.country_code,
+      state: body.state || null,
+      city: body.city || null,
+      area: body.area || null,
+      street_address: body.street_address,
+      postal_code: body.postal_code,
+      is_active: true,
+      owner_name: 'Admin User',
+      owner_email: 'admin@example.com',
+      created_at: new Date().toISOString(),
+    }
+    adminCyracodeStore.codes = [entry, ...adminCyracodeStore.codes]
+    return HttpResponse.json(entry, { status: 201 })
+  }),
+  http.put(`${BASE}/admin/cyracodes/:id`, async ({ params, request }) => {
+    const entry = adminCyracodeStore.codes.find((c) => c.id === params.id)
+    if (!entry) return HttpResponse.json({ detail: 'CyraCode not found.' }, { status: 404 })
+    const body = await request.json()
+    Object.assign(entry, body)
+    return HttpResponse.json(entry)
+  }),
+  http.delete(`${BASE}/admin/cyracodes/:id`, ({ params }) => {
+    const entry = adminCyracodeStore.codes.find((c) => c.id === params.id)
+    if (entry) entry.is_active = false
+    return new HttpResponse(null, { status: 204 })
+  }),
+  http.post(`${BASE}/admin/cyracodes/:id/restore`, ({ params }) => {
+    const entry = adminCyracodeStore.codes.find((c) => c.id === params.id)
+    if (!entry) return HttpResponse.json({ detail: 'CyraCode not found.' }, { status: 404 })
+    entry.is_active = true
+    return HttpResponse.json(entry)
+  }),
+
+  http.get(`${BASE}/admin/clients`, () => HttpResponse.json(adminClientStore.clients)),
+  http.post(`${BASE}/admin/clients`, async ({ request }) => {
+    const body = await request.json()
+    const client = {
+      id: `client-${Date.now()}`,
+      name: body.name,
+      key_tail: 'Ze9k',
+      contact_email: body.contact_email || null,
+      is_active: true,
+      permissions: body.permissions || [],
+      created_at: new Date().toISOString(),
+    }
+    adminClientStore.clients = [client, ...adminClientStore.clients]
+    return HttpResponse.json({ client, api_key: 'cyra_test_generated_key_12345678' }, { status: 201 })
+  }),
+  http.put(`${BASE}/admin/clients/:id`, async ({ params, request }) => {
+    const entry = adminClientStore.clients.find((c) => c.id === params.id)
+    if (!entry) return HttpResponse.json({ detail: 'API client not found.' }, { status: 404 })
+    const body = await request.json()
+    if (body.name !== undefined) entry.name = body.name
+    if (body.contact_email !== undefined) entry.contact_email = body.contact_email
+    if (body.is_active !== undefined) entry.is_active = body.is_active
+    return HttpResponse.json(entry)
+  }),
+  http.delete(`${BASE}/admin/clients/:id`, ({ params }) => {
+    adminClientStore.clients = adminClientStore.clients.filter((c) => c.id !== params.id)
+    return new HttpResponse(null, { status: 204 })
+  }),
+  http.post(`${BASE}/admin/clients/:id/permissions`, async ({ params, request }) => {
+    const entry = adminClientStore.clients.find((c) => c.id === params.id)
+    if (!entry) return HttpResponse.json({ detail: 'API client not found.' }, { status: 404 })
+    const body = await request.json()
+    const perms = new Set(entry.permissions)
+    ;(body.permissions || []).forEach((p) => perms.add(p))
+    entry.permissions = [...perms]
+    return HttpResponse.json(entry)
+  }),
+  http.delete(`${BASE}/admin/clients/:id/permissions/:permission`, ({ params }) => {
+    const entry = adminClientStore.clients.find((c) => c.id === params.id)
+    if (!entry) return HttpResponse.json({ detail: 'API client not found.' }, { status: 404 })
+    entry.permissions = entry.permissions.filter((p) => p !== params.permission)
+    return HttpResponse.json(entry)
+  }),
+  http.post(`${BASE}/admin/clients/:id/rotate-key`, ({ params }) => {
+    const entry = adminClientStore.clients.find((c) => c.id === params.id)
+    if (!entry) return HttpResponse.json({ detail: 'API client not found.' }, { status: 404 })
+    entry.key_tail = 'Rot8'
+    return HttpResponse.json({ client: entry, api_key: 'cyra_test_rotated_key_abcdef' })
+  }),
+
+  http.get(`${BASE}/admin/plans`, () => HttpResponse.json(adminPlanStore.plans)),
+  http.post(`${BASE}/admin/plans`, async ({ request }) => {
+    const body = await request.json()
+    const code = String(body.code).toLowerCase()
+    if (adminPlanStore.plans.some((p) => p.code === code)) {
+      return HttpResponse.json({ detail: 'A plan with this code already exists.' }, { status: 409 })
+    }
+    const plan = { id: `plan-${Date.now()}`, code, name: body.name, monthly_cost: body.monthly_cost }
+    adminPlanStore.plans.push(plan)
+    return HttpResponse.json(plan, { status: 201 })
+  }),
+  http.put(`${BASE}/admin/plans/:code`, async ({ params, request }) => {
+    const entry = adminPlanStore.plans.find((p) => p.code === params.code)
+    if (!entry) return HttpResponse.json({ detail: 'Plan not found.' }, { status: 404 })
+    const body = await request.json()
+    if (body.name !== undefined) entry.name = body.name
+    if (body.monthly_cost !== undefined) entry.monthly_cost = body.monthly_cost
+    return HttpResponse.json(entry)
+  }),
+  http.delete(`${BASE}/admin/plans/:code`, ({ params }) => {
+    const entry = adminPlanStore.plans.find((p) => p.code === params.code)
+    if (!entry) return HttpResponse.json({ detail: 'Plan not found.' }, { status: 404 })
+    const inUse = adminClientStore.clients.some((c) => c.plan_code === params.code)
+    if (inUse) {
+      return HttpResponse.json({ detail: 'Plan is still in use.' }, { status: 409 })
+    }
+    adminPlanStore.plans = adminPlanStore.plans.filter((p) => p.code !== params.code)
+    return new HttpResponse(null, { status: 204 })
+  }),
+  http.get(`${BASE}/admin/dashboard`, () => HttpResponse.json(adminDashboardStore.data)),
+  http.get(`${BASE}/admin/subscriptions`, ({ request }) => {
+    const url = new URL(request.url)
+    const status = url.searchParams.get('status')
+    const page = Number(url.searchParams.get('page') || 1)
+    const pageSize = Number(url.searchParams.get('page_size') || 10)
+    let items = adminClientStore.clients
+      .filter((c) => c.subscription_status)
+      .map((c) => ({
+        id: c.subscription_id,
+        client_id: c.id,
+        client_name: c.name,
+        plan_code: c.plan_code,
+        plan_name: c.plan_name,
+        monthly_cost: c.monthly_cost,
+        start_date: c.subscription_start,
+        end_date: c.expiry_date,
+        status: c.subscription_status,
+        is_active: c.is_active,
+      }))
+    if (status) items = items.filter((s) => s.status === status)
+    return HttpResponse.json({ items, total: items.length, page, page_size: pageSize })
+  }),
+  http.post(`${BASE}/admin/clients/:id/subscription`, async ({ params, request }) => {
+    const entry = adminClientStore.clients.find((c) => c.id === params.id)
+    if (!entry) return HttpResponse.json({ detail: 'API client not found.' }, { status: 404 })
+    const body = await request.json()
+    const plan = adminPlanStore.plans.find((p) => p.code === body.plan) || adminPlanStore.plans[0]
+    entry.plan_code = plan.code
+    entry.plan_name = plan.name
+    entry.monthly_cost = plan.monthly_cost
+    entry.subscription_status = 'active'
+    entry.subscription_start = new Date().toISOString()
+    entry.subscription_id = entry.subscription_id || 'sub-new'
+    const end = new Date()
+    end.setMonth(end.getMonth() + Number(body.months || 12))
+    entry.expiry_date = end.toISOString()
+    return HttpResponse.json(entry)
+  }),
+  http.post(`${BASE}/admin/clients/:id/subscription/renew`, async ({ params, request }) => {
+    const entry = adminClientStore.clients.find((c) => c.id === params.id)
+    if (!entry) return HttpResponse.json({ detail: 'API client not found.' }, { status: 404 })
+    const body = await request.json()
+    entry.subscription_status = 'active'
+    const end = new Date(entry.expiry_date || Date.now())
+    end.setMonth(end.getMonth() + Number(body.months || 12))
+    entry.expiry_date = end.toISOString()
+    return HttpResponse.json(entry)
+  }),
+  http.post(`${BASE}/admin/clients/:id/subscription/cancel`, ({ params }) => {
+    const entry = adminClientStore.clients.find((c) => c.id === params.id)
+    if (!entry) return HttpResponse.json({ detail: 'API client not found.' }, { status: 404 })
+    entry.subscription_status = 'cancelled'
+    return HttpResponse.json(entry)
+  }),
+
+  http.get(`${BASE}/admin/users`, ({ request }) => {
+    const url = new URL(request.url)
+    const q = url.searchParams.get('q')?.toLowerCase()
+    let items = adminUserStore.users
+    if (q) {
+      items = items.filter((u) => u.email.toLowerCase().includes(q) || u.first_name.toLowerCase().includes(q))
+    }
+    return HttpResponse.json({ items, total: items.length })
+  }),
+  http.put(`${BASE}/admin/users/:id`, async ({ params, request }) => {
+    const entry = adminUserStore.users.find((u) => u.id === params.id)
+    if (!entry) return HttpResponse.json({ detail: 'User not found.' }, { status: 404 })
+    const body = await request.json()
+    if (body.role !== undefined) {
+      entry.role = body.role
+      entry.is_admin = body.role === 'admin'
+    }
+    if (body.is_admin !== undefined) {
+      entry.is_admin = body.is_admin
+      entry.role = body.is_admin ? 'admin' : 'user'
+    }
+    if (body.is_active !== undefined) entry.is_active = body.is_active
+    return HttpResponse.json(entry)
+  }),
+  http.delete(`${BASE}/admin/users/:id`, ({ params }) => {
+    const entry = adminUserStore.users.find((u) => u.id === params.id)
+    if (entry) entry.is_active = false
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  http.get(`${BASE}/admin/audit-logs`, ({ request }) => {
+    const url = new URL(request.url)
+    const action = url.searchParams.get('action')
+    let items = adminAuditStore.logs
+    if (action) items = items.filter((l) => l.action === action)
+    return HttpResponse.json({ items, total: items.length })
+  }),
+]
+
+// ---------- Authorized client lookup (X-API-Key) ----------
+
+const seedLookupKeys = () => ({
+  'cyra_test_lookup_key_0001': { clientName: 'Courier Partner', permissions: ['cyracode.lookup'] },
+  'cyra_test_no_access_key_0002': { clientName: 'Read Only Co', permissions: [] },
+})
+
+export const clientLookupStore = {
+  validKeys: seedLookupKeys(),
+  reset() {
+    this.validKeys = seedLookupKeys()
+  },
+}
+
+const lookupAddress = {
+  cyracode: 'TestHome',
+  address: {
+    address_line1: 'MG Road',
+    address_line2: 'Indiranagar, 100 Feet Road',
+    city: 'Bangalore',
+    state: 'Karnataka',
+    postal_code: '560001',
+    country: 'India',
+  },
+}
+
+export const clientLookupHandlers = [
+  http.get(`${BASE}/cyracode/:code/address`, ({ request, params }) => {
+    const apiKey = request.headers.get('x-api-key')
+    if (!apiKey) {
+      return HttpResponse.json(
+        { detail: 'Authentication required: provide an X-API-Key header.' },
+        { status: 401 }
+      )
+    }
+    const cred = clientLookupStore.validKeys[apiKey]
+    if (!cred) {
+      return HttpResponse.json({ detail: 'Invalid or inactive API key.' }, { status: 401 })
+    }
+    if (!cred.permissions.includes('cyracode.lookup')) {
+      return HttpResponse.json(
+        { detail: 'This client is not authorized to use the CyraCode address lookup API.' },
+        { status: 403 }
+      )
+    }
+    if (String(params.code).toLowerCase() !== 'testhome') {
+      return HttpResponse.json({ detail: 'CyraCode not found.' }, { status: 404 })
+    }
+    return HttpResponse.json(lookupAddress)
+  }),
+]
+
+export const allHandlers = [...handlers, ...adminHandlers, ...clientLookupHandlers]

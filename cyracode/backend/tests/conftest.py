@@ -101,6 +101,47 @@ def make_cyracode(db, name, lat=12.9716, lng=77.5946, country_code="IN",
     return entry
 
 
+def create_user(db, email="user@example.com", password="ValidP@ss1",
+                is_admin=False, is_active=True):
+    """Create a user directly in the DB (used for admin/role tests)."""
+    from app.models.models import User
+    from app.services.auth_service import hash_password
+    user = User(
+        id=str(uuid.uuid4()),
+        email=email,
+        first_name="Test",
+        last_name="User",
+        password_hash=hash_password(password),
+        is_email_verified=True,
+        gdpr_consent=True,
+        is_admin=is_admin,
+        is_active=is_active,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def make_api_client(db, name="Test Client", permissions=None):
+    """Create an API client credential directly; returns (client, raw_key)."""
+    from app.services.admin_service import create_api_client
+    client, raw_key = create_api_client(db, name, permissions=permissions)
+    return client, raw_key
+
+
+def admin_auth_headers(client, db, email="admin@cyracode.com", password="ValidP@ss1"):
+    """Create an admin user and return headers from the NORMAL login.
+
+    There is no dedicated admin login anymore — admin access is decided by the
+    Users.role flag ('admin'), so tests authenticate through /auth/login.
+    """
+    create_user(db, email=email, password=password, is_admin=True)
+    resp = client.post("/auth/login", json={"email": email, "password": password})
+    token = resp.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
 def base_registration_payload(**overrides):
     payload = {
         "name": "MyHome",

@@ -18,6 +18,13 @@ const ManageCyraCodes = lazy(() => import('./pages/ManageCyraCodes'))
 const ResetPassword = lazy(() => import('./pages/ResetPassword'))
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'))
+const AdminCyraCodes = lazy(() => import('./pages/AdminCyraCodes'))
+const AdminClients = lazy(() => import('./pages/AdminClients'))
+const AdminSubscriptions = lazy(() => import('./pages/AdminSubscriptions'))
+const AdminPlans = lazy(() => import('./pages/AdminPlans'))
+const AdminUsers = lazy(() => import('./pages/AdminUsers'))
+const AdminAuditLogs = lazy(() => import('./pages/AdminAuditLogs'))
 
 function PageLoader() {
   return (
@@ -73,6 +80,17 @@ function ProtectedRoute({ children }) {
   return children
 }
 
+// The Admin Portal is only reachable by users who hold the Admin role. The
+// backend enforces the same rule on every /admin/* endpoint, but routing the
+// UI up-front keeps non-admins from even rendering the admin pages.
+export function AdminRoute({ children }) {
+  const { isAuthenticated, loading, user } = useAuth()
+  if (loading) return null
+  if (!isAuthenticated) return <Navigate to="/" replace />
+  if (!user?.role || user.role !== 'admin') return <Navigate to="/dashboard" replace />
+  return children
+}
+
 // The login/landing page is only reachable when signed out. If an authenticated
 // user lands on "/" (e.g. browser back from a protected page), send them to the
 // dashboard instead. Logout clears the token first, then navigates to "/", so
@@ -80,15 +98,19 @@ function ProtectedRoute({ children }) {
 // Exception: right after registration the LandingPage sets a pending flag so it
 // can stay mounted and show the mode-select modal before the redirect kicks in.
 function HomeRoute({ children }) {
-  const { isAuthenticated, loading } = useAuth()
+  const { isAuthenticated, loading, user } = useAuth()
   if (loading) return null
   if (isAuthenticated && !sessionStorage.getItem(PENDING_MODE_SELECT_KEY)) {
-    return <Navigate to="/dashboard" replace />
+    // Admins land in the Admin Portal; everyone else in the client dashboard.
+    return <Navigate to={user?.role === 'admin' ? '/admin' : '/dashboard'} replace />
   }
   return children
 }
 
-function Dashboard() {
+// The Dashboard shown to regular Users (role: User). Client/Admin experiences
+// are role-specific and added alongside their dedicated user types.
+
+export function Dashboard() {
   const { user } = useAuth()
   const { t } = useTranslation()
 
@@ -162,6 +184,13 @@ function AppRoutes() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+          <Route path="/admin/cyracodes" element={<AdminRoute><AdminCyraCodes /></AdminRoute>} />
+          <Route path="/admin/clients" element={<AdminRoute><AdminClients /></AdminRoute>} />
+          <Route path="/admin/subscriptions" element={<AdminRoute><AdminSubscriptions /></AdminRoute>} />
+          <Route path="/admin/plans" element={<AdminRoute><AdminPlans /></AdminRoute>} />
+          <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
+          <Route path="/admin/audit" element={<AdminRoute><AdminAuditLogs /></AdminRoute>} />
         </Routes>
       </Suspense>
     </BrowserRouter>

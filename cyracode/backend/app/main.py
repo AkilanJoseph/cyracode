@@ -8,9 +8,9 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.api import auth, logistics, otp, registration, search
+from app.api import admin, auth, cyracode_api, logistics, otp, registration, search
 from app.config import settings
-from app.database import Base, engine
+from app.database import Base, SessionLocal, engine
 from app.rate_limiter import limiter
 
 # Create tables if they do not exist (safe for dev; use migrations in prod).
@@ -73,8 +73,97 @@ def _ensure_cyracode_columns():
         print(f"[STARTUP] Schema upgrade skipped for CyraCodes: {exc}")
 
 
+def _ensure_user_role_column():
+    """Add Users.Role (user/client/admin) to pre-existing dev databases.
+
+    ``create_all`` only creates missing tables, so the role column must be
+    back-ported onto the existing Users table. The legacy IsAdmin flag (when
+    present) is honored to backfill current admins; new DBs simply default
+    everyone to 'user'. Handles SQLite and MSSQL.
+    """
+    from sqlalchemy import inspect, text
+
+    try:
+        inspector = inspect(engine)
+        existing = {c["name"] for c in inspector.get_columns("Users")}
+        if "Role" in existing:
+            return
+        add_clause = " ADD COLUMN " if engine.dialect.name == "sqlite" else " ADD "
+        with engine.begin() as conn:
+            conn.execute(
+                text(f'ALTER TABLE "Users"{add_clause}"Role" VARCHAR(20) NOT NULL DEFAULT \'user\'')
+            )
+            if "IsAdmin" in existing:
+                conn.execute(
+                    text('UPDATE "Users" SET "Role" = \'admin\' WHERE "IsAdmin" = 1')
+                )
+        print("[STARTUP] Added Users.Role column (Role values backfilled)")
+    except Exception as exc:  # pragma: no cover
+        print(f"[STARTUP] Schema upgrade skipped for Users.Role: {exc}")
+
+
+def _ensure_api_client_columns():
+    """Add ApiClients.KeyId (lookup digest) to pre-existing dev databases.
+
+    New tables are created by ``create_all``, but a dev DB created between model
+    iterations may already have ApiClients without the KeyId index column.
+    """
+    from sqlalchemy import inspect, text
+
+    try:
+        inspector = inspect(engine)
+        columns = {c["name"] for c in inspector.get_columns("ApiClients")}
+        if "KeyId" in columns:
+            return
+        add_clause = " ADD COLUMN " if engine.dialect.name == "sqlite" else " ADD "
+        with engine.begin() as conn:
+            conn.execute(text(f'ALTER TABLE "ApiClients"{add_clause}"KeyId" VARCHAR(64) NULL'))
+        print("[STARTUP] Added ApiClients.KeyId column")
+    except Exception as exc:  # pragma: no cover
+        print(f"[STARTUP] Schema upgrade skipped for ApiClients.KeyId: {exc}")
+
+
 _ensure_schema_upgrades()
 _ensure_cyracode_columns()
+_ensure_user_role_column()
+_ensure_api_client_columns()
+
+
+def _seed_plans():
+    """Idempotently seed the plan catalog (Basic/Pro/Enterprise) on startup."""
+    from app.services.admin_service import ensure_plans
+
+    try:
+        db = SessionLocal()
+        try:
+            ensure_plans(db)
+            print("[STARTUP] Plan catalog ready.")
+        finally:
+            db.close()
+    except Exception as exc:  # pragma: no cover
+        print(f"[STARTUP] Plan seed skipped: {exc}")
+
+
+_seed_plans()
+
+
+def _bootstrap_admin():
+    """Create/upgrade the initial Admin account from env config (idempotent)."""
+    from app.services.admin_service import bootstrap_admin
+
+    try:
+        db = SessionLocal()
+        try:
+            admin_user = bootstrap_admin(db)
+            if admin_user:
+                print(f"[STARTUP] Admin account ready: {admin_user.email}")
+        finally:
+            db.close()
+    except Exception as exc:  # pragma: no cover
+        print(f"[STARTUP] Admin bootstrap skipped: {exc}")
+
+
+_bootstrap_admin()
 
 app = FastAPI(title="CyraCode API", version="1.0")
 
@@ -157,6 +246,8 @@ app.include_router(otp.router)
 app.include_router(registration.router)
 app.include_router(search.router)
 app.include_router(logistics.router)
+app.include_router(admin.router)
+app.include_router(cyracode_api.router)
 
 
 @app.get("/health")

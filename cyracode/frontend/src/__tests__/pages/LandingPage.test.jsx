@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { http, HttpResponse } from 'msw'
 import { server } from '../mocks/server'
-import { mockToken, mockUser, registrationCountStore } from '../mocks/handlers'
+import { mockToken, mockUser, mockAdminUser, registrationCountStore } from '../mocks/handlers'
 import { AuthProvider } from '../../context/AuthContext'
 import LandingPage from '../../pages/LandingPage'
 
@@ -132,6 +132,20 @@ describe('LandingPage — Login tab', () => {
     await user.type(screen.getByPlaceholderText('••••••••'), 'ValidP@ss1')
     await user.click(screen.getByRole('button', { name: /^log in$/i }))
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/dashboard'))
+  })
+
+  it('navigates to the admin portal when the account holds the Admin role', async () => {
+    mockNavigate.mockClear()
+    server.use(
+      http.post('http://localhost:5173/api/auth/login', () =>
+        HttpResponse.json({ access_token: mockToken, token_type: 'bearer', user: mockAdminUser })
+      )
+    )
+    const { user } = setup()
+    await user.type(screen.getByPlaceholderText('you@example.com'), 'admin@example.com')
+    await user.type(screen.getByPlaceholderText('••••••••'), 'ValidP@ss1')
+    await user.click(screen.getByRole('button', { name: /^log in$/i }))
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/admin'))
   })
 
   it('shows error toast on login failure', async () => {

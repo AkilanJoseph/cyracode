@@ -73,6 +73,20 @@ def get_current_user(
     return user
 
 
+def get_current_admin(user: User = Depends(get_current_user)) -> User:
+    """Role gate: only authenticated users with the Admin role may pass.
+
+    Authentication alone is never sufficient — the caller must also hold the
+    Admin role, enforced here (and mirrored in the Admin portal routes below).
+    """
+    if not user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required.",
+        )
+    return user
+
+
 def validate_password_strength(password: str) -> bool:
     if len(password) < 8:
         return False

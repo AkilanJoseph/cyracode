@@ -58,6 +58,9 @@ class UserResponse(BaseModel):
     first_name: str
     last_name: str
     is_email_verified: bool
+    role: str = "user"
+    # Derived from role for backward compatibility (role == "admin").
+    is_admin: bool = False
 
     class Config:
         from_attributes = True

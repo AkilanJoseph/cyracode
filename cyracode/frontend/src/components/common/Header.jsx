@@ -18,7 +18,7 @@ export default function Header({ showBack = false, backFallback = '/dashboard', 
     <nav aria-label={t('nav.brand')} className="border-b border-border bg-white/80 backdrop-blur-sm sticky top-0 z-20">
       <div className={`${maxWidth} mx-auto px-4 h-14 flex items-center gap-2`}>
         {showBack && <BackButton fallbackPath={backFallback} />}
-        <Link to={isAuthenticated ? '/dashboard' : '/'} className="flex items-center gap-2 shrink-0" aria-label={t('nav.brand')}>
+        <Link to={isAuthenticated ? (user?.role === 'admin' ? '/admin' : '/dashboard') : '/'} className="flex items-center gap-2 shrink-0" aria-label={t('nav.brand')}>
           <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
             <MapPin className="w-4 h-4 text-white" aria-hidden="true" />
           </div>

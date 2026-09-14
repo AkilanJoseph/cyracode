@@ -38,6 +38,12 @@ class Settings(BaseSettings):
     # Social-proof baseline added to the live CyraCode registration count:
     # Displayed Count = REGISTRATION_COUNT_INITIAL + CyraCodes actually registered.
     REGISTRATION_COUNT_INITIAL: int = 10000
+    # Admin bootstrap: on startup, create an admin account with these credentials
+    # (no-op when empty or when ADMIN_EMAIL already has an account).
+    ADMIN_EMAIL: str = ""
+    ADMIN_PASSWORD: str = ""
+    ADMIN_FIRST_NAME: str = "CyraCode"
+    ADMIN_LAST_NAME: str = "Administrator"
 
 
 settings = Settings()

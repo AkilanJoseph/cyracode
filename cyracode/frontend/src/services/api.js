@@ -64,4 +64,45 @@ export const search = {
   reverseGeocode: (lat, lng) => api.post('/search/reverse', { lat, lng }),
 }
 
+export const admin = {
+  getMe: () => api.get('/admin/auth/me'),
+  stats: () => api.get('/admin/stats'),
+  listCyracodes: (params = {}) => api.get('/admin/cyracodes', { params }),
+  getCyracode: (id) => api.get(`/admin/cyracodes/${id}`),
+  createCyracode: (payload) => api.post('/admin/cyracodes', payload),
+  updateCyracode: (id, payload) => api.put(`/admin/cyracodes/${id}`, payload),
+  deleteCyracode: (id) => api.delete(`/admin/cyracodes/${id}`),
+  restoreCyracode: (id) => api.post(`/admin/cyracodes/${id}/restore`),
+  listClients: (params = {}) => api.get('/admin/clients', { params }),
+  createClient: (payload) => api.post('/admin/clients', payload),
+  updateClient: (id, payload) => api.put(`/admin/clients/${id}`, payload),
+  deleteClient: (id) => api.delete(`/admin/clients/${id}`),
+  grantPermissions: (id, permissions) => api.post(`/admin/clients/${id}/permissions`, { permissions }),
+  revokePermission: (id, permission) => api.delete(`/admin/clients/${id}/permissions/${permission}`),
+  rotateClientKey: (id) => api.post(`/admin/clients/${id}/rotate-key`),
+  listUsers: (q = '') => api.get('/admin/users', { params: { q } }),
+  updateUser: (id, payload) => api.put(`/admin/users/${id}`, payload),
+  deleteUser: (id) => api.delete(`/admin/users/${id}`),
+  listAuditLogs: (params = {}) => api.get('/admin/audit-logs', { params }),
+  // Billing / subscriptions (Admin Portal)
+  listPlans: () => api.get('/admin/plans'),
+  createPlan: (payload) => api.post('/admin/plans', payload),
+  updatePlan: (code, payload) => api.put(`/admin/plans/${code}`, payload),
+  deletePlan: (code) => api.delete(`/admin/plans/${code}`),
+  dashboard: () => api.get('/admin/dashboard'),
+  listSubscriptions: (params = {}) => api.get('/admin/subscriptions', { params }),
+  setSubscription: (id, payload) => api.post(`/admin/clients/${id}/subscription`, payload),
+  renewSubscription: (id, payload) => api.post(`/admin/clients/${id}/subscription/renew`, payload),
+  cancelSubscription: (id) => api.post(`/admin/clients/${id}/subscription/cancel`),
+}
+
+// Authorized client integration helper — used by the Client Portal "API" demo
+// to exercise the secure CyraCode address lookup with a client API key.
+export const clientApi = {
+  lookupAddress: (apiKey, cyracode) =>
+    api.get(`/cyracode/${encodeURIComponent(cyracode)}/address`, {
+      headers: { 'X-API-Key': apiKey },
+    }),
+}
+
 export default api

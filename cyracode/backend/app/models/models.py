@@ -31,12 +31,24 @@ class User(Base):
     google_id = Column("GoogleId", String(255), nullable=True, unique=True)
     is_email_verified = Column("IsEmailVerified", Boolean, default=False)
     is_active = Column("IsActive", Boolean, default=True)
+    # Three user types — User (default), Client, Admin. A single mutually
+    # exclusive role drives what each account can do; `is_admin` stays as a
+    # derived convenience property so existing callers/APIs keep working.
+    role = Column("Role", String(20), default="user", nullable=False)
     remember_me = Column("RememberMe", Boolean, default=False)
     gdpr_consent = Column("GdprConsent", Boolean, default=False)
     created_at = Column("CreatedAt", DateTime, default=datetime.utcnow)
     updated_at = Column(
         "UpdatedAt", DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
     )
+
+    @property
+    def is_admin(self) -> bool:
+        return self.role == "admin"
+
+    @is_admin.setter
+    def is_admin(self, value: bool) -> None:
+        self.role = "admin" if value else "user"
 
     cyracodes = relationship("CyraCode", back_populates="user")
 
@@ -155,3 +167,150 @@ class LogisticsAccessLog(Base):
     status_code = Column("StatusCode", Integer, nullable=True)
     response_time_ms = Column("ResponseTimeMs", Integer, nullable=True)
     created_at = Column("CreatedAt", DateTime, default=datetime.utcnow)
+
+
+class ApiClient(Base):
+    """CyraCode Address Lookup API client credential.
+
+    Each row is a credential an organization issues to a consumer of the
+    ``GET /cyracode/{cyracode}/address`` endpoint. ``is_active`` gates a
+    credential globally, while the client-to-permission join lets admins grant
+    or revoke the ``cyracode.lookup`` permission per client without code
+    changes (acceptance criterion: "granted or revoked without code changes").
+    """
+
+    __tablename__ = "ApiClients"
+
+    id = Column("Id", String(36), primary_key=True, default=_uuid)
+    # Display name chosen by the administrator (e.g. a partner organization).
+    name = Column("Name", String(100), nullable=False)
+    # Indexable lookup digest (HMAC-SHA256 hex of the peppered key). Used to
+    # find the client row in O(1); the raw key is never stored.
+    key_id = Column("KeyId", String(64), nullable=False, index=True)
+    api_key_hash = Column("ApiKeyHash", String(255), nullable=False)
+    # Last 4 chars of the raw key, kept for operator recognition / masking.
+    key_tail = Column("KeyTail", String(4), nullable=False)
+    contact_email = Column("ContactEmail", String(255), nullable=True)
+    is_active = Column("IsActive", Boolean, default=True)
+    created_at = Column("CreatedAt", DateTime, default=datetime.utcnow)
+    updated_at = Column(
+        "UpdatedAt", DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    permissions = relationship(
+        "ClientApiPermission", back_populates="client", cascade="all, delete-orphan"
+    )
+    # Zero-or-one current subscription row (the admin billing plan).
+    subscription = relationship(
+        "ClientSubscription", back_populates="client", uselist=False,
+        cascade="all, delete-orphan",
+    )
+
+
+class ClientApiPermission(Base):
+    """Grant table: which ApiClient may call which cyracode API capability.
+
+    This is the "configurable authorization" layer — an administrator creates
+    a permission row to authorize a client and deletes it to revoke access,
+    with no application code change required.
+    """
+
+    __tablename__ = "ClientApiPermissions"
+
+    id = Column("Id", String(36), primary_key=True, default=_uuid)
+    client_id = Column("ClientId", String(36), ForeignKey("ApiClients.Id"), nullable=False)
+    # Permission key, e.g. "cyracode.lookup" (address lookup).
+    permission = Column("Permission", String(100), nullable=False)
+    created_at = Column("CreatedAt", DateTime, default=datetime.utcnow)
+
+    client = relationship("ApiClient", back_populates="permissions")
+
+
+class ClientAccessLog(Base):
+    """Audit log for every CyraCode Address Lookup API request.
+
+    Records who (masked key), what endpoint was hit, the outcome, and how long
+    it took — enough for security monitoring and compliance without storing the
+    raw secret.
+    """
+
+    __tablename__ = "ClientAccessLogs"
+
+    id = Column("Id", String(36), primary_key=True, default=_uuid)
+    client_id = Column("ClientId", String(36), ForeignKey("ApiClients.Id"), nullable=True)
+    client_name = Column("ClientName", String(100), nullable=True)
+    key_tail = Column("KeyTail", String(4), nullable=True)
+    endpoint = Column("Endpoint", String(200), nullable=False)
+    method = Column("Method", String(10), nullable=False)
+    ip_address = Column("IpAddress", String(50), nullable=True)
+    status_code = Column("StatusCode", Integer, nullable=True)
+    response_time_ms = Column("ResponseTimeMs", Integer, nullable=True)
+    created_at = Column("CreatedAt", DateTime, default=datetime.utcnow)
+
+
+class Plan(Base):
+    """Billable subscription tier (Basic / Pro / Enterprise).
+
+    Admin assigns a Plan to an ApiClient via ClientSubscription. Costs are USD
+    per month and are snapshotted onto the subscription so later price edits
+    don't rewrite historical billing figures.
+    """
+
+    __tablename__ = "Plans"
+
+    id = Column("Id", String(36), primary_key=True, default=_uuid)
+    code = Column("Code", String(20), unique=True, nullable=False, index=True)
+    name = Column("Name", String(50), nullable=False)
+    monthly_cost = Column("MonthlyCost", Integer, nullable=False)
+    created_at = Column("CreatedAt", DateTime, default=datetime.utcnow)
+
+    subscriptions = relationship("ClientSubscription", back_populates="plan")
+
+
+class ClientSubscription(Base):
+    """A client's current plan enrollment, with start/end billing window.
+
+    ``status`` is the durable lifecycle state ('active' | 'cancelled'). The
+    derived *display* status (active / expiring / expired / cancelled) is
+    computed from ``end_date`` + ``status`` by ``subscription_status()`` so rows
+    never need a background job to roll over.
+    """
+
+    __tablename__ = "ClientSubscriptions"
+
+    id = Column("Id", String(36), primary_key=True, default=_uuid)
+    client_id = Column("ClientId", String(36), ForeignKey("ApiClients.Id"), nullable=False)
+    plan_id = Column("PlanId", String(36), ForeignKey("Plans.Id"), nullable=True)
+    # Snapshots so billing history survives plan edits/deletes.
+    plan_name = Column("PlanName", String(50), nullable=False)
+    monthly_cost = Column("MonthlyCost", Integer, nullable=False)
+    start_date = Column("StartDate", DateTime, nullable=False)
+    end_date = Column("EndDate", DateTime, nullable=False)
+    status = Column("Status", String(20), nullable=False, default="active")
+    created_at = Column("CreatedAt", DateTime, default=datetime.utcnow)
+    updated_at = Column(
+        "UpdatedAt", DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    client = relationship("ApiClient", back_populates="subscription")
+    plan = relationship("Plan", back_populates="subscriptions")
+
+
+class Transaction(Base):
+    """Billing transaction generated when a subscription is set or renewed.
+
+    Snapshots client/plan/amount so the revenue trend and recent-transactions
+    feed stay stable even when clients or plans change afterwards.
+    """
+
+    __tablename__ = "Transactions"
+
+    id = Column("Id", String(36), primary_key=True, default=_uuid)
+    client_id = Column("ClientId", String(36), ForeignKey("ApiClients.Id"), nullable=True)
+    client_name = Column("ClientName", String(100), nullable=False)
+    plan_name = Column("PlanName", String(50), nullable=False)
+    amount = Column("Amount", Integer, nullable=False)
+    status = Column("Status", String(20), nullable=False, default="paid")
+    created_at = Column("CreatedAt", DateTime, default=datetime.utcnow)
+
+    client = relationship("ApiClient")

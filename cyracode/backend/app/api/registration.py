@@ -176,6 +176,7 @@ class CyraCodeResponse(BaseModel):
     po_box: Optional[str] = None
     landmark: Optional[str] = None
     qr_code: Optional[str] = None
+    is_active: bool = True
 
     class Config:
         from_attributes = True

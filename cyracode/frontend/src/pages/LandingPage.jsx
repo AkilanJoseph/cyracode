@@ -144,7 +144,10 @@ export default function LandingPage() {
       }
 
       toast.success('Welcome back!')
-      navigate('/dashboard')
+      // Admin access is decided by the Users.IsAdmin role flag from the login
+      // response — admins land in the Admin Portal, everyone else in the
+      // client dashboard.
+      navigate(data.user?.role === 'admin' ? '/admin' : '/dashboard')
     } catch (err) {
       toast.error(apiErrorMessage(err, t('errors.login_failed')))
     } finally {
