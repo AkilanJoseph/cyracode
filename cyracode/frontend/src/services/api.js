@@ -39,6 +39,7 @@ export const auth = {
 export const registration = {
   checkName: (name) => api.get(`/registration/check-name/${encodeURIComponent(name)}`),
   generateCode: (lat, lng) => api.post('/registration/generate-code', { lat, lng }),
+  suggestNames: () => api.post('/registration/suggest-names'),
   registrationCount: () => api.get('/registration/count'),
   // AC 6.17: idempotencyKey prevents duplicate registrations on rapid double-submit
   registerTraditional: (payload, idempotencyKey) =>
@@ -49,6 +50,12 @@ export const registration = {
     }),
   registerAutoGenerate: (payload, idempotencyKey) =>
     api.post('/registration/auto-generate', payload, {
+      headers: idempotencyKey
+        ? { 'X-Idempotency-Key': idempotencyKey, Authorization: `Bearer ${localStorage.getItem('cyracode_token')}` }
+        : { Authorization: `Bearer ${localStorage.getItem('cyracode_token')}` },
+    }),
+  registerPersonalized: (payload, idempotencyKey) =>
+    api.post('/registration/personalized', payload, {
       headers: idempotencyKey
         ? { 'X-Idempotency-Key': idempotencyKey, Authorization: `Bearer ${localStorage.getItem('cyracode_token')}` }
         : { Authorization: `Bearer ${localStorage.getItem('cyracode_token')}` },

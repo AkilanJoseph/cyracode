@@ -1,5 +1,12 @@
 """Integration tests for /registration endpoints."""
-from tests.conftest import auth_headers, base_registration_payload, make_cyracode
+from tests.conftest import auth_headers, base_registration_payload, make_cyracode, register_user
+
+
+def arun_headers(client, email="arun@example.com"):
+    """Authenticate a user named Arun Kumar (for personalized-suggestion tests)."""
+    register_user(client, first_name="Arun", last_name="Kumar", email=email)
+    resp = client.post("/auth/login", json={"email": email, "password": "ValidP@ss1"})
+    return {"Authorization": f"Bearer {resp.json()['access_token']}"}
 
 
 class TestCheckName:
@@ -124,6 +131,85 @@ class TestRegisterAutoGenerate:
     def test_unauthenticated_returns_401(self, client):
         resp = client.post("/registration/auto-generate", json=base_registration_payload())
         assert resp.status_code == 401
+
+
+class TestPersonalizedNameSuggestions:
+    """Personalized "Auto Generate My Code": suggestions + availability checks."""
+
+    def test_suggests_available_unique_names_for_user(self, client, db):
+        from app.services.registration_service import check_name_available
+
+        headers = arun_headers(client)
+        resp = client.post("/registration/suggest-names", headers=headers)
+        assert resp.status_code == 200
+        names = resp.json()["names"]
+        assert len(names) == 10
+
+        raw_names = [n["name"] for n in names]
+        # No duplicate suggestions
+        assert len(set(raw_names)) == len(raw_names)
+        # Every suggestion satisfies the CyraCode naming rules (3-50 alnum/spaces)
+        for n in names:
+            assert 3 <= len(n["name"]) <= 50
+            assert all(ch.isalnum() or ch == " " for ch in n["name"])
+            assert n["category"]
+        # Personalized — the user's own name is used in the suggestions
+        assert any("Arun" in n["name"] for n in names)
+        # Availability — nothing displayed is already registered
+        for n in names:
+            assert check_name_available(db, n["name"])
+
+    def test_suggest_names_requires_auth(self, client):
+        resp = client.post("/registration/suggest-names")
+        assert resp.status_code == 401
+
+    def test_taken_names_are_skipped_and_replaced(self, client, db):
+        from app.services.registration_service import check_name_available
+
+        headers = arun_headers(client)
+        first = client.post("/registration/suggest-names", headers=headers).json()["names"]
+        # Claim every suggested name in the database.
+        for n in first:
+            make_cyracode(db, n["name"])
+
+        # The next batch must skip the taken names and still surface 10 available ones.
+        second = client.post("/registration/suggest-names", headers=headers).json()["names"]
+        assert len(second) == 10
+        for n in second:
+            assert check_name_available(db, n["name"])
+
+
+class TestRegisterPersonalized:
+    def test_success_creates_cyracode(self, client, db):
+        headers = auth_headers(client)
+        resp = client.post(
+            "/registration/personalized",
+            json=base_registration_payload(name="ArunNova"),
+            headers=headers,
+        )
+        assert resp.status_code == 201
+        body = resp.json()
+        assert body["code_name"] == "ArunNova"
+        assert body["code_type"] == "personalized"
+        assert "qr_code" in body
+
+    def test_unauthenticated_returns_401(self, client):
+        resp = client.post(
+            "/registration/personalized",
+            json=base_registration_payload(name="ArunNova"),
+        )
+        assert resp.status_code == 401
+
+    def test_duplicate_name_returns_409(self, client, db):
+        headers = auth_headers(client)
+        make_cyracode(db, "ArunNova")
+        resp = client.post(
+            "/registration/personalized",
+            json=base_registration_payload(name="ArunNova"),
+            headers=headers,
+        )
+        assert resp.status_code == 409
+        assert "already taken" in resp.json()["detail"]
 
 
 class TestMyCodes:

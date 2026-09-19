@@ -96,6 +96,26 @@ export const handlers = [
   http.post(`${BASE}/registration/generate-code`, () =>
     HttpResponse.json({ code: 'ABC12xyz7890' })
   ),
+  http.post(`${BASE}/registration/suggest-names`, () =>
+    HttpResponse.json({
+      names: [
+        { name: 'TestNova', category: '🌌 Space' },
+        { name: 'TestBloom', category: '🌸 Flowers' },
+        { name: 'TestFalcon', category: '🐦 Birds' },
+        { name: 'TestWillow', category: '🌿 Nature' },
+        { name: 'TestOrion', category: '🌌 Space' },
+        { name: 'TestPhoenix', category: '🔮 Mythical' },
+        { name: 'TestMystic', category: '✨ Fantasy' },
+        { name: 'TestZenith', category: '🌙 Cosmic' },
+        { name: 'TestCoral', category: '🌊 Ocean' },
+        { name: 'TestEmber', category: '🔥 Elements' },
+      ],
+    })
+  ),
+  http.post(`${BASE}/registration/personalized`, () => {
+    registrationCountStore.actualCount += 1
+    return HttpResponse.json({ ...mockCyraCode, code_name: 'TestNova', code_type: 'personalized' }, { status: 201 })
+  }),
   http.post(`${BASE}/registration/traditional`, () => {
     registrationCountStore.actualCount += 1
     return HttpResponse.json(mockCyraCode, { status: 201 })

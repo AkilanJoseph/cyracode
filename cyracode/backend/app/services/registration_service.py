@@ -3,6 +3,7 @@ import io
 import math
 import random
 import string
+import unicodedata
 from datetime import datetime
 
 import httpx
@@ -11,7 +12,30 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.models.models import CyraCode
+from app.models.models import CyraCode, User
+
+# Themed vocabulary used to build personalized CyraCode name suggestions. Each
+# key is the display label (emoji + category) returned with the suggestion; the
+# values are lowercase theme words combined with the user's own name details so
+# every generated name stays unique and memorable.
+THEMED_WORDS = {
+    "🌿 Nature": ["willow", "fern", "grove", "meadow", "breeze", "vale", "clover", "dune", "moss", "field"],
+    "🌸 Flowers": ["bloom", "lily", "rose", "lotus", "daisy", "tulip", "iris", "jasmine", "marigold", "peony"],
+    "🐦 Birds": ["falcon", "eagle", "sparrow", "raven", "swift", "heron", "robin", "hawk", "owl", "kite"],
+    "🦋 Animals": ["puma", "lynx", "leopard", "tiger", "bison", "viper", "panda", "koala", "wolf", "otter"],
+    "🌳 Trees": ["oak", "cedar", "elm", "pine", "maple", "birch", "aspen", "yew", "rowan", "tamar"],
+    "🌊 Ocean": ["coral", "reef", "tide", "wave", "current", "bay", "lagoon", "atoll", "harbour", "delta"],
+    "🌌 Space": ["orion", "vega", "comet", "nova", "quasar", "nebula", "star", "galaxy", "aster", "pulsar"],
+    "🪐 Planets": ["terra", "mars", "venus", "saturn", "neptune", "jupiter", "mercury", "pluto", "uranus", "eris"],
+    "✨ Fantasy": ["dragon", "griffin", "titan", "mystic", "rune", "enchant", "legend", "mage", "glade", "elixir"],
+    "🔮 Mythical": ["phoenix", "hydra", "sphinx", "pegasus", "unicorn", "gryphon", "chimera", "basilisk", "kraken", "griffin"],
+    "💎 Gemstones": ["jade", "onyx", "topaz", "ruby", "opal", "amber", "emerald", "sapphire", "quartz", "garnet"],
+    "🔥 Elements": ["ember", "blaze", "flare", "storm", "thunder", "frost", "quake", "gale", "volt", "flame"],
+    "🌈 Colors": ["crimson", "indigo", "scarlet", "azure", "cobalt", "ochre", "sable", "jade", "amber", "purple"],
+    "☀️ Sky": ["sunny", "zephyr", "aurora", "mist", "halo", "rain", "sky", "nimbus", "sol", "dusk"],
+    "🚀 Futuristic": ["orbit", "circuit", "quantum", "vector", "pixel", "cyber", "neo", "byte", "nexus", "sonic"],
+    "🌙 Cosmic": ["cosmo", "zenith", "eclipse", "astra", "lunar", "solar", "stellar", "void", "crescent", "aurora"],
+}
 
 
 def haversine_distance(lat1, lng1, lat2, lng2) -> float:
@@ -75,6 +99,153 @@ def suggest_alternative_names(db: Session, name: str) -> list:
             suggestions.append(candidate)
 
     return suggestions[:5] if suggestions else [f"{name}{random.randint(1000, 9999)}"]
+
+
+# ---------- Personalized name suggestions ----------
+
+# Display label used for names built purely from the user's own profile details.
+PERSONAL_LABEL = "🌟 Personalized"
+
+
+def _normalize_user_part(value: str) -> str:
+    """Keep only letters and digits from a profile field (preserves Unicode)."""
+    return "".join(ch for ch in (value or "") if ch.isalnum())
+
+
+def _title_word(value: str) -> str:
+    if not value:
+        return ""
+    return value[0].upper() + value[1:].lower()
+
+
+def _is_valid_name_candidate(name: str) -> bool:
+    """A suggestion must satisfy the CyraCode naming rules: 3–50 characters,
+    Unicode letters, digits, and spaces only."""
+    if not name or not 3 <= len(name) <= 50:
+        return False
+    return all(
+        unicodedata.category(ch).startswith(("L", "N")) or ch == " " for ch in name
+    )
+
+
+def _user_parts(user: User) -> dict:
+    """Derive the name building blocks from a user's non-sensitive profile fields.
+
+    Uses first name, last name, and initials; the email prefix acts as a
+    username-like fallback when no usable name parts exist.
+    """
+    first = _normalize_user_part(user.first_name)
+    last = _normalize_user_part(user.last_name)
+    email_prefix = _normalize_user_part((user.email or "").split("@")[0])
+
+    primary = _title_word(first)
+    secondary = _title_word(last) if last else ""
+    initials = ""
+    if first:
+        initials = first[0].upper()
+    if last:
+        initials += last[0].upper()
+
+    if not primary and email_prefix:
+        primary = _title_word(email_prefix)
+
+    return {"primary": primary, "secondary": secondary, "initials": initials}
+
+
+def _build_candidate_groups(parts: dict) -> list:
+    """Build three varied groups of candidate suggestions.
+
+    * name-based  — built purely from the user's own details
+    * themed      — the user's details combined with a multi-category vocabulary
+    * creative    — fully themed names drawn from the vocabulary, category by category
+    """
+    name_based = []
+    themed = []
+    creative = []
+    seen = set()
+
+    def add(group, name, label):
+        name = name.strip()
+        if not name or name in seen or not _is_valid_name_candidate(name):
+            return
+        seen.add(name)
+        group.append({"name": name, "category": label})
+
+    primary = parts["primary"]
+    secondary = parts["secondary"]
+    initials = parts["initials"]
+
+    # 1) Name-based variants from the user's own profile details.
+    if primary:
+        add(name_based, primary, PERSONAL_LABEL)
+        if secondary:
+            add(name_based, primary + secondary, PERSONAL_LABEL)
+        if initials and len(initials) >= 2:
+            add(name_based, primary + initials, PERSONAL_LABEL)
+
+    # 2) Mix the user's details with themed words (suffix + inverted/initials
+    #    styles) so the batch spans many categories.
+    labels = list(THEMED_WORDS.keys())
+    random.shuffle(labels)
+    for label in labels:
+        words = list(THEMED_WORDS[label])
+        random.shuffle(words)
+        word = _title_word(words[0])
+        if primary:
+            add(themed, primary + word, label)
+            add(themed, word + primary, label)
+            if secondary:
+                add(themed, secondary + word, label)
+            if initials and len(initials) >= 2:
+                add(themed, initials + word, label)
+        else:
+            add(themed, word, label)
+
+    # 3) Fully themed (creative) names, one per category, so a batch is never
+    #    100% dependent on the user's own name.
+    for label in labels:
+        words = list(THEMED_WORDS[label])
+        random.shuffle(words)
+        add(creative, _title_word(words[0]), label)
+
+    return [name_based, themed, creative]
+
+
+def _interleave(groups: list) -> list:
+    """Round-robin merge so consecutive suggestions come from different groups,
+    guaranteeing the shown batch mixes patterns (name-based, themed, creative)."""
+    result = []
+    pointers = [0] * len(groups)
+    while True:
+        advanced = False
+        for i, group in enumerate(groups):
+            if pointers[i] < len(group):
+                result.append(group[pointers[i]])
+                pointers[i] += 1
+                advanced = True
+        if not advanced:
+            break
+    return result
+
+
+def generate_personalized_suggestions(user: User, db: Session, limit: int = 10) -> list:
+    """Return up to ``limit`` available, unique, personalized name suggestions.
+
+    Candidates are built by combining the logged-in user's own profile details
+    with a curated multi-category vocabulary, then run through the database
+    availability check so only names that are not already registered
+    (case-insensitive) are ever returned. Unavailable candidates are skipped and
+    generation continues until the target count is reached or the pool runs out.
+    """
+    groups = _build_candidate_groups(_user_parts(user))
+    candidates = _interleave(groups)
+    suggestions = []
+    for candidate in candidates:
+        if len(suggestions) >= limit:
+            break
+        if check_name_available(db, candidate["name"]):
+            suggestions.append(candidate)
+    return suggestions
 
 
 def generate_cyracode(lat: float, lng: float, db: Session) -> str:

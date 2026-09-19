@@ -6,6 +6,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel, Field, field_validator
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -19,6 +20,7 @@ from app.services.registration_service import (
     create_cyracode_entry,
     deactivate_cyracode_entry,
     generate_cyracode,
+    generate_personalized_suggestions,
     generate_qr_code,
     suggest_alternative_names,
     update_cyracode_entry,
@@ -225,6 +227,22 @@ class AutoGenerateRegistrationRequest(RegistrationRequest):
         return v
 
 
+class PersonalizedRegistrationRequest(RegistrationRequest):
+    """AC: Personalized auto-generated names are machine-suggested from the user's
+    own profile details plus a curated vocabulary, so they follow the standard
+    CyraCode naming rules (3–50 letters/digits/spaces) rather than the legacy
+    12-character auto-code format."""
+
+
+class NameSuggestion(BaseModel):
+    name: str
+    category: str
+
+
+class SuggestNamesResponse(BaseModel):
+    names: List[NameSuggestion]
+
+
 @router.get("/count", response_model=RegistrationCountResponse)
 def registration_count(db: Session = Depends(get_db)):
     """Public social-proof counter: Displayed = Initial + Actually Registered.
@@ -264,6 +282,24 @@ def generate_code(request: Request, payload: GenerateCodeRequest, db: Session = 
         )
     code = generate_cyracode(payload.lat, payload.lng, db)
     return GenerateCodeResponse(code=code)
+
+
+@router.post("/suggest-names", response_model=SuggestNamesResponse)
+@limiter.limit("30/10minutes")
+def suggest_personalized_names(
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Generate up to 10 available, personalized CyraCode name suggestions.
+
+    Names are built from the logged-in user's own profile details combined with
+    a curated multi-category vocabulary (nature, space, myth, tech, ...) and
+    filtered against the database so only names that are not already registered
+    (case-insensitive) are returned. Duplicates are never shown.
+    """
+    suggestions = generate_personalized_suggestions(user, db)
+    return SuggestNamesResponse(names=suggestions)
 
 
 def _register(
@@ -314,7 +350,17 @@ def _register(
     data["is_flagged"] = should_flag
     data["flag_reason"] = flag_reason if should_flag else None
 
-    entry = create_cyracode_entry(db, user.id, data)
+    entry = None
+    try:
+        entry = create_cyracode_entry(db, user.id, data)
+    except IntegrityError:
+        # Race guard: the unique constraint on code_name is the final source of
+        # truth. If two requests claim the same name concurrently, the loser
+        # sees a friendly 409 instead of a 500.
+        db.rollback()
+        raise HTTPException(
+            status_code=409, detail="This CyraCode name is already taken."
+        )
 
     response = CyraCodeResponse.model_validate(entry)
     response.qr_code = qr
@@ -378,6 +424,24 @@ def register_auto_generate(
 ):
     # AC 3.3: skip_spam_check=True — code is machine-generated, not user-chosen
     return _register(payload, "auto_generate", user, db, x_idempotency_key, skip_spam_check=True)
+
+
+@router.post("/personalized", response_model=CyraCodeResponse, status_code=201)
+def register_personalized(
+    payload: PersonalizedRegistrationRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    x_idempotency_key: Optional[str] = Header(None, alias="X-Idempotency-Key"),
+):
+    """Register a personalized auto-generated CyraCode name.
+
+    The name is machine-suggested (curated vocabulary + the user's own profile
+    name), so the content filter is skipped just like the legacy auto-generate
+    flow. Availability is re-checked in ``_register`` against the live database
+    before saving — if another user claimed the name in the meantime the save is
+    rejected with a 409.
+    """
+    return _register(payload, "personalized", user, db, x_idempotency_key, skip_spam_check=True)
 
 
 @router.get("/my-codes", response_model=List[CyraCodeResponse])
