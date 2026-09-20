@@ -222,7 +222,7 @@ For zero-downtime/faster rollbacks, optionally:
 Backend:
 ```bash
 cd backend
-pip install -r requirements-dev.txt
+pip install -r requirements.txt
 python -m pytest -q
 ```
 

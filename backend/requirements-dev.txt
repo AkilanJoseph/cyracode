@@ -1,5 +1,0 @@
-# Test-only dependencies for CI / local development.
-# usage: pip install -r requirements-dev.txt
--r requirements.txt
-
-pytest>=8.0
