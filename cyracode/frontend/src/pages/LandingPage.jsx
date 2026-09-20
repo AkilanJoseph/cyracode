@@ -287,14 +287,14 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="mt-10 pt-8 border-t border-border grid grid-cols-3 gap-4">
+          <div className="mt-10 pt-8 border-t border-border flex flex-col sm:flex-row justify-between gap-4 sm:gap-6">
             {[
               { value: '10m', label: t('landing.stat_accuracy') },
-              { value: '12', label: t('landing.stat_chars') },
-              { value: '∞', label: t('landing.stat_locations') },
-            ].map(({ value, label }) => (
-              <div key={label}>
-                <p className="text-2xl font-bold text-ink">{value}</p>
+              { value: '10', label: t('landing.stat_names') },
+              { value: '∞', label: t('landing.stat_locations'), valueClass: 'text-[33px] leading-none' },
+            ].map(({ value, label, valueClass }) => (
+              <div key={label} className="flex flex-col items-start text-left">
+                <p className={`text-2xl font-bold text-ink ${valueClass || ''}`}>{value}</p>
                 <p className="text-xs text-muted mt-0.5">{label}</p>
               </div>
             ))}
