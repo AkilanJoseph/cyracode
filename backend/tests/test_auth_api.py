@@ -238,31 +238,24 @@ class TestGoogleAuth:
     def test_google_token_audience_mismatch_returns_401(self, client):
         from unittest.mock import MagicMock
         from app.config import settings
-        # The audience check only runs when GOOGLE_CLIENT_ID is configured, so
-        # pin it for this test and restore afterwards to keep it deterministic.
-        original = settings.GOOGLE_CLIENT_ID
-        settings.GOOGLE_CLIENT_ID = "expected-client-id.apps.googleusercontent.com"
-        try:
-            google_info = {
-                "sub": "google-uid-123",
-                "email": "googleuser@gmail.com",
-                "given_name": "Google",
-                "family_name": "User",
-                "aud": "some-other-client-id.apps.googleusercontent.com",
-            }
-            mock_response = MagicMock()
-            mock_response.status_code = 200
-            mock_response.json.return_value = google_info
+        google_info = {
+            "sub": "google-uid-123",
+            "email": "googleuser@gmail.com",
+            "given_name": "Google",
+            "family_name": "User",
+            "aud": "some-other-client-id.apps.googleusercontent.com",
+        }
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = google_info
 
-            mock_inner = AsyncMock()
-            mock_inner.get = AsyncMock(return_value=mock_response)
+        mock_inner = AsyncMock()
+        mock_inner.get = AsyncMock(return_value=mock_response)
 
-            mock_cm = AsyncMock()
-            mock_cm.__aenter__ = AsyncMock(return_value=mock_inner)
-            mock_cm.__aexit__ = AsyncMock(return_value=False)
+        mock_cm = AsyncMock()
+        mock_cm.__aenter__ = AsyncMock(return_value=mock_inner)
+        mock_cm.__aexit__ = AsyncMock(return_value=False)
 
-            with patch("app.api.auth.httpx.AsyncClient", return_value=mock_cm):
-                resp = client.post("/auth/google", json={"token": "valid-token"})
-            assert resp.status_code == 401
-        finally:
-            settings.GOOGLE_CLIENT_ID = original
+        with patch("app.api.auth.httpx.AsyncClient", return_value=mock_cm):
+            resp = client.post("/auth/google", json={"token": "valid-token"})
+        assert resp.status_code == 401
