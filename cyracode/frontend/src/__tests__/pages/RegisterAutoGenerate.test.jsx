@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { HttpResponse, http } from 'msw'
@@ -31,7 +31,7 @@ vi.mock('../../components/MapPicker', () => ({
 }))
 
 vi.mock('country-state-city/lib/state', () => ({
-  default: { getStatesOfCountry: () => [] },
+  default: { getStatesOfCountry: (code) => (code === 'US' ? [{ isoCode: 'CA', name: 'California' }] : []) },
 }))
 
 vi.mock('country-state-city/lib/city', () => ({
@@ -54,6 +54,15 @@ function setup() {
 function countrySelect() {
   return screen.getAllByRole('combobox').find((el) =>
     Array.from(el.options).some((o) => o.value === 'US')
+  )
+}
+
+// The state select is not label-associated either; scope it by its options.
+// Exclude the country select so 'CA' (Canada) from the country list is not
+// mistaken for a California state option.
+function stateSelect() {
+  return screen.getAllByRole('combobox').find((el) =>
+    el !== countrySelect() && Array.from(el.options).some((o) => o.value === 'CA')
   )
 }
 
@@ -118,6 +127,9 @@ describe('RegisterAutoGenerate — personalized names', () => {
 
     await user.selectOptions(countrySelect(), 'US')
     await user.type(screen.getByLabelText(/street name/i), 'Mission St')
+    await user.type(screen.getByLabelText(/city/i), 'San Francisco')
+    await vi.waitFor(() => expect(stateSelect()).toBeDefined())
+    await user.selectOptions(stateSelect(), 'CA')
     await user.type(screen.getByLabelText(/zip code/i), '94103')
     await user.click(screen.getByRole('button', { name: /complete registration/i }))
 
@@ -147,11 +159,47 @@ describe('RegisterAutoGenerate — personalized names', () => {
 
     await user.selectOptions(countrySelect(), 'US')
     await user.type(screen.getByLabelText(/street name/i), 'Mission St')
+    await user.type(screen.getByLabelText(/city/i), 'San Francisco')
+    await vi.waitFor(() => expect(stateSelect()).toBeDefined())
+    await user.selectOptions(stateSelect(), 'CA')
     await user.type(screen.getByLabelText(/zip code/i), '94103')
     await user.click(screen.getByRole('button', { name: /complete registration/i }))
 
     await vi.waitFor(() => expect(toastMock.error).toHaveBeenCalledWith('This name is no longer available. Please select another name.'))
     expect(screen.getByRole('button', { name: /auto generate my code/i })).toBeInTheDocument()
     expect(mockNavigate).not.toHaveBeenCalled()
+  })
+
+  it('requires state/city/district and clears errors as soon as a value is filled', async () => {
+    const { user } = setup()
+    await user.click(screen.getByRole('button', { name: /auto generate my code/i }))
+    await screen.findByText('TestNova')
+
+    await user.click(screen.getByTestId('suggestion-TestNova'))
+    await user.click(screen.getByRole('button', { name: /pick on map/i }))
+    await user.click(screen.getByRole('button', { name: /^continue$/i }))
+
+    await user.selectOptions(countrySelect(), 'US')
+    await user.type(screen.getByLabelText(/street name/i), 'Mission St')
+    await user.type(screen.getByLabelText(/city/i), 'San Francisco')
+    await user.type(screen.getByLabelText(/zip code/i), '94103')
+    await user.click(screen.getByRole('button', { name: /complete registration/i }))
+
+    // State is mandatory now — submission is blocked without it.
+    await vi.waitFor(() => expect(stateSelect()).toBeDefined())
+    const stateField = stateSelect().closest('div').parentElement
+    expect(within(stateField).getByText('This field is required')).toBeInTheDocument()
+    expect(mockNavigate).not.toHaveBeenCalled()
+
+    // Selecting a state clears the state error immediately.
+    await user.selectOptions(stateSelect(), 'CA')
+    expect(within(stateField).queryByText('This field is required')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /complete registration/i }))
+    await vi.waitFor(() =>
+      expect(mockNavigate).toHaveBeenCalledWith('/confirmation', expect.objectContaining({
+        state: expect.objectContaining({ mode: 'auto_generate' }),
+      }))
+    )
   })
 })

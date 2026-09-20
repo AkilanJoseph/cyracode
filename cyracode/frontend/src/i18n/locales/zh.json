@@ -218,8 +218,9 @@
     "edit": {
       "title": "管理 CyraCodes",
       "subtitle": "查看、编辑或删除您注册的 CyraCodes。",
-      "no_codes": "您还没有注册任何 CyraCode。",
-      "register_first": "注册您的第一个地址",
+      "no_codes": "您还没有注册任何 CyraCode。请注册您的第一个 CyraCode 地址。",
+      "register_first": "自定义代码",
+      "register_auto": "自动代码",
       "name_immutable": "您的 CyraCode 名称是唯一的，无法更改 — 只能更新地址详细信息。",
       "editing_label": "正在编辑",
       "view": "查看",

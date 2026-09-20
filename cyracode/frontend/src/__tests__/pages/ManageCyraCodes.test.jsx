@@ -62,11 +62,12 @@ describe('ManageCyraCodes — tile list', () => {
     expect(screen.getAllByRole('button', { name: /remove/i })).toHaveLength(2)
   })
 
-  it('shows a notice when there are no cyracodes', async () => {
+  it('shows a notice and both registration options when there are no cyracodes', async () => {
     server.use(http.get(MY_CODES_URL, () => HttpResponse.json([])))
     setup()
     expect(await screen.findByText(/you don't have any registered cyracodes/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /register your first address/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /custom code/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /auto code/i })).toBeInTheDocument()
   })
 })
 

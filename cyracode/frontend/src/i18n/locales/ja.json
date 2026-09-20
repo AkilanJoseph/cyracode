@@ -218,8 +218,9 @@
     "edit": {
       "title": "CyraCodeを管理",
       "subtitle": "登録済みのCyraCodeを表示、編集、または削除します。",
-      "no_codes": "登録済みのCyraCodeはまだありません。",
-      "register_first": "最初の住所を登録",
+      "no_codes": "まだ CyraCode は登録されていません。最初の CyraCode アドレスを登録してください。",
+      "register_first": "カスタムコード",
+      "register_auto": "オートコード",
       "name_immutable": "CyraCode名は一意であり変更できません — 住所の詳細のみ更新できます。",
       "editing_label": "編集中",
       "view": "表示",

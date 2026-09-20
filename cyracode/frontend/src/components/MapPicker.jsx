@@ -10,9 +10,33 @@ import {
 } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { Navigation, LocateFixed } from 'lucide-react'
+import { Navigation, LocateFixed, Loader2, AlertTriangle, MapPin, X } from 'lucide-react'
 
 const defaultCenter = { lat: 20.5937, lng: 78.9629 }
+
+// Geolocation settings: request the highest available accuracy (GPS on
+// devices that have it), never accept a stale cached fix, and allow a
+// reasonable window for the browser to obtain a fresh, precise position.
+const GEO_OPTIONS = {
+  enableHighAccuracy: true,
+  timeout: 15000,
+  maximumAge: 0,
+}
+
+// Map every browser geolocation failure to a user-friendly message so the UI
+// never degrades into a silent/approximate position.
+function geoErrorMessage(code) {
+  switch (code) {
+    case 1:
+      return 'Location access was denied. Allow location permission for this site, then press Locate to retry.'
+    case 2:
+      return 'Location is unavailable. Turn on location services for this device, then press Locate to retry.'
+    case 3:
+      return 'Timed out while detecting your location. Press Locate to try again.'
+    default:
+      return 'Could not detect your location. Press Locate to try again.'
+  }
+}
 
 // OSM tile server (no API key required)
 const TILE_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
@@ -161,25 +185,34 @@ export default function MapPicker({
   const [geoCenter, setGeoCenter] = useState(null)
   const [userLocation, setUserLocation] = useState(userPos)
   const [locating, setLocating] = useState(false)
+  const [locationError, setLocationError] = useState(null)
+  // Browser geolocation error code for the current failure (1 = permission
+  // denied, 2 = location services off/unavailable, 3 = timeout, null = non
+  // geolocation failure e.g. unsupported browser). Codes 1-3 open the
+  // "enable location" modal with a Retry action; everything else stays a
+  // plain inline notice since retrying cannot help.
+  const [locationErrorCode, setLocationErrorCode] = useState(null)
+  const [accuracyMeters, setAccuracyMeters] = useState(null)
   // Coordinates of the last point chosen by clicking inside this map; used to
   // detect the parent echoing the click back via `markerPosition`.
   const lastClickRef = useRef(null)
 
-  // AC 5.1: Center map on user's current location; default zoom 15
+  // Default Map to Current Location: when the map opens with no pre-selected
+  // marker (and it is not read-only), detect the current location using the
+  // most accurate position the browser can provide, center on it, drop the
+  // pin, and sync the parent's lat/lng fields. Any failure surfaces a clear
+  // message + Retry instead of silently falling back to an approximate spot.
   useEffect(() => {
-    if ((markerPosition || userPos || !navigator.geolocation)) return
-    navigator.geolocation.getCurrentPosition(
-      (pos) => setGeoCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => {}
-    )
+    if (readonly || markerPosition || userPos) return
+    requestPosition()
   }, [])
 
   useEffect(() => {
-    setMarker(markerPosition)
+    if (markerPosition) setMarker(markerPosition)
   }, [markerPosition])
 
   useEffect(() => {
-    setUserLocation(userPos)
+    if (userPos) setUserLocation(userPos)
   }, [userPos])
 
   const handleLocation = (lat, lng, opts = {}) => {
@@ -189,6 +222,11 @@ export default function MapPicker({
       // The user placed the pin by clicking the map: keep the current view so
       // the pin lands exactly where they clicked instead of re-centering it.
       lastClickRef.current = pt
+      // The pin is now a manual pick, so the geolocation accuracy no longer
+      // applies and any "enable location" prompt can leave the way.
+      setAccuracyMeters(null)
+      setLocationError(null)
+      setLocationErrorCode(null)
     } else {
       setGeoCenter(pt)
     }
@@ -198,21 +236,38 @@ export default function MapPicker({
     })
   }
 
-  const handleLocate = () => {
-    if (!navigator.geolocation) return
+  // Single geolocation flow shared by the initial default-map behavior and the
+  // Locate/Retry button. Uses GPS-grade accuracy settings and reports the
+  // accuracy radius so the shown coordinates can be verified.
+  const requestPosition = () => {
+    if (!navigator.geolocation) {
+      setLocationErrorCode(null)
+      setLocationError('Your browser does not support geolocation. Select your location on the map instead.')
+      return
+    }
     setLocating(true)
+    setLocationError(null)
+    setLocationErrorCode(null)
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        setLocating(false)
+        setAccuracyMeters(
+          pos.coords.accuracy != null ? Math.round(pos.coords.accuracy) : null
+        )
         const pt = { lat: pos.coords.latitude, lng: pos.coords.longitude }
         setGeoCenter(pt)
         setUserLocation(pt)
-        setLocating(false)
         if (!readonly) {
           handleLocation(pt.lat, pt.lng)
         }
       },
-      () => setLocating(false),
-      { enableHighAccuracy: true, timeout: 15000 }
+      (err) => {
+        setLocating(false)
+        setAccuracyMeters(null)
+        setLocationErrorCode(err && err.code ? err.code : null)
+        setLocationError(geoErrorMessage(err && err.code))
+      },
+      GEO_OPTIONS
     )
   }
 
@@ -314,9 +369,9 @@ export default function MapPicker({
           )}
         </MapContainer>
 
-        {/* Locate button */}
+        {/* Locate / retry button */}
         <button
-          onClick={handleLocate}
+          onClick={requestPosition}
           title="Use my location"
           disabled={locating}
           className="absolute bottom-8 right-3 z-[500] flex items-center justify-center w-9 h-9 rounded-full bg-white border border-border shadow-md hover:bg-surface transition-colors disabled:opacity-50"
@@ -325,9 +380,73 @@ export default function MapPicker({
         </button>
       </div>
 
+      {locating && (
+        <p className="mt-2 text-sm text-gray-500 flex items-center gap-1.5" role="status">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
+          Detecting your current location…
+        </p>
+      )}
+
+      {/* Enable-location modal — shown when the browser cannot get a fix
+          (permission denied / location services off / timeout). Retrying is the
+          only way forward, so the user gets a clear prompt instead of a silent
+          fallback. Dismissing keeps the map usable for manual selection. */}
+      {locationError && locationErrorCode != null && (
+        <div
+          className="absolute inset-0 z-[600] flex items-center justify-center bg-white/70 backdrop-blur-[2px] p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Enable location"
+        >
+          <div className="w-full max-w-sm rounded-2xl bg-white border border-border shadow-card p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center shrink-0">
+                  <MapPin className="w-4 h-4 text-amber-600" aria-hidden="true" />
+                </div>
+                <h3 className="font-semibold text-ink leading-snug">
+                  Enable location to show your current position
+                </h3>
+              </div>
+              <button
+                onClick={() => { setLocationError(null); setLocationErrorCode(null) }}
+                aria-label="Close"
+                className="text-muted hover:text-ink transition-colors shrink-0"
+              >
+                <X className="w-4 h-4" aria-hidden="true" />
+              </button>
+            </div>
+            <p className="mt-3 text-sm text-muted leading-snug">{locationError}</p>
+            <p className="mt-1.5 text-xs text-muted">
+              You can also select a location manually on the map.
+            </p>
+            <button
+              onClick={requestPosition}
+              disabled={locating}
+              className="mt-4 w-full flex items-center justify-center gap-1.5 text-sm font-semibold text-white bg-primary hover:bg-teal-600 rounded-xl px-4 py-2.5 transition-colors disabled:opacity-50"
+            >
+              {locating ? (
+                <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <LocateFixed className="w-4 h-4" aria-hidden="true" />
+              )}
+              {locating ? 'Detecting…' : 'Retry location detection'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {locationError && locationErrorCode == null && (
+        <div className="mt-2 flex items-start gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2" role="alert">
+          <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
+          <div className="flex-1">{locationError}</div>
+        </div>
+      )}
+
       {!readonly && active && (
         <p className="mt-2 text-sm text-gray-600">
           Selected: {Number(active.lat).toFixed(6)}, {Number(active.lng).toFixed(6)}
+          {accuracyMeters != null && <> (±{accuracyMeters} m)</>}
         </p>
       )}
     </div>

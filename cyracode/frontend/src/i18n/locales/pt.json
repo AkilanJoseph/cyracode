@@ -218,8 +218,9 @@
     "edit": {
       "title": "Gerenciar CyraCodes",
       "subtitle": "Veja, edite ou remova os CyraCodes que você registrou.",
-      "no_codes": "Você ainda não tem CyraCodes registrados.",
-      "register_first": "Registre seu primeiro endereço",
+      "no_codes": "Você ainda não tem CyraCodes registrados. Registre seu primeiro endereço CyraCode.",
+      "register_first": "Código personalizado",
+      "register_auto": "Código automático",
       "name_immutable": "Seu nome CyraCode é único e não pode ser alterado — apenas os detalhes do endereço podem ser atualizados.",
       "editing_label": "Editando",
       "view": "Ver",

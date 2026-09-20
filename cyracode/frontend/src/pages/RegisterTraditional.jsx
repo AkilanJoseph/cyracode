@@ -44,7 +44,7 @@ export function SelectWithLoader({ loading, className, children, ...rest }) {
   )
 }
 
-export function AddressStep({ address, setAddress, errors }) {
+export function AddressStep({ address, setAddress, errors, clearError }) {
   const { t } = useTranslation()
   const [postalError, setPostalError] = useState('')
 
@@ -54,7 +54,10 @@ export function AddressStep({ address, setAddress, errors }) {
   const priorityCountries = SPECIAL_CODES.map((code) => allCountries.find((c) => c.isoCode === code)).filter(Boolean)
   const remainingCountries = allCountries.filter((c) => !SPECIAL_CODES.includes(c.isoCode))
 
-  const set = (field, value) => setAddress({ ...address, [field]: value })
+  const set = (field, value) => {
+    setAddress({ ...address, [field]: value })
+    if (typeof clearError === 'function') clearError(field)
+  }
 
   // AC 2.12: State/province dropdown — state dataset is lazy-loaded only when a
   // country is chosen so it is split into an on-demand chunk.
@@ -128,6 +131,12 @@ export function AddressStep({ address, setAddress, errors }) {
     const c = allCountries.find((x) => x.isoCode === code)
     setAddress({ ...address, country_code: code, country: c?.name || '', state: '', stateIso: '', district: '' })
     setPostalError('')
+    if (typeof clearError === 'function') {
+      clearError('country_code')
+      clearError('state')
+      clearError('district')
+      clearError('city')
+    }
   }
 
   const postalErr = postalError || errors.postal_code
@@ -161,10 +170,11 @@ export function AddressStep({ address, setAddress, errors }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">{t('register.state')}</label>
-              <SelectWithLoader loading={loadingStates} value={address.stateIso || ''} onChange={(e) => { const s = states.find((x) => x.isoCode === e.target.value); setAddress({ ...address, stateIso: e.target.value, state: s?.name || '', district: '' }) }} className={selectCls}>
+              <SelectWithLoader loading={loadingStates} value={address.stateIso || ''} onChange={(e) => { const s = states.find((x) => x.isoCode === e.target.value); setAddress({ ...address, stateIso: e.target.value, state: s?.name || '', district: '' }); if (typeof clearError === 'function') { clearError('state'); clearError('district') } }} className={selectCls}>
                 <option value="">{t('register.select_state')}</option>
                 {states.map((s) => <option key={s.isoCode} value={s.isoCode}>{s.name}</option>)}
               </SelectWithLoader>
+              {errors.state && <p className="mt-1 text-sm text-red-500">{errors.state}</p>}
             </div>
             <div>
               <label className="block text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">{t('register.district')}</label>
@@ -172,6 +182,7 @@ export function AddressStep({ address, setAddress, errors }) {
                 <option value="">{t('register.select_district')}</option>
                 {districts.map((d) => <option key={d.name} value={d.name}>{d.name}</option>)}
               </SelectWithLoader>
+              {errors.district && <p className="mt-1 text-sm text-red-500">{errors.district}</p>}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -217,10 +228,11 @@ export function AddressStep({ address, setAddress, errors }) {
           <Input label={t('register.city')} value={address.city || ''} onChange={(e) => set('city', e.target.value)} error={errors.city} maxLength={100} />
           <div>
             <label className="block text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">{t('register.state')}</label>
-            <SelectWithLoader loading={loadingStates} value={address.stateIso || ''} onChange={(e) => { const s = states.find((x) => x.isoCode === e.target.value); setAddress({ ...address, stateIso: e.target.value, state: s?.name || '' }) }} className={selectCls}>
+            <SelectWithLoader loading={loadingStates} value={address.stateIso || ''} onChange={(e) => { const s = states.find((x) => x.isoCode === e.target.value); setAddress({ ...address, stateIso: e.target.value, state: s?.name || '' }); if (typeof clearError === 'function') clearError('state') }} className={selectCls}>
               <option value="">{t('register.select_state')}</option>
               {states.map((s) => <option key={s.isoCode} value={s.isoCode}>{s.name}</option>)}
             </SelectWithLoader>
+            {errors.state && <p className="mt-1 text-sm text-red-500">{errors.state}</p>}
           </div>
           <Input label={t('register.landmark')} value={address.landmark || ''} onChange={(e) => set('landmark', e.target.value)} maxLength={100} />
           <Input label={t('register.postal_us')} value={address.postal_code} onChange={(e) => handlePostalChange(e.target.value)} error={postalErr} helperText={!postalErr ? t('register.postal_hint_us') : undefined} />
@@ -288,13 +300,14 @@ export function AddressStep({ address, setAddress, errors }) {
           {states.length > 0 ? (
             <div>
               <label className="block text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">{t('register.state_province')}</label>
-              <SelectWithLoader loading={loadingStates} value={address.stateIso || ''} onChange={(e) => { const s = states.find((x) => x.isoCode === e.target.value); setAddress({ ...address, stateIso: e.target.value, state: s?.name || '' }) }} className={selectCls}>
+              <SelectWithLoader loading={loadingStates} value={address.stateIso || ''} onChange={(e) => { const s = states.find((x) => x.isoCode === e.target.value); setAddress({ ...address, stateIso: e.target.value, state: s?.name || '' }); if (typeof clearError === 'function') clearError('state') }} className={selectCls}>
                 <option value="">{t('register.select_state')}</option>
                 {states.map((s) => <option key={s.isoCode} value={s.isoCode}>{s.name}</option>)}
               </SelectWithLoader>
+              {errors.state && <p className="mt-1 text-sm text-red-500">{errors.state}</p>}
             </div>
           ) : (
-            <Input label={t('register.state_province')} value={address.state} onChange={(e) => set('state', e.target.value)} />
+            <Input label={t('register.state_province')} value={address.state} onChange={(e) => set('state', e.target.value)} error={errors.state} maxLength={100} />
           )}
           <div className="grid grid-cols-2 gap-3">
             <Input label={t('register.building')} value={address.building_name} onChange={(e) => set('building_name', e.target.value)} error={errors.building_name} maxLength={100} />
@@ -316,9 +329,21 @@ export function validateAddress(address) {
   if (!address.country_code) errors.country_code = 'This field is required'
   if (!address.street_address?.trim()) errors.street_address = 'This field is required'
   else if (address.street_address.length > 100) errors.street_address = 'Must not exceed 100 characters'
+  // State/province: required wherever the form offers the field (not UK)
+  if (address.country_code && address.country_code !== 'GB' && !address.state?.trim()) {
+    errors.state = 'This field is required'
+  } else if (address.state?.length > 100) {
+    errors.state = 'Must not exceed 100 characters'
+  }
+  // City: required for every country layout
+  if (address.country_code && !address.city?.trim()) errors.city = 'This field is required'
+  else if (address.city?.length > 100) errors.city = 'Must not exceed 100 characters'
+  // District (India dropdown) / district-ward (Japan text): required where present
+  if (address.country_code === 'IN' && !address.district?.trim()) errors.district = 'This field is required'
+  else if (address.country_code === 'JP' && !address.district?.trim()) errors.district = 'This field is required'
+  else if (address.district?.length > 100) errors.district = 'Must not exceed 100 characters'
   // AC 6.22: optional field length limits
   if (address.area?.length > 100) errors.area = 'Must not exceed 100 characters'
-  if (address.city?.length > 100) errors.city = 'Must not exceed 100 characters'
   if (address.town?.length > 100) errors.town = 'Must not exceed 100 characters'
   if (address.road_name?.length > 100) errors.road_name = 'Must not exceed 100 characters'
   if (address.avenue_name?.length > 100) errors.avenue_name = 'Must not exceed 100 characters'
@@ -366,6 +391,14 @@ export default function RegisterTraditional() {
     floor_unit: '', postal_code: '', po_box: '', landmark: '',
   })
   const [addressErrors, setAddressErrors] = useState({})
+
+  const clearFieldError = (field) =>
+    setAddressErrors((prev) => {
+      if (!(field in prev)) return prev
+      const next = { ...prev }
+      delete next[field]
+      return next
+    })
   const [showMismatch, setShowMismatch] = useState(false)
 
   const STEPS = [t('register.step_location_name'), t('register.step_address')]
@@ -560,7 +593,7 @@ export default function RegisterTraditional() {
                   <span>{t('register.mismatch_warning')}</span>
                 </div>
               )}
-              <AddressStep address={address} setAddress={setAddress} errors={addressErrors} />
+              <AddressStep address={address} setAddress={setAddress} errors={addressErrors} clearError={clearFieldError} />
               <div className="flex gap-3">
                 <Button variant="secondary" onClick={() => setStep(1)} className="flex-1">{t('common.back')}</Button>
                 <Button onClick={nextFromStep2} loading={submitting} className="flex-1">{t('register.complete')}</Button>

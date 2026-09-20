@@ -89,12 +89,15 @@ export default function SearchPage() {
     searchInputRef.current?.focus()
   }, [])
 
-  // AC 5.5 / geolocation permission: silently get user position
+  // AC 5.5 / geolocation permission: silently get the most accurate position
+  // the browser can provide (GPS-grade, fresh fix) — used only for distances
+  // and directions, never for the authoritative CyraCode coordinates.
   useEffect(() => {
     if (!navigator.geolocation) return
     navigator.geolocation.getCurrentPosition(
       (pos) => setUserPos({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => {}
+      () => {},
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     )
   }, [])
 

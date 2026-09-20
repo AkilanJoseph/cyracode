@@ -218,8 +218,9 @@
     "edit": {
       "title": "إدارة رموز CyraCodes",
       "subtitle": "عرض أو تعديل أو إزالة رموز CyraCodes المسجلة لديك.",
-      "no_codes": "لا يوجد لديك أي رموز CyraCode مسجلة بعد.",
-      "register_first": "سجل عنوانك الأول",
+      "no_codes": "لا يوجد لديك أي رموز CyraCode مسجلة بعد. سجّل عنوان CyraCode الأول لك.",
+      "register_first": "رمز مخصص",
+      "register_auto": "رمز تلقائي",
       "name_immutable": "اسم CyraCode الخاص بك فريد ولا يمكن تغييره — يمكن تحديث تفاصيل العنوان فقط.",
       "editing_label": "جارٍ التعديل",
       "view": "عرض",

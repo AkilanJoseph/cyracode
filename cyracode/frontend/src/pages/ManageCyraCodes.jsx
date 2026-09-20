@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { MapPin, Loader2, Eye, Pencil, Trash2, X, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { MapPin, Loader2, Eye, Pencil, Trash2, X, AlertTriangle, CheckCircle2, Sparkles, Zap } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import Button from '../components/common/Button'
 import Input from '../components/common/Input'
@@ -75,6 +75,14 @@ export default function ManageCyraCodes() {
   })
   const [addressErrors, setAddressErrors] = useState({})
   const [saving, setSaving] = useState(false)
+
+  const clearFieldError = (field) =>
+    setAddressErrors((prev) => {
+      if (!(field in prev)) return prev
+      const next = { ...prev }
+      delete next[field]
+      return next
+    })
 
   const loadCodes = useCallback(async () => {
     setLoadingCodes(true)
@@ -232,7 +240,7 @@ export default function ManageCyraCodes() {
       )}
       {step === 2 && (
         <div className="space-y-5">
-          <AddressStep address={address} setAddress={setAddress} errors={addressErrors} />
+          <AddressStep address={address} setAddress={setAddress} errors={addressErrors} clearError={clearFieldError} />
           <div className="flex gap-3">
             <Button variant="secondary" onClick={() => setStep(1)} className="flex-1">{t('common.back')}</Button>
             <Button onClick={save} loading={saving} className="flex-1">{t('edit.save_changes')}</Button>
@@ -318,12 +326,17 @@ export default function ManageCyraCodes() {
             <Loader2 className="w-5 h-5 animate-spin mr-2" aria-hidden="true" /> {t('common.loading')}
           </div>
         ) : codes.length === 0 ? (
-          <div className="bg-white rounded-3xl border border-border shadow-card py-16 text-center">
+          <div className="bg-white rounded-3xl border border-border shadow-card py-16 px-4 text-center">
             <MapPin className="w-10 h-10 text-muted/40 mx-auto mb-3" aria-hidden="true" />
             <p className="text-muted">{t('edit.no_codes')}</p>
-            <Button variant="outline" className="mt-4" onClick={() => navigate('/register/traditional')}>
-              {t('edit.register_first')}
-            </Button>
+            <div className="mt-6 flex flex-col sm:flex-row justify-center gap-3">
+              <Button onClick={() => navigate('/register/traditional')}>
+                <Sparkles className="w-4 h-4" aria-hidden="true" /> {t('edit.register_first')}
+              </Button>
+              <Button onClick={() => navigate('/register/auto-generate')}>
+                <Zap className="w-4 h-4" aria-hidden="true" /> {t('edit.register_auto')}
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="grid sm:grid-cols-2 gap-4">

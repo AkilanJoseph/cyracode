@@ -5,6 +5,7 @@ import { Sparkles, RefreshCw, Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import ProgressSteps from '../components/common/ProgressSteps'
 import Button from '../components/common/Button'
+import Input from '../components/common/Input'
 import MapPicker from '../components/MapPicker'
 import Header from '../components/common/Header'
 import { AddressStep, validateAddress } from './RegisterTraditional'
@@ -34,6 +35,14 @@ export default function RegisterAutoGenerate() {
     floor_unit: '', postal_code: '', po_box: '', landmark: '',
   })
   const [addressErrors, setAddressErrors] = useState({})
+
+  const clearFieldError = (field) =>
+    setAddressErrors((prev) => {
+      if (!(field in prev)) return prev
+      const next = { ...prev }
+      delete next[field]
+      return next
+    })
 
   const STEPS = [t('register.step_personalized_code'), t('register.step_address')]
 
@@ -188,6 +197,23 @@ export default function RegisterAutoGenerate() {
 
               {/* Location */}
               <MapPicker markerPosition={coords} onLocationSelect={handleLocation} />
+              {/* Latitude/longitude auto-populated from the map selection */}
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  label="Latitude"
+                  value={coords ? coords.lat.toFixed(6) : ''}
+                  placeholder="Select location on map"
+                  disabled
+                  helperText="Auto-filled from map"
+                />
+                <Input
+                  label="Longitude"
+                  value={coords ? coords.lng.toFixed(6) : ''}
+                  placeholder="Select location on map"
+                  disabled
+                  helperText="Auto-filled from map"
+                />
+              </div>
 
               <Button
                 onClick={nextFromStep1}
@@ -209,7 +235,7 @@ export default function RegisterAutoGenerate() {
                   <span className="font-mono font-semibold text-ink">{selected}</span>
                 </p>
               </div>
-              <AddressStep address={address} setAddress={setAddress} errors={addressErrors} />
+              <AddressStep address={address} setAddress={setAddress} errors={addressErrors} clearError={clearFieldError} />
               <div className="flex gap-3">
                 <Button variant="secondary" onClick={() => setStep(1)} className="flex-1">{t('common.back')}</Button>
                 <Button onClick={nextFromStep2} loading={submitting} className="flex-1">{t('register.complete')}</Button>

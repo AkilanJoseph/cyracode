@@ -31,6 +31,7 @@ export const mockCyraCode = {
   country: 'India',
   country_code: 'IN',
   state: 'Karnataka',
+  district: 'Bengaluru Urban',
   area: 'Indiranagar',
   town: 'Bengaluru East',
   road_name: '100 Feet Road',
