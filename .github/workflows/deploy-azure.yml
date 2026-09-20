@@ -1,0 +1,332 @@
+name: CyraCode CI/CD - Deploy to Azure
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      provision_fresh_database:
+        description: >-
+          Apply database/schema.postgres.sql to the target database.
+          ONLY safe against a NEW/EMPTY database - refuses to run if tables exist.
+        required: false
+        type: boolean
+        default: false
+
+# OIDC (federated identity) to Azure - no client secrets stored in the repo.
+permissions:
+  contents: read
+  id-token: write
+
+# One deployment at a time per branch. Disabled cancellation so a git push
+# during an in-flight deploy cannot abort the release midway.
+concurrency:
+  group: cyracode-azure-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  # Fallbacks mirror frontend/.env.production for the current resources.
+  API_BASE_URL: ${{ vars.API_BASE_URL || 'https://cyracode-api.azurewebsites.net' }}
+  FRONTEND_URL: ${{ vars.FRONTEND_URL || 'https://cyracode-frontend.azurewebsites.net' }}
+  RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+  API_APP_NAME: ${{ vars.AZURE_API_APP_NAME || 'cyracode-api' }}
+  FRONTEND_APP_NAME: ${{ vars.AZURE_FRONTEND_APP_NAME || 'cyracode-frontend' }}
+
+jobs:
+  # ======================================================================
+  # 1. BACKEND - install, run pytest, package source for Azure App Service
+  # ======================================================================
+  build-be:
+    name: Backend tests & package
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run backend test suite
+        run: python -m pytest -q
+      - name: Assemble deployable package
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/be && mkdir -p /tmp/be
+          tar -C . --exclude='__pycache__' --exclude='*.pyc' \
+            --exclude='.pytest_cache' --exclude='tests' \
+            --exclude='.venv' -cf /tmp/be-src.tar .
+          tar -xf /tmp/be-src.tar -C /tmp/be
+          cd /tmp/be && zip -qr ../backend-package.zip .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-package
+          path: /tmp/backend-package.zip
+          if-no-files-found: error
+
+  # ======================================================================
+  # 2. FRONTEND - install, run vitest, build SPA, package for App Service
+  # ======================================================================
+  build-fe:
+    name: Frontend tests & package
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        run: npm ci
+      - name: Run frontend unit tests
+        run: npm run test
+      - name: Build production bundle
+        run: npm run build
+        env:
+          # Process env wins over .env.production in Vite. Leave unset to fall
+          # back to the committed values in frontend/.env.production.
+          VITE_API_BASE_URL: ${{ vars.API_BASE_URL || 'https://cyracode-api.azurewebsites.net' }}
+          VITE_GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID || '1052815738416-5i78kc963p2fimgnkvadv05pmj2640p3.apps.googleusercontent.com' }}
+      - name: Assemble deployable package
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/fe && mkdir -p /tmp/fe
+          cp -r dist server.js package.json /tmp/fe/
+          cd /tmp/fe && zip -qr ../frontend-package.zip .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-package
+          path: /tmp/frontend-package.zip
+          if-no-files-found: error
+
+  # ======================================================================
+  # 3. DATABASE - safe, non-destructive verification (and optional bootstrap
+  #    of a NEW/EMPTY database). Runs before backend is deployed.
+  # ======================================================================
+  database:
+    name: Database check & migration
+    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch' }}
+    needs: build-be
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Verify database connectivity
+        uses: ./.github/actions/db-verify
+        with:
+          mode: connect
+          database_url: ${{ secrets.AZURE_DATABASE_URL }}
+          provision_schema: ${{ (github.event.inputs.provision_fresh_database == 'true' || vars.PROVISION_FRESH_DATABASE == 'true') && 'database/schema.postgres.sql' || '' }}
+          manage_firewall: ${{ vars.DB_MANAGE_FIREWALL || 'false' }}
+          resource_group: ${{ vars.AZURE_RESOURCE_GROUP }}
+          postgres_server: ${{ vars.AZURE_POSTGRES_SERVER }}
+
+  # ======================================================================
+  # 4. BACKEND DEPLOY - App Service settings + zip deploy (Oryx builds deps)
+  # ======================================================================
+  deploy-be:
+    name: Deploy API to Azure App Service
+    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch' }}
+    needs: [build-be, database]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: backend-package
+          path: ./
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Set startup command (uvicorn)
+        run: |
+          az webapp config set \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "$API_APP_NAME" \
+            --startup-file "uvicorn app.main:app --host 0.0.0.0 --port 8000"
+        env:
+          RESOURCE_GROUP: ${{ env.RESOURCE_GROUP }}
+          API_APP_NAME: ${{ env.API_APP_NAME }}
+      - name: Apply API app settings (non-empty values only)
+        run: |
+          set -euo pipefail
+          if [[ -z "${DB_URL:-}" || -z "${SECRET_KEY:-}" ]]; then
+            echo "::error::AZURE_DATABASE_URL and AZURE_SECRET_KEY secrets are required."
+            echo "::error::Refusing to deploy a backend that cannot reach its database."
+            exit 1
+          fi
+          settings=("WEBSITES_PORT=8000")
+          [[ -n "${DB_URL:-}" ]]        && settings+=("DATABASE_URL=${DB_URL}")
+          [[ -n "${SECRET_KEY:-}" ]]    && settings+=("SECRET_KEY=${SECRET_KEY}")
+          [[ -n "${FRONTEND_URL:-}" ]]  && settings+=("FRONTEND_URL=${FRONTEND_URL}")
+          [[ -n "${CORS_ORIGINS:-}" ]]  && settings+=("CORS_ORIGINS=${CORS_ORIGINS}")
+          [[ -n "${REG_COUNT:-}" ]]     && settings+=("REGISTRATION_COUNT_INITIAL=${REG_COUNT}")
+          [[ -n "${ADMIN_EMAIL:-}" ]]   && settings+=("ADMIN_EMAIL=${ADMIN_EMAIL}")
+          [[ -n "${ADMIN_PASS:-}" ]]    && settings+=("ADMIN_PASSWORD=${ADMIN_PASS}")
+          [[ -n "${GOOGLE_ID:-}" ]]     && settings+=("GOOGLE_CLIENT_ID=${GOOGLE_ID}")
+          [[ -n "${GOOGLE_SECRET:-}" ]] && settings+=("GOOGLE_CLIENT_SECRET=${GOOGLE_SECRET}")
+          [[ -n "${MAPS_KEY:-}" ]]      && settings+=("GOOGLE_MAPS_API_KEY=${MAPS_KEY}")
+          [[ -n "${SMS_URL:-}" ]]       && settings+=("SMS_GATEWAY_URL=${SMS_URL}")
+          [[ -n "${SMS_KEY:-}" ]]       && settings+=("SMS_API_KEY=${SMS_KEY}")
+          [[ -n "${SMTP_HOST:-}" ]]     && settings+=("SMTP_HOST=${SMTP_HOST}")
+          [[ -n "${SMTP_PORT:-}" ]]     && settings+=("SMTP_PORT=${SMTP_PORT}")
+          [[ -n "${SMTP_USER:-}" ]]     && settings+=("SMTP_USER=${SMTP_USER}")
+          [[ -n "${SMTP_PASS:-}" ]]     && settings+=("SMTP_PASSWORD=${SMTP_PASS}")
+          [[ -n "${SMTP_FROM:-}" ]]     && settings+=("SMTP_FROM=${SMTP_FROM}")
+          az webapp config appsettings set \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "$API_APP_NAME" \
+            --settings "${settings[@]}"
+        env:
+          RESOURCE_GROUP: ${{ env.RESOURCE_GROUP }}
+          API_APP_NAME: ${{ env.API_APP_NAME }}
+          DB_URL: ${{ secrets.AZURE_DATABASE_URL }}
+          SECRET_KEY: ${{ secrets.AZURE_SECRET_KEY }}
+          FRONTEND_URL: ${{ env.FRONTEND_URL }}
+          CORS_ORIGINS: ${{ vars.CORS_ORIGINS }}
+          REG_COUNT: ${{ vars.REGISTRATION_COUNT_INITIAL }}
+          ADMIN_EMAIL: ${{ secrets.AZURE_ADMIN_EMAIL }}
+          ADMIN_PASS: ${{ secrets.AZURE_ADMIN_PASSWORD }}
+          GOOGLE_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          MAPS_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+          SMS_URL: ${{ secrets.SMS_GATEWAY_URL }}
+          SMS_KEY: ${{ secrets.SMS_API_KEY }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASSWORD }}
+          SMTP_FROM: ${{ secrets.SMTP_FROM }}
+      - name: Deploy API package to Azure App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.API_APP_NAME }}
+          slot-name: production
+          package: backend-package.zip
+
+  # ======================================================================
+  # 5. FRONTEND DEPLOY - prebuilt SPA + static server, deploy to App Service
+  # ======================================================================
+  deploy-fe:
+    name: Deploy frontend to Azure App Service
+    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch' }}
+    needs: build-fe
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-package
+          path: ./
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Set startup command (node static server)
+        run: |
+          az webapp config set \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "$FRONTEND_APP_NAME" \
+            --startup-file "node server.js"
+        env:
+          RESOURCE_GROUP: ${{ env.RESOURCE_GROUP }}
+          FRONTEND_APP_NAME: ${{ env.FRONTEND_APP_NAME }}
+      - name: Apply frontend app settings (disable Oryx rebuild - dist is prebuilt)
+        run: |
+          az webapp config appsettings set \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "$FRONTEND_APP_NAME" \
+            --settings "SCM_DO_BUILD_DURING_DEPLOYMENT=0" "WEBSITE_NODE_DEFAULT_VERSION=20"
+        env:
+          RESOURCE_GROUP: ${{ env.RESOURCE_GROUP }}
+          FRONTEND_APP_NAME: ${{ env.FRONTEND_APP_NAME }}
+      - name: Deploy frontend package to Azure App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.FRONTEND_APP_NAME }}
+          slot-name: production
+          package: frontend-package.zip
+
+  # ======================================================================
+  # 6. VERIFICATION - health checks on API + frontend, DB round-trip through
+  #    the API, and a full table-presence check against the database.
+  # ======================================================================
+  verify:
+    name: Post-deploy verification
+    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch' }}
+    needs: [deploy-be, deploy-fe]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Wait for API health endpoint
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 30); do
+            if curl -fsS --max-time 10 "$API_URL/health" | grep -q '"status":"ok"'; then
+              echo "API is healthy: $API_URL/health"
+              exit 0
+            fi
+            echo "Waiting for API ($i/30)..."
+            sleep 10
+          done
+          echo "::error::API did not become healthy at $API_URL/health"
+          exit 1
+        env:
+          API_URL: ${{ env.API_BASE_URL }}
+      - name: Verify database round-trip through API (read-only)
+        run: |
+          set -euo pipefail
+          body="$(curl -fsS --max-time 20 "$API_URL/registration/count")"
+          echo "$body" | grep -q 'display_count'
+          echo "API -> database connectivity OK (GET /registration/count)"
+        env:
+          API_URL: ${{ env.API_BASE_URL }}
+      - name: Wait for frontend HTTP 200
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 20); do
+            if curl -fsS -o /dev/null --max-time 10 "$FRONTEND_URL/"; then
+              echo "Frontend is up: $FRONTEND_URL"
+              exit 0
+            fi
+            echo "Waiting for frontend ($i/20)..."
+            sleep 10
+          done
+          echo "::error::Frontend did not become reachable at $FRONTEND_URL"
+          exit 1
+        env:
+          FRONTEND_URL: ${{ env.FRONTEND_URL }}
+      - name: Verify expected database tables exist
+        uses: ./.github/actions/db-verify
+        with:
+          mode: check
+          database_url: ${{ secrets.AZURE_DATABASE_URL }}
+          manage_firewall: ${{ vars.DB_MANAGE_FIREWALL || 'false' }}
+          resource_group: ${{ vars.AZURE_RESOURCE_GROUP }}
+          postgres_server: ${{ vars.AZURE_POSTGRES_SERVER }}
