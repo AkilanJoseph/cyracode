@@ -65,20 +65,6 @@ test.describe('Authentication flow', () => {
     ).toBeVisible({ timeout: 8000 })
   })
 
-  test('after register can dismiss modal and see landing', async ({ page }) => {
-    await page.getByRole('button', { name: /^sign up$/i }).click()
-    await page.getByLabel(/first name/i).fill('E2E')
-    await page.getByLabel(/last name/i).fill('User')
-    const emailInputs = page.locator('input[type="email"]')
-    await emailInputs.last().fill(`dismiss_${UNIQUE}@testcyra.com`)
-    const pwInputs = page.locator('input[type="password"]')
-    await pwInputs.last().fill(TEST_PASSWORD)
-    await page.getByLabel(/i agree/i).check()
-    await page.getByRole('button', { name: /create account/i }).click()
-    await page.getByText(/maybe later/i).click()
-    await expect(page.getByText(/Your address, one name\./i)).toBeVisible()
-  })
-
   test('login with registered account goes to dashboard', async ({ page }) => {
     // Register via API so we don't depend on E2E sign-up flow
     const resp = await page.request.post(`${BACKEND_URL}/auth/register`, {

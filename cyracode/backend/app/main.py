@@ -8,7 +8,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.api import admin, auth, cyracode_api, logistics, otp, registration, search
+from app.api import admin, auth, billing, cyracode_api, logistics, otp, registration, search
 from app.config import settings
 from app.database import Base, SessionLocal, engine
 from app.rate_limiter import limiter
@@ -123,10 +123,41 @@ def _ensure_api_client_columns():
         print(f"[STARTUP] Schema upgrade skipped for ApiClients.KeyId: {exc}")
 
 
+def _ensure_orders_schema():
+    """Rebuild a legacy Orders table from before the public self-serve billing redesign.
+
+    The pre-module-4 dev DB carried an old admin-billing-shaped ``Orders`` table
+    (``Billing``/``Months``/``PerMonth``/``CardTail`` columns) that predates the
+    current checkout model (``BillingFrequency``/``TaxAmount``/``TotalAmount``/
+    ``AutoRenew``/``PromoCode`` etc.). ``create_all`` only creates missing tables,
+    so the old table must be dropped and recreated from the ORM metadata. The rows
+    are unrecoverable smoke data and nothing references Orders by FK, so it is safe
+    to discard them. SQLite-only.
+    """
+    from sqlalchemy import inspect, text
+
+    try:
+        if engine.dialect.name != "sqlite":
+            return
+        inspector = inspect(engine)
+        columns = {c["name"] for c in inspector.get_columns("Orders")}
+        if "BillingFrequency" in columns or "OrderNo" not in columns:
+            return
+        print("[STARTUP] Rebuilding legacy Orders table for self-serve billing.")
+        from app.models import models as _models  # noqa: F401
+
+        with engine.begin() as conn:
+            conn.execute(text('DROP TABLE IF EXISTS "Orders"'))
+        Base.metadata.create_all(bind=engine)
+    except Exception as exc:  # pragma: no cover
+        print(f"[STARTUP] Schema upgrade skipped for Orders: {exc}")
+
+
 _ensure_schema_upgrades()
 _ensure_cyracode_columns()
 _ensure_user_role_column()
 _ensure_api_client_columns()
+_ensure_orders_schema()
 
 
 def _seed_plans():
@@ -247,6 +278,7 @@ app.include_router(registration.router)
 app.include_router(search.router)
 app.include_router(logistics.router)
 app.include_router(admin.router)
+app.include_router(billing.router)
 app.include_router(cyracode_api.router)
 
 

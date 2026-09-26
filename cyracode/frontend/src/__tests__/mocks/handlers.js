@@ -76,6 +76,9 @@ export const handlers = [
   http.post(`${BASE}/auth/forgot-password`, () =>
     HttpResponse.json({ message: 'If an account exists for this email, a reset link has been sent.' })
   ),
+  http.post(`${BASE}/auth/me/reset-password`, () =>
+    HttpResponse.json({ message: 'A password reset link has been sent to your registered email address.' })
+  ),
   http.post(`${BASE}/auth/google`, () =>
     HttpResponse.json({ access_token: mockToken, token_type: 'bearer', user: mockUser })
   ),
@@ -205,7 +208,7 @@ export const adminStatsStore = {
 
 const seedAdminCodes = () => [
   { ...mockCyraCode, owner_name: 'Test User', owner_email: 'test@example.com', is_active: true },
-  { ...mockCyraCode, id: 'code-test-id-2', code_name: 'MyOffice', is_active: false, owner_email: 'test@example.com' },
+  { ...mockCyraCode, id: 'code-test-id-2', code_name: 'MyOffice', code_type: 'auto_generate', is_active: false, owner_email: 'test@example.com' },
 ]
 
 export const adminCyracodeStore = {
@@ -638,6 +641,144 @@ const lookupAddress = {
   },
 }
 
+// ---------- Public billing (self-serve plans & checkout) ----------
+
+const seedBillingPlans = () => [
+  { code: 'sandbox', name: 'Sandbox', sort: 0, featured: false, custom_price: false, monthly_price: 0, monthly_allowance: '1,000', overage_rate: null, features: ['up_to_1k', 'lookup_basic', 'support_community'], annual_price_per_month: 0, annual_price_per_year: 0 },
+  { code: 'developer', name: 'Developer', sort: 1, featured: false, custom_price: false, monthly_price: 29, monthly_allowance: '100,000', overage_rate: '0.020', features: ['up_to_100k', 'lookup_full', 'uptime_sla', 'support_standard'], annual_price_per_month: 23, annual_price_per_year: 276 },
+  { code: 'growth', name: 'Growth', sort: 2, featured: true, custom_price: false, monthly_price: 99, monthly_allowance: '1,000,000', overage_rate: '0.010', features: ['up_to_1m', 'lookup_full', 'uptime_sla', 'support_priority', 'analytics'], annual_price_per_month: 79, annual_price_per_year: 948 },
+  { code: 'scale', name: 'Scale', sort: 3, featured: false, custom_price: false, monthly_price: 349, monthly_allowance: '10,000,000', overage_rate: '0.004', features: ['up_to_10m', 'lookup_full', 'uptime_sla', 'support_priority', 'analytics', 'dedicated_engineer'], annual_price_per_month: 279, annual_price_per_year: 3348 },
+  { code: 'enterprise', name: 'Enterprise', sort: 4, featured: false, custom_price: true, monthly_price: null, monthly_allowance: '∞', overage_rate: null, features: ['unlimited_lookups', 'lookup_full', 'uptime_sla', 'support_dedicated', 'analytics', 'custom_tiers'], annual_price_per_month: null, annual_price_per_year: null },
+]
+
+const seedBillingOrders = () => [
+  {
+    id: 'order-growth-1',
+    order_no: 'CYRA-TEST01',
+    email: 'test@example.com',
+    plan_code: 'growth',
+    plan_name: 'Growth',
+    billing_frequency: 'annual',
+    amount: 948,
+    tax_amount: 171,
+    total_amount: 1119,
+    currency: 'USD',
+    status: 'paid',
+    payment_method: 'card',
+    auto_renew: true,
+    promo_code: null,
+    client_id: 'bill-client-1',
+    created_at: '2026-08-15T09:30:00Z',
+    updated_at: '2026-08-15T09:30:00Z',
+  },
+  {
+    id: 'order-dev-2',
+    order_no: 'CYRA-TEST02',
+    email: 'test@example.com',
+    plan_code: 'developer',
+    plan_name: 'Developer',
+    billing_frequency: 'monthly',
+    amount: 29,
+    tax_amount: 5,
+    total_amount: 34,
+    currency: 'USD',
+    status: 'cancelled',
+    payment_method: 'upi',
+    auto_renew: false,
+    promo_code: null,
+    client_id: 'bill-client-2',
+    created_at: '2026-07-01T11:00:00Z',
+    updated_at: '2026-07-01T11:00:00Z',
+  },
+]
+
+export const billingStore = {
+  plans: seedBillingPlans(),
+  orders: seedBillingOrders(),
+  idempotency: {},
+  reset() {
+    this.plans = seedBillingPlans()
+    this.orders = seedBillingOrders()
+    this.idempotency = {}
+  },
+}
+
+export const billingHandlers = [
+  http.get(`${BASE}/billing/plans`, () => HttpResponse.json(billingStore.plans)),
+
+  http.get(`${BASE}/billing/orders`, ({ request }) => {
+    const url = new URL(request.url)
+    const email = (url.searchParams.get('email') || '').trim().toLowerCase()
+    const orders = billingStore.orders.filter((o) => o.email === email)
+    return HttpResponse.json(orders)
+  }),
+
+  http.get(`${BASE}/billing/orders/:id`, ({ params }) => {
+    const order = billingStore.orders.find((o) => o.id === params.id)
+    if (!order) return HttpResponse.json({ detail: 'Order not found.' }, { status: 404 })
+    return HttpResponse.json(order)
+  }),
+
+  http.post(`${BASE}/billing/orders`, async ({ request }) => {
+    const key = request.headers.get('X-Idempotency-Key')
+    if (key && billingStore.idempotency[key]) {
+      const order = billingStore.orders.find((o) => o.id === billingStore.idempotency[key])
+      if (order) return HttpResponse.json({ ...order, api_key: null }, { status: 201 })
+    }
+    const body = await request.json()
+    const plan = billingStore.plans.find((p) => p.code === body.plan_code)
+    if (!plan || plan.custom_price) {
+      return HttpResponse.json({ detail: 'This plan is not available for checkout.' }, { status: 422 })
+    }
+    const price = body.billing_frequency === 'annual' ? plan.annual_price_per_year : plan.monthly_price
+    if (!price) return HttpResponse.json({ detail: 'This plan is free and does not require checkout.' }, { status: 422 })
+    const tax = Math.round(price * 0.18)
+    const order = {
+      id: `order-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      order_no: `CYRA-${String(Math.floor(Math.random() * 1000000)).padStart(6, '0')}`,
+      email: body.email.trim().toLowerCase(),
+      plan_code: plan.code,
+      plan_name: plan.name,
+      billing_frequency: body.billing_frequency,
+      amount: price,
+      tax_amount: tax,
+      total_amount: price + tax,
+      currency: 'USD',
+      status: 'paid',
+      payment_method: body.payment_method || null,
+      auto_renew: true,
+      promo_code: body.promo_code || null,
+      client_id: `bill-client-${Date.now()}`,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }
+    billingStore.orders = [order, ...billingStore.orders]
+    if (key) billingStore.idempotency[key] = order.id
+    return HttpResponse.json({ ...order, api_key: 'cyra_test_selfserve_key_9999' }, { status: 201 })
+  }),
+
+  http.post(`${BASE}/billing/orders/:id/cancel`, ({ params }) => {
+    const order = billingStore.orders.find((o) => o.id === params.id)
+    if (!order) return HttpResponse.json({ detail: 'Order not found.' }, { status: 404 })
+    if (order.status !== 'paid') {
+      return HttpResponse.json({ detail: 'This order has already been cancelled.' }, { status: 409 })
+    }
+    order.status = 'cancelled'
+    order.auto_renew = false
+    order.updated_at = new Date().toISOString()
+    return HttpResponse.json(order)
+  }),
+
+  http.patch(`${BASE}/billing/orders/:id/auto-renew`, async ({ params, request }) => {
+    const order = billingStore.orders.find((o) => o.id === params.id)
+    if (!order) return HttpResponse.json({ detail: 'Order not found.' }, { status: 404 })
+    const body = await request.json()
+    order.auto_renew = Boolean(body.auto_renew)
+    order.updated_at = new Date().toISOString()
+    return HttpResponse.json(order)
+  }),
+]
+
 export const clientLookupHandlers = [
   http.get(`${BASE}/cyracode/:code/address`, ({ request, params }) => {
     const apiKey = request.headers.get('x-api-key')
@@ -664,4 +805,4 @@ export const clientLookupHandlers = [
   }),
 ]
 
-export const allHandlers = [...handlers, ...adminHandlers, ...clientLookupHandlers]
+export const allHandlers = [...handlers, ...adminHandlers, ...billingHandlers, ...clientLookupHandlers]

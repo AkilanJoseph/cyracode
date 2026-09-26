@@ -68,6 +68,11 @@
   to   { opacity: 1; transform: scale(1) translateY(0); }
 }
 
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
 .animate-checkmark {
   animation: checkmark-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
@@ -78,6 +83,31 @@
 
 .animate-slide-in {
   animation: slide-in 0.25s ease-out forwards;
+}
+
+/* Seamless horizontal ticker: the track holds two identical copies of the
+   slogan, so translating it by -50% loops without a visible jump.
+   One cycle covers a single copy, so the duration scales with the breakpoint
+   font-size to keep the rolling speed roughly constant on every screen. */
+.animate-marquee {
+  animation: marquee-scroll 20s linear infinite;
+  will-change: transform;
+}
+
+@media (min-width: 640px) {
+  .animate-marquee {
+    animation-duration: 26s;
+  }
+}
+
+.marquee-track:hover .animate-marquee {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee {
+    animation: none;
+  }
 }
 
 .confetti-piece {

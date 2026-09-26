@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { http, HttpResponse } from 'msw'
@@ -43,12 +43,12 @@ describe('LandingPage — layout', () => {
 
   it('renders Login tab active by default', () => {
     setup()
-    expect(screen.getByRole('button', { name: /^log in$/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^let's go!, dashboard$/i })).toBeInTheDocument()
   })
 
-  it('renders Login and Sign Up tabs', () => {
+  it('renders Sign In and Sign Up tabs', () => {
     setup()
-    expect(screen.getByRole('button', { name: /^login$/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^sign in$/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^sign up$/i })).toBeInTheDocument()
   })
 })
@@ -115,14 +115,14 @@ describe('LandingPage — Login tab', () => {
   it('shows validation error for invalid email', async () => {
     const { user } = setup()
     await user.type(screen.getByPlaceholderText('you@example.com'), 'not-an-email')
-    await user.click(screen.getByRole('button', { name: /^log in$/i }))
+    await user.click(screen.getByRole('button', { name: /^let's go!, dashboard$/i }))
     expect(await screen.findByText(/valid email/i)).toBeInTheDocument()
   })
 
   it('shows error when password is empty', async () => {
     const { user } = setup()
     await user.type(screen.getByPlaceholderText('you@example.com'), 'a@b.com')
-    await user.click(screen.getByRole('button', { name: /^log in$/i }))
+    await user.click(screen.getByRole('button', { name: /^let's go!, dashboard$/i }))
     expect(await screen.findByText(/this field is required/i)).toBeInTheDocument()
   })
 
@@ -130,7 +130,7 @@ describe('LandingPage — Login tab', () => {
     const { user } = setup()
     await user.type(screen.getByPlaceholderText('you@example.com'), 'test@example.com')
     await user.type(screen.getByPlaceholderText('••••••••'), 'ValidP@ss1')
-    await user.click(screen.getByRole('button', { name: /^log in$/i }))
+    await user.click(screen.getByRole('button', { name: /^let's go!, dashboard$/i }))
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/dashboard'))
   })
 
@@ -144,7 +144,7 @@ describe('LandingPage — Login tab', () => {
     const { user } = setup()
     await user.type(screen.getByPlaceholderText('you@example.com'), 'admin@example.com')
     await user.type(screen.getByPlaceholderText('••••••••'), 'ValidP@ss1')
-    await user.click(screen.getByRole('button', { name: /^log in$/i }))
+    await user.click(screen.getByRole('button', { name: /^let's go!, dashboard$/i }))
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/admin'))
   })
 
@@ -158,7 +158,7 @@ describe('LandingPage — Login tab', () => {
     const { user } = setup()
     await user.type(screen.getByPlaceholderText('you@example.com'), 'bad@example.com')
     await user.type(screen.getByPlaceholderText('••••••••'), 'WrongPass1!')
-    await user.click(screen.getByRole('button', { name: /^log in$/i }))
+    await user.click(screen.getByRole('button', { name: /^let's go!, dashboard$/i }))
     await waitFor(() => expect(toast.default.error).toHaveBeenCalled())
   })
 
@@ -186,13 +186,13 @@ describe('LandingPage — Sign Up tab', () => {
   it('shows registration fields after switching tab', async () => {
     const { user } = setup()
     await switchToSignUp(user)
-    expect(screen.getByRole('button', { name: /create account/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /setup your account/i })).toBeInTheDocument()
   })
 
   it('shows validation error when first name is empty', async () => {
     const { user } = setup()
     await switchToSignUp(user)
-    await user.click(screen.getByRole('button', { name: /create account/i }))
+    await user.click(screen.getByRole('button', { name: /setup your account/i }))
     expect(await screen.findAllByText(/this field is required/i)).not.toHaveLength(0)
   })
 
@@ -214,24 +214,35 @@ describe('LandingPage — Sign Up tab', () => {
     const pwInput = screen.getAllByPlaceholderText('••••••••')[0]
     await user.type(pwInput, 'ValidP@ss1')
     await user.click(screen.getByLabelText(/i agree/i))
-    await user.click(screen.getByRole('button', { name: /create account/i }))
+    await user.click(screen.getByRole('button', { name: /setup your account/i }))
     expect(await screen.findByText(/how do you want to register/i)).toBeInTheDocument()
   })
 
-  it('mode-select modal can be dismissed', async () => {
+  it('mode-select modal shows the app-standard icon for each option', async () => {
     const { user } = setup()
     await switchToSignUp(user)
-    await user.type(screen.getByLabelText(/first name/i), 'Jane')
+    await user.type(screen.getByLabelText(/first name/i), 'Ivy')
     await user.type(screen.getByLabelText(/last name/i), 'Doe')
     const emailInput = screen.getAllByPlaceholderText('you@example.com')[0]
-    await user.type(emailInput, 'jane@example.com')
+    await user.type(emailInput, 'ivy@example.com')
     const pwInput = screen.getAllByPlaceholderText('••••••••')[0]
     await user.type(pwInput, 'ValidP@ss1')
     await user.click(screen.getByLabelText(/i agree/i))
-    await user.click(screen.getByRole('button', { name: /create account/i }))
-    await screen.findByText(/maybe later/i)
-    await user.click(screen.getByText(/maybe later/i))
-    expect(screen.queryByText(/how do you want to register/i)).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /setup your account/i }))
+    await screen.findByText(/how do you want to register/i)
+
+    const custom = screen.getByRole('button', { name: /custom name/i })
+    const auto = screen.getByRole('button', { name: /auto-generate/i })
+    const dashboard = screen.getByRole('button', { name: /^dashboard/i })
+    expect(custom.querySelector('.lucide-sparkles')).not.toBeNull()
+    expect(auto.querySelector('.lucide-zap')).not.toBeNull()
+    expect(dashboard.querySelector('.lucide-layout-dashboard')).not.toBeNull()
+    // Cards use the same dashboard action-card treatment everywhere.
+    ;[custom, auto, dashboard].forEach((card) => {
+      expect(card.className).toContain('hover:-translate-y-1')
+      expect(card.className).toContain('hover:shadow-card-hover')
+      expect(within(card).getByText('Get started')).toBeInTheDocument()
+    })
   })
 
   it('mode-select modal offers dashboard option', async () => {
@@ -244,7 +255,7 @@ describe('LandingPage — Sign Up tab', () => {
     const pwInput = screen.getAllByPlaceholderText('••••••••')[0]
     await user.type(pwInput, 'ValidP@ss1')
     await user.click(screen.getByLabelText(/i agree/i))
-    await user.click(screen.getByRole('button', { name: /create account/i }))
+    await user.click(screen.getByRole('button', { name: /setup your account/i }))
     await screen.findByText(/how do you want to register/i)
     await user.click(screen.getByRole('button', { name: /dashboard/i }))
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/dashboard'))

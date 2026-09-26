@@ -29,6 +29,12 @@ beforeEach(() => {
 })
 
 describe('AdminAuditLogs', () => {
+  it('is reachable from the admin navigation', async () => {
+    setup()
+    const link = screen.getByRole('link', { name: /audit log/i })
+    expect(link).toHaveAttribute('href', '/admin/audit')
+  })
+
   it('renders audit entries with actions and admin email', async () => {
     setup()
     expect(await screen.findByText('admin_login')).toBeInTheDocument()

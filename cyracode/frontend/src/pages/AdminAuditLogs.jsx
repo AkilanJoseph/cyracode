@@ -40,7 +40,7 @@ export default function AdminAuditLogs() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <Header />
+      <Header maxWidth="max-w-5xl" />
       <AdminNav />
 
       <main id="main-content" className="max-w-5xl mx-auto px-4 py-10">

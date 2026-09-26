@@ -88,6 +88,44 @@ export default function Confirmation() {
     toast.success(t('confirmation.link_copied'))
   }
 
+  // Copy the registered address using the Clipboard API, falling back to a
+  // hidden textarea + execCommand for browsers/contexts without clipboard access.
+  const copyAddress = async () => {
+    const fallback = () => {
+      try {
+        const ta = document.createElement('textarea')
+        ta.value = addressLine
+        ta.setAttribute('readonly', '')
+        ta.style.position = 'fixed'
+        ta.style.top = '-1000px'
+        ta.style.opacity = '0'
+        document.body.appendChild(ta)
+        ta.select()
+        ta.setSelectionRange(0, ta.value.length)
+        const ok = document.execCommand('copy')
+        document.body.removeChild(ta)
+        return ok
+      } catch {
+        return false
+      }
+    }
+
+    let ok = false
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(addressLine)
+        ok = true
+      } else {
+        ok = fallback()
+      }
+    } catch {
+      ok = fallback()
+    }
+
+    if (ok) toast.success(t('confirmation.address_copied'))
+    else toast.error(t('confirmation.copy_failed'))
+  }
+
   const shareWhatsApp = () => {
     window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank')
   }
@@ -133,9 +171,17 @@ export default function Confirmation() {
           </div>
 
           <div className="py-5 border-b border-border space-y-2">
-            <div className="flex gap-3">
+            <div className="flex gap-3 items-start">
               <span className="text-xs font-semibold text-muted uppercase tracking-wide w-24 shrink-0 pt-0.5">{t('confirmation.address_label')}</span>
-              <span className="text-sm text-ink leading-relaxed">{addressLine}</span>
+              <span className="text-sm text-ink leading-relaxed flex-1 break-words max-w-xs">{addressLine}</span>
+              <button
+                type="button"
+                onClick={copyAddress}
+                aria-label={t('confirmation.copy_address')}
+                className="shrink-0 p-1.5 rounded-lg text-muted hover:text-primary hover:bg-primary-light transition-colors"
+              >
+                <Copy className="w-4 h-4" aria-hidden="true" />
+              </button>
             </div>
             <div className="flex gap-3">
               <span className="text-xs font-semibold text-muted uppercase tracking-wide w-24 shrink-0 pt-0.5">{t('confirmation.coords_label')}</span>

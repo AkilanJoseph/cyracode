@@ -362,12 +362,11 @@ def admin_stats(
         .scalar()
         or 0
     )
-    total_clients = db.query(func.count(ApiClient.id)).scalar() or 0
-    active_clients = (
-        db.query(func.count(ApiClient.id))
-        .filter(ApiClient.is_active == True)  # noqa: E712
-        .scalar()
-        or 0
+    clients = _eager_client_query(db).all()
+    total_clients = len(clients)
+    # Match the Clients module Status = Active filter (subscription status).
+    active_clients = sum(
+        1 for c in clients if subscription_status(c.subscription) == SUB_ACTIVE
     )
     total_users = db.query(func.count(User.id)).scalar() or 0
     return StatsResponse(
@@ -480,11 +479,14 @@ def admin_dashboard(
     """Admin home-screen metrics: MRR, expirations, trend, plans, invoices."""
     clients = _eager_client_query(db).all()
     total_clients = len(clients)
-    active_clients = sum(1 for c in clients if c.is_active)
 
     subs = [c.subscription for c in clients if c.subscription]
     statuses = [subscription_status(s) for s in subs]
-    active_count = statuses.count(SUB_ACTIVE)
+    # "Active clients" must mirror the Clients module Status = Active filter,
+    # which is driven by the backend-derived subscription status. This keeps a
+    # single source of truth instead of the account's IsActive flag.
+    active_clients = statuses.count(SUB_ACTIVE)
+    active_count = active_clients
     expiring_count = statuses.count(SUB_EXPIRING)
     active_or_expiring = sum(
         1 for s, st in zip(subs, statuses) if st in (SUB_ACTIVE, SUB_EXPIRING)
