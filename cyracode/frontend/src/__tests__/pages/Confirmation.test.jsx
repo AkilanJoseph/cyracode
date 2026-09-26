@@ -110,6 +110,21 @@ describe('Confirmation page — with record', () => {
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('MyTestCode'))
   })
 
+  it('copy address icon writes the full address to clipboard', async () => {
+    const user = userEvent.setup()
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      writable: true,
+      configurable: true,
+    })
+    renderWithRecord()
+    await user.click(screen.getByRole('button', { name: /copy address/i }))
+    expect(writeText).toHaveBeenCalledWith(
+      '10A, Test Building, MG Road, 100 Feet Road, Indiranagar, Bengaluru East, Bangalore, Karnataka, 560001, India'
+    )
+  })
+
   it('shows congratulations message', () => {
     renderWithRecord()
     expect(screen.getByText(/congratulations/i)).toBeInTheDocument()

@@ -198,6 +198,59 @@ class TestResetPassword:
         assert resp.status_code == 400
 
 
+class TestProfilePasswordReset:
+    def test_unauthenticated_request_returns_401(self, client):
+        resp = client.post("/auth/me/reset-password")
+        assert resp.status_code == 401
+
+    def test_sends_reset_email_only_to_logged_in_user(self, client):
+        from unittest.mock import MagicMock
+
+        from app.config import settings
+
+        headers = auth_headers(client, email="other@example.com")
+        with patch("app.api.auth.send_password_reset_email", new_callable=MagicMock) as mailer:
+            resp = client.post("/auth/me/reset-password", headers=headers)
+        assert resp.status_code == 200
+        assert "reset link has been sent" in resp.json()["message"].lower()
+        mailer.assert_called_once()
+        args = mailer.call_args[0]
+        assert args[0] == "other@example.com"
+        assert args[1].startswith(settings.FRONTEND_URL)
+        assert "/reset-password?token=" in args[1]
+
+    def test_email_delivery_failure_returns_502(self, client):
+        from unittest.mock import MagicMock
+
+        headers = auth_headers(client)
+        with patch("app.api.auth.send_password_reset_email", new_callable=MagicMock) as mailer:
+            mailer.side_effect = Exception("SMTP down")
+            resp = client.post("/auth/me/reset-password", headers=headers)
+        assert resp.status_code == 502
+        assert "password reset email" in resp.json()["detail"].lower()
+
+    def test_audit_log_records_password_reset_request(self, client, db):
+        from unittest.mock import MagicMock
+
+        from app.models.models import AuditLog, User
+
+        headers = auth_headers(client)
+        with patch("app.api.auth.send_password_reset_email", new_callable=MagicMock):
+            resp = client.post("/auth/me/reset-password", headers=headers)
+        assert resp.status_code == 200
+
+        user = db.query(User).filter(User.email == "user@example.com").one()
+        logs = (
+            db.query(AuditLog)
+            .filter(
+                AuditLog.user_id == user.id,
+                AuditLog.action == "password_reset_request",
+            )
+            .all()
+        )
+        assert len(logs) == 1
+
+
 class TestGoogleAuth:
     def test_invalid_google_token_returns_401(self, client):
         with patch("app.api.auth.httpx.AsyncClient") as mock_client_cls:

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { MapPin, Sparkles, ArrowRight, Zap, Users } from 'lucide-react'
+import { MapPin, Sparkles, ArrowRight, Zap, Users, LayoutDashboard } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useGoogleLogin } from '@react-oauth/google'
 import Button from '../components/common/Button'
@@ -238,14 +238,19 @@ export default function LandingPage() {
     sessionStorage.removeItem(PENDING_MODE_SELECT_KEY)
     navigate(path)
   }
-  const dismissModeSelect = () => {
-    sessionStorage.removeItem(PENDING_MODE_SELECT_KEY)
-    setShowModeSelect(false)
-  }
+
+  // Icons match the ones used across the app for the same destination
+  // (Sparkles/Zap on the hero pills and dashboard cards, LayoutDashboard on
+  // the admin nav dashboard entry).
+  const modeOptions = [
+    { to: '/register/traditional', icon: Sparkles, title: t('landing.mode_custom_title'), desc: t('landing.mode_custom_desc') },
+    { to: '/register/auto-generate', icon: Zap, title: t('landing.mode_auto_title'), desc: t('landing.mode_auto_desc') },
+    { to: '/dashboard', icon: LayoutDashboard, title: t('landing.mode_dashboard_title'), desc: t('landing.mode_dashboard_desc') },
+  ]
 
   return (
     <div className="min-h-screen bg-surface">
-      <Header maxWidth="max-w-6xl" />
+      <Header maxWidth="max-w-6xl" marketingNav />
 
       <div className="max-w-6xl mx-auto px-4 py-8 md:py-16 grid md:grid-cols-2 gap-8 md:gap-16 items-center">
         {/* Hero */}
@@ -309,7 +314,9 @@ export default function LandingPage() {
                 key={tabKey}
                 onClick={() => setTab(tabKey)}
                 className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
-                  tab === tabKey ? 'bg-white shadow-card text-ink' : 'text-muted hover:text-ink'
+                  tab === tabKey
+                    ? 'bg-primary text-white shadow-sm'
+                    : 'text-muted hover:text-ink'
                 }`}
               >
                 {tabKey === 'login' ? t('landing.tab_login') : t('landing.tab_signup')}
@@ -514,47 +521,35 @@ export default function LandingPage() {
       {/* Mode selection modal */}
       {showModeSelect && (
         <div className="fixed inset-0 bg-ink/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-modal animate-slide-in">
+          <div className="bg-white rounded-3xl p-5 sm:p-8 max-w-3xl w-full shadow-modal animate-slide-in">
             <h2 className="text-xl font-bold text-ink">{t('landing.mode_title')}</h2>
-            <p className="text-sm text-muted mt-1 mb-6">{t('landing.mode_subtitle')}</p>
-            <div className="space-y-3">
-              <button
-                onClick={() => chooseMode('/register/traditional')}
-                className="w-full text-left border border-border rounded-2xl p-4 hover:border-primary hover:bg-primary-light transition-all group"
-              >
-                <div className="flex items-center justify-between">
-                  <p className="font-semibold text-ink">{t('landing.mode_custom_title')}</p>
-                  <ArrowRight className="w-4 h-4 text-muted group-hover:text-primary transition-colors" />
-                </div>
-                <p className="text-sm text-muted mt-0.5">{t('landing.mode_custom_desc')}</p>
-              </button>
-              <button
-                onClick={() => chooseMode('/register/auto-generate')}
-                className="w-full text-left border border-border rounded-2xl p-4 hover:border-primary hover:bg-primary-light transition-all group"
-              >
-                <div className="flex items-center justify-between">
-                  <p className="font-semibold text-ink">{t('landing.mode_auto_title')}</p>
-                  <ArrowRight className="w-4 h-4 text-muted group-hover:text-primary transition-colors" />
-                </div>
-                <p className="text-sm text-muted mt-0.5">{t('landing.mode_auto_desc')}</p>
-              </button>
-              <button
-                onClick={() => chooseMode('/dashboard')}
-                className="w-full text-left border border-border rounded-2xl p-4 hover:border-primary hover:bg-primary-light transition-all group"
-              >
-                <div className="flex items-center justify-between">
-                  <p className="font-semibold text-ink">{t('landing.mode_dashboard_title')}</p>
-                  <ArrowRight className="w-4 h-4 text-muted group-hover:text-primary transition-colors" />
-                </div>
-                <p className="text-sm text-muted mt-0.5">{t('landing.mode_dashboard_desc')}</p>
-              </button>
+            <p className="text-sm text-muted mt-1 mb-4 sm:mb-6">{t('landing.mode_subtitle')}</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+              {modeOptions.map(({ to, icon: Icon, title, desc }) => (
+                <button
+                  key={to}
+                  onClick={() => chooseMode(to)}
+                  className="group relative w-full text-left overflow-hidden rounded-2xl p-4 sm:p-5 border border-border bg-white text-ink transition-all duration-300 hover:border-primary/40 hover:shadow-card-hover hover:-translate-y-1"
+                >
+                  {/* Inline on small screens to keep the stacked list compact,
+                      stacked from md up to match the Dashboard action cards. */}
+                  <div className="flex md:block">
+                    <div className="w-9 h-9 rounded-xl bg-primary-light flex items-center justify-center shrink-0 mr-3 md:mb-4 md:mr-0 transition-all duration-300 group-hover:bg-primary group-hover:shadow-lg group-hover:shadow-primary/25">
+                      <Icon className="w-5 h-5 text-primary transition-colors duration-300 group-hover:text-white" aria-hidden="true" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm leading-tight text-ink">{title}</p>
+                      <p className="text-xs mt-1 leading-snug text-muted">{desc}</p>
+                    </div>
+                  </div>
+                  <div className="hidden md:flex items-center gap-1 text-xs font-medium mt-4 text-primary">
+                    {t('dashboard.get_started')}
+                    <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" aria-hidden="true" />
+                  </div>
+                  <div className="absolute inset-x-0 bottom-0 h-1 bg-primary scale-x-0 origin-left transition-transform duration-300 group-hover:scale-x-100" aria-hidden="true" />
+                </button>
+              ))}
             </div>
-            <button
-              onClick={dismissModeSelect}
-              className="mt-5 w-full text-sm text-muted hover:text-ink transition-colors py-1"
-            >
-              {t('landing.maybe_later')}
-            </button>
           </div>
         </div>
       )}

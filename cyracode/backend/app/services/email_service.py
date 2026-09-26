@@ -60,6 +60,34 @@ def send_password_reset_email(to_email: str, reset_url: str) -> bool:
     return _smtp_send(to_email, subject, plain, html)
 
 
+def send_order_confirmation_email(
+    to_email: str, order_no: str, plan_name: str, total_amount: int, currency: str = "USD"
+) -> bool:
+    """Send a checkout confirmation / receipt (console fallback in dev)."""
+    subject = f"Order {order_no} confirmed — {plan_name}"
+    plain = (
+        f"Thank you! Your {plan_name} order {order_no} is confirmed.\n\n"
+        f"Amount charged: {currency} {total_amount}\n\n"
+        f"Your CyraCode API key was generated at checkout. Keep it secret and "
+        f"store it somewhere safe — it is only shown once.\n\n"
+        f"You can review your order history later from the CyraCode website."
+    )
+    html = f"""<!DOCTYPE html>
+<html>
+<body style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px;color:#1a1a1a">
+  <h2>Order confirmed</h2>
+  <p>Thank you! Your <strong>{plan_name}</strong> order <strong>{order_no}</strong> is confirmed.</p>
+  <p style="font-size:18px">Amount charged: <strong>{currency} {total_amount}</strong></p>
+  <p>Your CyraCode API key was generated at checkout. Keep it secret and store it
+     somewhere safe — it is only shown once.</p>
+  <p style="color:#6b7280;font-size:13px">
+    You can review your order history later from the CyraCode website.
+  </p>
+</body>
+</html>"""
+    return _smtp_send(to_email, subject, plain, html)
+
+
 def send_delivery_notification_email(
     to_email: str,
     cyracode_name: str,

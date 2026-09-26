@@ -314,3 +314,41 @@ class Transaction(Base):
     created_at = Column("CreatedAt", DateTime, default=datetime.utcnow)
 
     client = relationship("ApiClient")
+
+
+class Order(Base):
+    """Public self-serve checkout order for a CyraCode API plan.
+
+    Customers on the self-serve plans (Sandbox/Developer/Growth/Scale/
+    Enterprise) never need a CyraCode account — they are identified by their
+    billing email, which is always normalized and indexed for lookup. On a
+    paid order the customer is provisioned a real ApiClient credential
+    (``client_id``) so the lookup API key is usable immediately; the linked
+    ClientSubscription + Transaction feed the admin billing dashboard.
+    """
+
+    __tablename__ = "Orders"
+
+    id = Column("Id", String(36), primary_key=True, default=_uuid)
+    order_no = Column("OrderNo", String(20), unique=True, nullable=False, index=True)
+    email = Column("Email", String(255), nullable=False, index=True)
+    plan_code = Column("PlanCode", String(20), nullable=False)
+    plan_name = Column("PlanName", String(50), nullable=False)
+    # "monthly" | "annual"
+    billing_frequency = Column("BillingFrequency", String(10), nullable=False)
+    amount = Column("Amount", Integer, nullable=False)
+    tax_amount = Column("TaxAmount", Integer, nullable=False, default=0)
+    total_amount = Column("TotalAmount", Integer, nullable=False)
+    currency = Column("Currency", String(3), nullable=False, default="USD")
+    # Durable lifecycle: paid | cancelled | refunded
+    status = Column("Status", String(20), nullable=False, default="paid")
+    payment_method = Column("PaymentMethod", String(20), nullable=True)
+    client_id = Column("ClientId", String(36), ForeignKey("ApiClients.Id"), nullable=True)
+    auto_renew = Column("AutoRenew", Boolean, nullable=False, default=True)
+    promo_code = Column("PromoCode", String(50), nullable=True)
+    created_at = Column("CreatedAt", DateTime, default=datetime.utcnow)
+    updated_at = Column(
+        "UpdatedAt", DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    client = relationship("ApiClient")

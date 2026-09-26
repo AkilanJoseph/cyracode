@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import userEvent from '@testing-library/user-event'
+import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from '../../context/AuthContext'
 import AdminDashboard from '../../pages/AdminDashboard'
 import { mockAdminUser, mockToken } from '../mocks/handlers'
@@ -58,5 +59,26 @@ describe('AdminDashboard', () => {
   it('shows the signed-in admin email', async () => {
     setup()
     expect(await screen.findByText(/admin@example.com/i)).toBeInTheDocument()
+  })
+
+  it('navigates to the API clients screen when the total clients number is clicked', async () => {
+    localStorage.setItem('cyracode_token', mockToken)
+    localStorage.setItem('cyracode_user', JSON.stringify(mockAdminUser))
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter initialEntries={['/admin']}>
+        <AuthProvider>
+          <Routes>
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/clients" element={<div>Clients screen</div>} />
+          </Routes>
+        </AuthProvider>
+      </MemoryRouter>
+    )
+
+    const total = await screen.findByTestId('kpi-total-clients')
+    expect(total).toHaveTextContent('1')
+    await user.click(total)
+    expect(await screen.findByText('Clients screen')).toBeInTheDocument()
   })
 })

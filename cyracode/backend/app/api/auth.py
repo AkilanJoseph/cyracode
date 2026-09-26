@@ -266,6 +266,49 @@ def reset_password(request: Request, payload: ResetPasswordRequest, db: Session 
     return {"message": "Password updated successfully."}
 
 
+@router.post("/me/reset-password")
+@limiter.limit("3/hour")
+def request_password_reset_from_profile(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Send a password reset email for the logged-in user, triggered from the
+    profile menu. Reuses the standard Forgot Password token generation, email
+    template and expiry rules, so the email and token behave identically to the
+    public flow. The reset link is only ever sent to the authenticated user's
+    own email address. Each request is audit-logged and rate-limited so the
+    reset email cannot be spammed.
+    """
+    reset_token = get_password_reset_token(current_user.email)
+    reset_url = f"{settings.FRONTEND_URL}/reset-password?token={reset_token}"
+    try:
+        send_password_reset_email(current_user.email, reset_url)
+    except Exception as exc:
+        # Log the delivery failure but never leak the reason to the caller.
+        print(f"[AUTH] Profile reset email delivery failed for {current_user.email}: {exc}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Could not send the password reset email. Please try again later.",
+        )
+
+    ip = request.client.host if request.client else None
+    ua = request.headers.get("user-agent")
+    log = AuditLog(
+        user_id=current_user.id,
+        action="password_reset_request",
+        ip_address=ip,
+        user_agent=ua,
+    )
+    db.add(log)
+    db.commit()
+
+    return {
+        "message": "A password reset link has been sent to your registered email address."
+    }
+
+
 @router.get("/me", response_model=UserResponse)
 def me(current_user: User = Depends(get_current_user)):
     return UserResponse.model_validate(current_user)

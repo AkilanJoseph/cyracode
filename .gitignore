@@ -1,2 +1,5 @@
 # Visual Studio
 .vs/
+/cyracode/frontend/src/__tests__/components/Header.test.jsx
+/cyracode/frontend/src/i18n/locales/en.json
+/cyracode/frontend/src/i18n/locales/ta.json

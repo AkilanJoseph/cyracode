@@ -93,6 +93,8 @@ export default function AdminDashboard() {
           value: dash.total_clients.toLocaleString(),
           sub: `${dash.active_clients} ${t('admin.kpi_active_clients')}`,
           subCls: 'text-emerald-600',
+          to: '/admin/clients',
+          testId: 'kpi-total-clients',
         },
         {
           icon: DollarSign,
@@ -128,7 +130,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <Header />
+      <Header maxWidth="max-w-5xl" />
       <AdminNav />
 
       <main id="main-content" className="max-w-5xl mx-auto px-4 py-10">
@@ -155,13 +157,25 @@ export default function AdminDashboard() {
         ) : dash ? (
           <>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {kpis.map(({ icon: Icon, label, value, sub, subCls, valueCls = '' }) => (
+              {kpis.map(({ icon: Icon, label, value, sub, subCls, valueCls = '', to, testId }) => (
                 <div key={label} className="rounded-2xl border border-border bg-white p-5 shadow-card">
                   <div className="w-8 h-8 rounded-lg bg-primary-light flex items-center justify-center mb-3">
                     <Icon className="w-4 h-4 text-primary" aria-hidden="true" />
                   </div>
                   <p className="text-xs text-muted font-medium">{label}</p>
-                  <p className={`text-2xl font-bold text-ink mt-0.5 ${valueCls}`}>{value}</p>
+                  {to ? (
+                    <button
+                      type="button"
+                      data-testid={testId}
+                      onClick={() => navigate(to)}
+                      aria-label={`${label}: ${value}`}
+                      className={`text-2xl font-bold text-ink mt-0.5 hover:text-primary transition-colors ${valueCls}`}
+                    >
+                      {value}
+                    </button>
+                  ) : (
+                    <p className={`text-2xl font-bold text-ink mt-0.5 ${valueCls}`}>{value}</p>
+                  )}
                   <p className={`text-xs mt-1 ${subCls}`}>{sub}</p>
                 </div>
               ))}

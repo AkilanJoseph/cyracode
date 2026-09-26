@@ -7,6 +7,7 @@ import {
   adminCyracodeStore,
   adminStatsStore,
   adminUserStore,
+  billingStore,
   clientLookupStore,
   cyracodeStore,
   registrationCountStore,
@@ -23,6 +24,7 @@ afterEach(() => {
   adminClientStore.reset()
   adminUserStore.reset()
   adminAuditStore.reset()
+  billingStore.reset()
   clientLookupStore.reset()
   localStorage.clear()
 })

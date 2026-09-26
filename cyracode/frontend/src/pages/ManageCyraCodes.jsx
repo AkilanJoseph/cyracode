@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { MapPin, Loader2, Eye, Pencil, Trash2, X, AlertTriangle, CheckCircle2, Sparkles, Zap } from 'lucide-react'
+import { MapPin, Loader2, Eye, Pencil, Trash2, X, AlertTriangle, CheckCircle2, Sparkles, Zap, Copy, Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import Button from '../components/common/Button'
 import Input from '../components/common/Input'
@@ -11,30 +11,46 @@ import { AddressStep, validateAddress } from './RegisterTraditional'
 import { registration } from '../services/api'
 import { apiErrorMessage } from '../utils/errors'
 
+// Standard CyraCode address display order (most specific → broadest).
+export const ADDRESS_FIELD_ORDER = [
+  'plot_number',
+  'building_name',
+  'floor_unit',
+  'flat_number',
+  'suite_name',
+  'street_address',
+  'avenue_name',
+  'road_name',
+  'po_box',
+  'landmark',
+  'area',
+  'town',
+  'city',
+  'postal_code',
+  'district',
+  'state',
+  'country',
+]
+
 // Build a single human-readable address line from a CyraCode record.
-function formatAddress(rec) {
-  return [
-    rec.flat_number,
-    rec.suite_name,
-    rec.plot_number,
-    rec.building_name,
-    rec.street_address,
-    rec.avenue_name,
-    rec.road_name,
-    rec.area,
-    rec.town,
-    rec.landmark,
-    rec.city,
-    rec.district,
-    rec.state,
-    rec.postal_code,
-    rec.country,
-  ].filter(Boolean).join(', ')
+// Only populated fields are emitted, each value is trimmed, and parts are
+// joined with ", " so punctuation stays clean (no space before a comma and no
+// double/trailing commas when optional fields are empty).
+export function formatAddress(rec) {
+  return ADDRESS_FIELD_ORDER.map((key) => {
+    const raw = rec?.[key]
+    if (raw === null || raw === undefined) return ''
+    const value = String(raw).trim()
+    if (!value) return ''
+    return key === 'po_box' ? `P.O. Box ${value}` : value
+  })
+    .filter(Boolean)
+    .join(', ')
 }
 
 // Resolve the state ISO code so the India/US state dropdown highlights the
 // saved value. Matches by name and by ISO code (e.g. a record storing "CA").
-async function resolveStateIso(countryCode, stateName) {
+export async function resolveStateIso(countryCode, stateName) {
   if (!countryCode || !stateName || ['US', 'IN'].indexOf(countryCode) === -1) return ''
   try {
     const mod = await import('country-state-city/lib/state')
@@ -61,6 +77,7 @@ export default function ManageCyraCodes() {
 
   // View / remove modals
   const [viewing, setViewing] = useState(null)
+  const [copied, setCopied] = useState(false)
   const [removing, setRemoving] = useState(null)
   const [removingId, setRemovingId] = useState(null)
 
@@ -83,6 +100,10 @@ export default function ManageCyraCodes() {
       delete next[field]
       return next
     })
+
+  // Friendly display label for a code type. Codes from the "Register with
+  // Custom Name" flow are stored as "traditional" but shown as "Customized".
+  const typeLabel = (type) => (type === 'traditional' ? t('edit.type_customized') : type)
 
   const loadCodes = useCallback(async () => {
     setLoadingCodes(true)
@@ -195,6 +216,54 @@ export default function ManageCyraCodes() {
     setRemoving(rec)
   }
 
+  const openView = (rec) => {
+    setCopied(false)
+    setViewing(rec)
+  }
+
+  // Copy the formatted address using the Clipboard API, falling back to a
+  // hidden textarea + execCommand for browsers/contexts without clipboard access.
+  const copyAddress = async (text) => {
+    const fallback = () => {
+      try {
+        const ta = document.createElement('textarea')
+        ta.value = text
+        ta.setAttribute('readonly', '')
+        ta.style.position = 'fixed'
+        ta.style.top = '-1000px'
+        ta.style.opacity = '0'
+        document.body.appendChild(ta)
+        ta.select()
+        ta.setSelectionRange(0, ta.value.length)
+        const ok = document.execCommand('copy')
+        document.body.removeChild(ta)
+        return ok
+      } catch {
+        return false
+      }
+    }
+
+    let ok = false
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text)
+        ok = true
+      } else {
+        ok = fallback()
+      }
+    } catch {
+      ok = fallback()
+    }
+
+    if (ok) {
+      setCopied(true)
+      toast.success(t('edit.address_copied'))
+      setTimeout(() => setCopied(false), 2000)
+    } else {
+      toast.error(t('edit.copy_failed'))
+    }
+  }
+
   const confirmRemove = async () => {
     if (!removing) return
     setRemovingId(removing.id)
@@ -264,7 +333,7 @@ export default function ManageCyraCodes() {
           <h2 className="text-lg font-bold text-ink font-mono leading-tight break-all">{rec.code_name}</h2>
         </div>
         <span className="inline-flex items-center gap-1 text-xs font-medium text-primary bg-primary-light px-2.5 py-1 rounded-full shrink-0 capitalize">
-          {t('edit.code_type')}: {rec.code_type}
+          {t('edit.code_type')}: {typeLabel(rec.code_type)}
         </span>
       </div>
       <p className="text-sm text-muted leading-snug line-clamp-2">{formatAddress(rec)}</p>
@@ -272,7 +341,7 @@ export default function ManageCyraCodes() {
         {Number(rec.latitude).toFixed(6)}, {Number(rec.longitude).toFixed(6)}
       </p>
       <div className="flex gap-2 mt-auto pt-1">
-        <Button variant="secondary" size="sm" className="flex-1" onClick={() => setViewing(rec)}>
+        <Button variant="secondary" size="sm" className="flex-1" onClick={() => openView(rec)}>
           <Eye className="w-3.5 h-3.5" aria-hidden="true" /> {t('edit.view')}
         </Button>
         <Button variant="secondary" size="sm" className="flex-1" onClick={() => startEdit(rec)}>
@@ -287,23 +356,23 @@ export default function ManageCyraCodes() {
 
   const viewRows = viewing
     ? [
-        { label: t('register.country'), value: viewing.country },
-        { label: t('register.state'), value: viewing.state },
-        { label: t('register.district'), value: viewing.district },
-        { label: t('register.city'), value: viewing.city },
-        { label: t('register.area'), value: viewing.area },
-        { label: t('register.town'), value: viewing.town },
-        { label: t('register.road_name'), value: viewing.road_name },
-        { label: t('register.avenue_name'), value: viewing.avenue_name },
-        { label: t('register.street'), value: viewing.street_address },
+        { label: t('register.plot_number'), value: viewing.plot_number },
         { label: t('register.building'), value: viewing.building_name },
+        { label: t('register.floor'), value: viewing.floor_unit },
         { label: t('register.flat_number'), value: viewing.flat_number },
         { label: t('register.suite_name'), value: viewing.suite_name },
-        { label: t('register.plot_number'), value: viewing.plot_number },
-        { label: t('register.floor'), value: viewing.floor_unit },
-        { label: t('register.postal_other'), value: viewing.postal_code },
+        { label: t('register.street'), value: viewing.street_address },
+        { label: t('register.avenue_name'), value: viewing.avenue_name },
+        { label: t('register.road_name'), value: viewing.road_name },
         { label: t('register.po_box'), value: viewing.po_box },
         { label: t('register.landmark'), value: viewing.landmark },
+        { label: t('register.area'), value: viewing.area },
+        { label: t('register.town'), value: viewing.town },
+        { label: t('register.city'), value: viewing.city },
+        { label: t('register.postal_other'), value: viewing.postal_code },
+        { label: t('register.district'), value: viewing.district },
+        { label: t('register.state'), value: viewing.state },
+        { label: t('register.country'), value: viewing.country },
       ].filter((r) => r.value)
     : []
 
@@ -361,8 +430,20 @@ export default function ManageCyraCodes() {
 
             <div className="p-5 max-h-[65vh] overflow-y-auto space-y-4">
               <div>
-                <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-1">{t('edit.address')}</p>
-                <p className="text-sm text-ink leading-relaxed">{formatAddress(viewing)}</p>
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <p className="text-xs font-semibold text-muted uppercase tracking-wide">{t('edit.address')}</p>
+                  <button
+                    type="button"
+                    onClick={() => copyAddress(formatAddress(viewing))}
+                    aria-label={t('edit.copy_address')}
+                    data-testid="copy-address"
+                    className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline shrink-0"
+                  >
+                    {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" aria-hidden="true" /> : <Copy className="w-3.5 h-3.5" aria-hidden="true" />}
+                    {copied ? t('edit.copied') : t('edit.copy_address')}
+                  </button>
+                </div>
+                <p data-testid="view-address" className="text-sm text-ink leading-relaxed break-words">{formatAddress(viewing)}</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -373,7 +454,7 @@ export default function ManageCyraCodes() {
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-1">{t('edit.code_type')}</p>
-                  <p className="text-sm text-ink capitalize">{viewing.code_type}</p>
+                  <p className="text-sm text-ink capitalize">{typeLabel(viewing.code_type)}</p>
                 </div>
               </div>
               <div className="border-t border-border pt-4 space-y-3">

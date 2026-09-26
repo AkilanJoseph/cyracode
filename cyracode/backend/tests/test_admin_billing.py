@@ -320,6 +320,38 @@ class TestDashboard:
         assert point["amount"] >= 5500
         assert dash["recent_transactions"][0]["client_name"] == "MRR B"
 
+    def test_dashboard_active_clients_matches_clients_status_filter(self, client, db):
+        from app.models.models import ClientSubscription
+
+        headers = admin_auth_headers(client, db)
+        active, _ = make_api_client(db, name="Dash Active")
+        expired, _ = make_api_client(db, name="Dash Expired")
+        make_api_client(db, name="Dash No Sub")
+
+        for cl in (active, expired):
+            client.post(
+                f"/admin/clients/{cl.id}/subscription",
+                json={"plan": "basic", "months": 6},
+                headers=headers,
+            )
+        # Keep the account enabled but push its subscription into the past.
+        sub = (
+            db.query(ClientSubscription)
+            .filter(ClientSubscription.client_id == expired.id)
+            .first()
+        )
+        sub.end_date = datetime.utcnow() - timedelta(days=1)
+        db.commit()
+
+        dash = client.get("/admin/dashboard", headers=headers).json()
+        active_list = client.get("/admin/clients?status=active", headers=headers).json()
+
+        assert dash["total_clients"] == 3
+        # The expired account is still IsActive=True but must not count as active.
+        assert dash["active_clients"] == 1
+        assert dash["active_clients"] == len(active_list)
+        assert {c["name"] for c in active_list} == {"Dash Active"}
+
     def test_dashboard_counts_api_issues(self, client, db):
         from app.models.models import ClientAccessLog
 

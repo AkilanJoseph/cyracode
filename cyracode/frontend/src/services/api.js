@@ -32,6 +32,7 @@ export const auth = {
   googleAuth: (token) => api.post('/auth/google', { token }),
   forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
   resetPassword: (token, new_password) => api.post('/auth/reset-password', { token, new_password }),
+  requestProfilePasswordReset: () => api.post('/auth/me/reset-password'),
   deleteAccount: () => api.delete('/auth/me'),
   getMe: () => api.get('/auth/me'),
 }
@@ -110,6 +111,24 @@ export const clientApi = {
     api.get(`/cyracode/${encodeURIComponent(cyracode)}/address`, {
       headers: { 'X-API-Key': apiKey },
     }),
+}
+
+// Public self-serve plans & checkout (pricing page, payment screen, orders).
+export const billing = {
+  plans: () => api.get('/billing/plans'),
+  // checkpointId is the X-Idempotency-Key — guarantees a retry can never
+  // create a duplicate order.
+  placeOrder: (payload, checkpointId) =>
+    api.post('/billing/orders', payload, {
+      headers: checkpointId
+        ? { 'X-Idempotency-Key': checkpointId }
+        : undefined,
+    }),
+  listOrders: (email) => api.get('/billing/orders', { params: { email } }),
+  getOrder: (id) => api.get(`/billing/orders/${id}`),
+  cancelOrder: (id) => api.post(`/billing/orders/${id}/cancel`),
+  setAutoRenew: (id, autoRenew) =>
+    api.patch(`/billing/orders/${id}/auto-renew`, { auto_renew: autoRenew }),
 }
 
 export default api
