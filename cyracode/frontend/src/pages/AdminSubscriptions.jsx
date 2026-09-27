@@ -6,6 +6,7 @@ import {
   CreditCard, CalendarClock, TrendingUp, Download, ChevronDown, X, ExternalLink,
 } from 'lucide-react'
 import Header from '../components/common/Header'
+import Footer from '../components/common/Footer'
 import AdminNav from '../components/admin/AdminNav'
 import Button from '../components/common/Button'
 import { PlanBadge, SubStatusBadge, MONTH_OPTIONS, formatMoney } from '../components/admin/Badges'
@@ -384,6 +385,8 @@ export default function AdminSubscriptions() {
           </div>
         </div>
       )}
+
+    <Footer variant="minimal" maxWidth="max-w-5xl" />
     </div>
   )
 }

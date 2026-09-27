@@ -13,7 +13,7 @@
     },
     "nav": {
       "brand": "CyraCode",
-      "tagline": "عنوان ثمين، اسم يفتخر به",
+      "tagline": "موقع مميز، عنوان ثمين، اسم يفتخر به",
       "logout": "تسجيل الخروج",
       "register": "تسجيل",
       "profile_menu": "قائمة الملف الشخصي",
@@ -30,6 +30,25 @@
       "blog": "المدونة",
       "open_menu": "فتح القائمة"
     },
+    "footer": {
+      "product": "المنتج",
+      "account": "الحساب",
+      "legal": "الشؤون القانونية",
+      "search": "ابحث عن CyraCode",
+      "dashboard": "لوحة التحكم",
+      "manage": "إدارة CyraCodes",
+      "orders": "الطلبات والفواتير",
+      "privacy": "سياسة الخصوصية",
+      "rights_reserved": "جميع الحقوق محفوظة."
+    ,
+      "follow_us": "تابعنا",
+      "social_x": "X",
+      "social_instagram": "Instagram",
+      "social_linkedin": "LinkedIn",
+      "social_youtube": "YouTube",
+      "social_facebook": "Facebook",
+      "support": "الدعم",
+      "support_email": "support@cyracode.com"},
     "landing": {
       "pill_precise": "عناوين دقيقة",
       "pill_instant": "بحث فوري",

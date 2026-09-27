@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { AuthProvider } from '../../context/AuthContext'
 import { Dashboard } from '../../App'
@@ -24,9 +24,11 @@ describe('User Dashboard — role-scoped content', () => {
 
   it('shows the standard User registration actions', () => {
     setup()
-    expect(screen.getByRole('link', { name: /register with custom name/i })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /auto-generate my code/i })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /manage cyracodes/i })).toBeInTheDocument()
+    // Scoped to the workspace; the page footer links to the same destinations.
+    const main = screen.getByRole('main')
+    expect(within(main).getByRole('link', { name: /register with custom name/i })).toBeInTheDocument()
+    expect(within(main).getByRole('link', { name: /auto-generate my code/i })).toBeInTheDocument()
+    expect(within(main).getByRole('link', { name: /manage cyracodes/i })).toBeInTheDocument()
   })
 
   it('does not show the Client API Lookup tool to regular Users', () => {

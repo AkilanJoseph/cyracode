@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import Button from '../components/common/Button'
 import Header from '../components/common/Header'
+import Footer from '../components/common/Footer'
 
 function Confetti() {
   const colors = ['#069494', '#047878', '#2DD4BF', '#34D399', '#60A5FA', '#A78BFA']
@@ -225,6 +226,7 @@ export default function Confirmation() {
           </Link>
         </div>
       </div>
+    <Footer maxWidth="max-w-lg" />
     </div>
   )
 }

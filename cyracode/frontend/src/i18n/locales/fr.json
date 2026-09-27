@@ -13,7 +13,7 @@
     },
     "nav": {
       "brand": "CyraCode",
-      "tagline": "Adresse précieuse, Nom de fierté",
+      "tagline": "Emplacement premium, Adresse précieuse, Nom de fierté",
       "logout": "Déconnexion",
       "register": "S'inscrire",
       "profile_menu": "Menu du profil",
@@ -30,6 +30,25 @@
       "blog": "Blog",
       "open_menu": "Ouvrir le menu"
     },
+    "footer": {
+      "product": "Produit",
+      "account": "Compte",
+      "legal": "Mentions légales",
+      "search": "Rechercher un CyraCode",
+      "dashboard": "Tableau de bord",
+      "manage": "Gérer les CyraCodes",
+      "orders": "Commandes et factures",
+      "privacy": "Politique de confidentialité",
+      "rights_reserved": "Tous droits réservés."
+    ,
+      "follow_us": "Nous suivre",
+      "social_x": "X",
+      "social_instagram": "Instagram",
+      "social_linkedin": "LinkedIn",
+      "social_youtube": "YouTube",
+      "social_facebook": "Facebook",
+      "support": "Support",
+      "support_email": "support@cyracode.com"},
     "landing": {
       "pill_precise": "Adresses précises",
       "pill_instant": "Recherche instantanée",

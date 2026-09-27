@@ -1,4 +1,5 @@
 import Header from '../components/common/Header'
+import Footer from '../components/common/Footer'
 
 export default function PrivacyPolicy() {
   return (
@@ -100,6 +101,7 @@ export default function PrivacyPolicy() {
           </p>
         </section>
       </main>
+    <Footer maxWidth="max-w-3xl" />
     </div>
   )
 }

@@ -6,6 +6,7 @@ import { Mail, CheckCircle } from 'lucide-react'
 import Button from '../components/common/Button'
 import Input from '../components/common/Input'
 import Header from '../components/common/Header'
+import Footer from '../components/common/Footer'
 import { auth } from '../services/api'
 
 const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
@@ -109,6 +110,7 @@ export default function ForgotPassword() {
           )}
         </div>
       </div>
+    <Footer maxWidth="max-w-6xl" />
     </div>
   )
 }

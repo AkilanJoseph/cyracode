@@ -13,7 +13,7 @@
     },
     "nav": {
       "brand": "CyraCode",
-      "tagline": "कीमती पता, गर्व का नाम",
+      "tagline": "प्रीमियम स्थान, कीमती पता, गर्व का नाम",
       "logout": "लॉग आउट",
       "register": "पंजीकरण",
       "profile_menu": "प्रोफ़ाइल मेनू",
@@ -30,6 +30,25 @@
       "blog": "ब्लॉग",
       "open_menu": "मेनू खोलें"
     },
+    "footer": {
+      "product": "उत्पाद",
+      "account": "खाता",
+      "legal": "कानूनी",
+      "search": "CyraCode खोजें",
+      "dashboard": "डैशबोर्ड",
+      "manage": "CyraCodes प्रबंधित करें",
+      "orders": "ऑर्डर और इनवॉइस",
+      "privacy": "गोपनीयता नीति",
+      "rights_reserved": "सर्वाधिकार सुरक्षित।"
+    ,
+      "follow_us": "हमें फ़ॉलो करें",
+      "social_x": "X",
+      "social_instagram": "Instagram",
+      "social_linkedin": "LinkedIn",
+      "social_youtube": "YouTube",
+      "social_facebook": "Facebook",
+      "support": "सहायता",
+      "support_email": "support@cyracode.com"},
     "landing": {
       "pill_precise": "सटीक पते",
       "pill_instant": "तत्काल खोज",

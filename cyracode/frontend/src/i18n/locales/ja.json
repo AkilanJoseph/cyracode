@@ -13,7 +13,7 @@
     },
     "nav": {
       "brand": "CyraCode",
-      "tagline": "大切な住所、誇れる名前",
+      "tagline": "優良立地点、大切な住所、誇れる名前",
       "logout": "ログアウト",
       "register": "登録",
       "profile_menu": "プロフィールメニュー",
@@ -30,6 +30,25 @@
       "blog": "ブログ",
       "open_menu": "メニューを開く"
     },
+    "footer": {
+      "product": "プロダクト",
+      "account": "アカウント",
+      "legal": "法務",
+      "search": "CyraCode を検索",
+      "dashboard": "ダッシュボード",
+      "manage": "CyraCodes の管理",
+      "orders": "注文と請求書",
+      "privacy": "プライバシーポリシー",
+      "rights_reserved": "無断転載を禁じます。"
+    ,
+      "follow_us": "フォローする",
+      "social_x": "X",
+      "social_instagram": "Instagram",
+      "social_linkedin": "LinkedIn",
+      "social_youtube": "YouTube",
+      "social_facebook": "Facebook",
+      "support": "サポート",
+      "support_email": "support@cyracode.com"},
     "landing": {
       "pill_precise": "正確な住所",
       "pill_instant": "即時検索",

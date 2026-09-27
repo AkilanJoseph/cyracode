@@ -6,6 +6,7 @@ import { KeyRound } from 'lucide-react'
 import Button from '../components/common/Button'
 import Input from '../components/common/Input'
 import Header from '../components/common/Header'
+import Footer from '../components/common/Footer'
 import { auth } from '../services/api'
 import { apiErrorMessage } from '../utils/errors'
 
@@ -139,6 +140,7 @@ export default function ResetPassword() {
           </div>
         </div>
       </div>
+    <Footer maxWidth="max-w-6xl" />
     </div>
   )
 }

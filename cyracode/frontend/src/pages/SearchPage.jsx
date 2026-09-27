@@ -10,6 +10,7 @@ import MapPicker from '../components/MapPicker'
 import Button from '../components/common/Button'
 import BackButton from '../components/common/BackButton'
 import Header from '../components/common/Header'
+import Footer from '../components/common/Footer'
 import { search } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { apiErrorMessage } from '../utils/errors'
@@ -438,6 +439,8 @@ export default function SearchPage() {
           </div>
         )}
       </div>
+
+      <Footer maxWidth="max-w-md" />
     </div>
   )
 }

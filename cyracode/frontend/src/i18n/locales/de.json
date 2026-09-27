@@ -13,7 +13,7 @@
     },
     "nav": {
       "brand": "CyraCode",
-      "tagline": "Wertvolle Adresse, Stolzer Name",
+      "tagline": "Erstklassiger Standort, Wertvolle Adresse, Stolzer Name",
       "logout": "Abmelden",
       "register": "Registrieren",
       "profile_menu": "Profilmenü",
@@ -30,6 +30,25 @@
       "blog": "Blog",
       "open_menu": "Menü öffnen"
     },
+    "footer": {
+      "product": "Produkt",
+      "account": "Konto",
+      "legal": "Rechtliches",
+      "search": "CyraCode suchen",
+      "dashboard": "Übersicht",
+      "manage": "CyraCodes verwalten",
+      "orders": "Bestellungen & Rechnungen",
+      "privacy": "Datenschutzerklärung",
+      "rights_reserved": "Alle Rechte vorbehalten."
+    ,
+      "follow_us": "Folge uns",
+      "social_x": "X",
+      "social_instagram": "Instagram",
+      "social_linkedin": "LinkedIn",
+      "social_youtube": "YouTube",
+      "social_facebook": "Facebook",
+      "support": "Support",
+      "support_email": "support@cyracode.com"},
     "landing": {
       "pill_precise": "Präzise Adressen",
       "pill_instant": "Sofortsuche",

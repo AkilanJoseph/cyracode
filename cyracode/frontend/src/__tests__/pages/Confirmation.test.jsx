@@ -94,7 +94,8 @@ describe('Confirmation page — with record', () => {
 
   it('renders Go to Dashboard link', () => {
     renderWithRecord()
-    expect(screen.getByRole('link', { name: /dashboard/i })).toBeInTheDocument()
+    // Anchored so it does not match the footer's "Dashboard" link.
+    expect(screen.getByRole('link', { name: /^go to dashboard$/i })).toBeInTheDocument()
   })
 
   it('copy link writes to clipboard', async () => {

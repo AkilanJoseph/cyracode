@@ -7,6 +7,8 @@ import { GoogleOAuthProvider } from '@react-oauth/google'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { applyDirection } from './i18n/index'
 import Header from './components/common/Header'
+import Footer from './components/common/Footer'
+import Tagline from './components/common/Tagline'
 import { billing } from './services/api'
 import { PENDING_MODE_SELECT_KEY } from './constants'
 
@@ -49,6 +51,8 @@ function ComingSoonPage({ title }) {
         <h1 className="text-3xl font-bold text-ink">{title}</h1>
         <p className="mt-3 text-muted">{t('common.coming_soon')}</p>
       </main>
+
+      <Footer maxWidth="max-w-3xl" />
     </div>
   )
 }
@@ -168,7 +172,7 @@ export function Dashboard() {
                 aria-hidden={copy === 1 ? 'true' : undefined}
                 className="flex items-center gap-4 sm:gap-6 whitespace-nowrap px-4 sm:px-6 text-sm sm:text-base font-semibold text-primary"
               >
-                {t('nav.tagline')}
+                <Tagline />
                 <Sparkles className="w-4 h-4 shrink-0" aria-hidden="true" />
               </span>
             ))}
@@ -249,6 +253,8 @@ export function Dashboard() {
           ))}
         </div>
       </main>
+
+      <Footer maxWidth="max-w-3xl" />
     </div>
   )
 }

@@ -8,6 +8,7 @@ import Button from '../components/common/Button'
 import Input from '../components/common/Input'
 import MapPicker from '../components/MapPicker'
 import Header from '../components/common/Header'
+import Footer from '../components/common/Footer'
 import { AddressStep, validateAddress } from './RegisterTraditional'
 import { registration } from '../services/api'
 import { apiErrorMessage } from '../utils/errors'
@@ -244,6 +245,7 @@ export default function RegisterAutoGenerate() {
           )}
         </div>
       </div>
+    <Footer maxWidth="max-w-2xl" />
     </div>
   )
 }

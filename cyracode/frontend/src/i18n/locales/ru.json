@@ -13,7 +13,7 @@
     },
     "nav": {
       "brand": "CyraCode",
-      "tagline": "Ценный адрес, Гордое имя",
+      "tagline": "Премиальное местоположение, Ценный адрес, Гордое имя",
       "logout": "Выйти",
       "register": "Регистрация",
       "profile_menu": "Меню профиля",
@@ -30,6 +30,25 @@
       "blog": "Блог",
       "open_menu": "Открыть меню"
     },
+    "footer": {
+      "product": "Продукт",
+      "account": "Аккаунт",
+      "legal": "Правовая информация",
+      "search": "Поиск CyraCode",
+      "dashboard": "Панель",
+      "manage": "Управление CyraCodes",
+      "orders": "Заказы и счета",
+      "privacy": "Политика конфиденциальности",
+      "rights_reserved": "Все права защищены."
+    ,
+      "follow_us": "Подписывайтесь",
+      "social_x": "X",
+      "social_instagram": "Instagram",
+      "social_linkedin": "LinkedIn",
+      "social_youtube": "YouTube",
+      "social_facebook": "Facebook",
+      "support": "Поддержка",
+      "support_email": "support@cyracode.com"},
     "landing": {
       "pill_precise": "Точные адреса",
       "pill_instant": "Мгновенный поиск",
