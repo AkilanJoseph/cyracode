@@ -8,6 +8,12 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/__tests__/setup.js'],
     exclude: ['**/node_modules/**', '**/e2e/**'],
+    // Several specs drive long real-user flows (full invoice address + 16-digit
+    // card number typed keystroke-by-keystroke via userEvent). Those legitimately
+    // exceed the 5s default on slower machines, so give them real headroom
+    // instead of letting them flake on timing.
+    testTimeout: 20000,
+    hookTimeout: 20000,
     environmentOptions: {
       jsdom: { url: 'http://localhost:5173' },
     },

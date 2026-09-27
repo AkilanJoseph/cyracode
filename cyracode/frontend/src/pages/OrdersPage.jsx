@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import { Search, Receipt, Download, Loader2, Check, X, ArrowRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import Header from '../components/common/Header'
+import Footer from '../components/common/Footer'
 import Button from '../components/common/Button'
 import Input from '../components/common/Input'
 import { billing } from '../services/api'
@@ -261,6 +262,7 @@ export default function OrdersPage() {
           </p>
         )}
       </main>
+    <Footer maxWidth="max-w-3xl" />
     </div>
   )
 }

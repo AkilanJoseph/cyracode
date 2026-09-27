@@ -13,7 +13,7 @@
     },
     "nav": {
       "brand": "CyraCode",
-      "tagline": "珍贵地址，自豪之名",
+      "tagline": "黄金地段，珍贵地址，自豪之名",
       "logout": "退出登录",
       "register": "注册",
       "profile_menu": "个人资料菜单",
@@ -30,6 +30,25 @@
       "blog": "博客",
       "open_menu": "打开菜单"
     },
+    "footer": {
+      "product": "产品",
+      "account": "账户",
+      "legal": "法律",
+      "search": "搜索 CyraCode",
+      "dashboard": "控制台",
+      "manage": "管理 CyraCodes",
+      "orders": "订单与发票",
+      "privacy": "隐私政策",
+      "rights_reserved": "保留所有权利。"
+    ,
+      "follow_us": "关注我们",
+      "social_x": "X",
+      "social_instagram": "Instagram",
+      "social_linkedin": "LinkedIn",
+      "social_youtube": "YouTube",
+      "social_facebook": "Facebook",
+      "support": "支持",
+      "support_email": "support@cyracode.com"},
     "landing": {
       "pill_precise": "精准地址",
       "pill_instant": "即时查询",

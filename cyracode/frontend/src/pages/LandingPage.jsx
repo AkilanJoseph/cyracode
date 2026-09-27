@@ -7,6 +7,7 @@ import { useGoogleLogin } from '@react-oauth/google'
 import Button from '../components/common/Button'
 import Input from '../components/common/Input'
 import Header from '../components/common/Header'
+import Footer from '../components/common/Footer'
 import { useAuth } from '../context/AuthContext'
 import { auth, registration } from '../services/api'
 import { apiErrorMessage } from '../utils/errors'
@@ -553,6 +554,8 @@ export default function LandingPage() {
           </div>
         </div>
       )}
+
+      <Footer maxWidth="max-w-6xl" />
     </div>
   )
 }

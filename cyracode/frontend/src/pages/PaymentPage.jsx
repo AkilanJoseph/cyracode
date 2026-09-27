@@ -8,6 +8,7 @@ import {
 import { QRCodeSVG } from 'qrcode.react'
 import { useTranslation } from 'react-i18next'
 import Header from '../components/common/Header'
+import Footer from '../components/common/Footer'
 import Button from '../components/common/Button'
 import Input from '../components/common/Input'
 import { useAuth } from '../context/AuthContext'
@@ -205,6 +206,8 @@ export default function PaymentPage() {
             {t('common.continue')}
           </Link>
         </main>
+
+        <Footer maxWidth="max-w-xl" />
       </div>
     )
   }
@@ -413,6 +416,8 @@ export default function PaymentPage() {
             </div>
           </div>
         </main>
+
+        <Footer maxWidth="max-w-2xl" />
       </div>
     )
   }
@@ -704,6 +709,8 @@ export default function PaymentPage() {
           </div>
         </aside>
       </main>
+
+      <Footer maxWidth="max-w-6xl" />
     </div>
   )
 }

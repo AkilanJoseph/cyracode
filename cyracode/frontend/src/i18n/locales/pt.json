@@ -13,7 +13,7 @@
     },
     "nav": {
       "brand": "CyraCode",
-      "tagline": "Endereço precioso, Nome de orgulho",
+      "tagline": "Localização premium, Endereço precioso, Nome de orgulho",
       "logout": "Sair",
       "register": "Registrar",
       "profile_menu": "Menu do perfil",
@@ -30,6 +30,25 @@
       "blog": "Blog",
       "open_menu": "Abrir menu"
     },
+    "footer": {
+      "product": "Produto",
+      "account": "Conta",
+      "legal": "Legal",
+      "search": "Pesquisar um CyraCode",
+      "dashboard": "Painel",
+      "manage": "Gerenciar CyraCodes",
+      "orders": "Pedidos e faturas",
+      "privacy": "Política de privacidade",
+      "rights_reserved": "Todos os direitos reservados."
+    ,
+      "follow_us": "Siga-nos",
+      "social_x": "X",
+      "social_instagram": "Instagram",
+      "social_linkedin": "LinkedIn",
+      "social_youtube": "YouTube",
+      "social_facebook": "Facebook",
+      "support": "Suporte",
+      "support_email": "support@cyracode.com"},
     "landing": {
       "pill_precise": "Endereços precisos",
       "pill_instant": "Busca instantânea",

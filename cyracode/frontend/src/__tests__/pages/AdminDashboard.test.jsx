@@ -59,6 +59,9 @@ describe('AdminDashboard', () => {
   it('shows the signed-in admin email', async () => {
     setup()
     expect(await screen.findByText(/admin@example.com/i)).toBeInTheDocument()
+    expect(
+      screen.getByText('Signed in as Admin with email address - admin@example.com')
+    ).toBeInTheDocument()
   })
 
   it('navigates to the API clients screen when the total clients number is clicked', async () => {

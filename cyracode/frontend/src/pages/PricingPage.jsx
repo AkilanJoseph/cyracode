@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { Check, Minus, ArrowRight, Rocket, ShieldCheck } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import Header from '../components/common/Header'
+import Footer from '../components/common/Footer'
 import { billing } from '../services/api'
 import { PUBLIC_PLANS } from '../lib/plans'
 
@@ -364,6 +365,7 @@ export default function PricingPage() {
           </div>
         </section>
       </main>
+    <Footer maxWidth="max-w-7xl" />
     </div>
   )
 }

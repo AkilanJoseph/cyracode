@@ -7,6 +7,7 @@ import Button from '../components/common/Button'
 import Input from '../components/common/Input'
 import MapPicker from '../components/MapPicker'
 import Header from '../components/common/Header'
+import Footer from '../components/common/Footer'
 import { AddressStep, validateAddress } from './RegisterTraditional'
 import { registration } from '../services/api'
 import { apiErrorMessage } from '../utils/errors'
@@ -505,6 +506,7 @@ export default function ManageCyraCodes() {
           {t('edit.pick_hint', { name: editing.code_name })}
         </div>
       )}
+    <Footer maxWidth="max-w-3xl" />
     </div>
   )
 }

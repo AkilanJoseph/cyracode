@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
 import Header from '../components/common/Header'
+import Footer from '../components/common/Footer'
 import AdminNav from '../components/admin/AdminNav'
 import Button from '../components/common/Button'
 import { admin } from '../services/api'
@@ -114,6 +115,8 @@ export default function AdminAuditLogs() {
           </>
         )}
       </main>
+
+    <Footer variant="minimal" maxWidth="max-w-5xl" />
     </div>
   )
 }

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
 import { Plus, Pencil, Trash2, X, Tag } from 'lucide-react'
 import Header from '../components/common/Header'
+import Footer from '../components/common/Footer'
 import AdminNav from '../components/admin/AdminNav'
 import Button from '../components/common/Button'
 import Input from '../components/common/Input'
@@ -205,6 +206,8 @@ export default function AdminPlans() {
           </div>
         </div>
       )}
+
+    <Footer variant="minimal" maxWidth="max-w-5xl" />
     </div>
   )
 }

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { Search, Plus, Eye, Pencil, Trash2, RotateCcw, X, Sparkles, Zap, ArrowRight, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import Header from '../components/common/Header'
+import Footer from '../components/common/Footer'
 import AdminNav from '../components/admin/AdminNav'
 import Button from '../components/common/Button'
 import Input from '../components/common/Input'
@@ -567,6 +568,8 @@ export default function AdminCyraCodes() {
           </div>
         </div>
       )}
+
+    <Footer variant="minimal" maxWidth="max-w-5xl" />
     </div>
   )
 }

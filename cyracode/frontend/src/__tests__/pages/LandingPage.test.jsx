@@ -41,6 +41,16 @@ describe('LandingPage — layout', () => {
     expect(screen.getByText(/your address/i)).toBeInTheDocument()
   })
 
+  it('renders the site footer with the slogan and legal link', () => {
+    setup()
+
+    const footer = screen.getByRole('contentinfo')
+    // The slogan is split into discrete phrases for wrapping, so assert on the
+    // concatenated text rather than a single-element text match.
+    expect(footer.textContent).toContain('Prime Location, Precious Address, Pride Name')
+    expect(within(footer).getByRole('link', { name: 'Privacy Policy' }).getAttribute('href')).toBe('/privacy')
+  })
+
   it('renders Login tab active by default', () => {
     setup()
     expect(screen.getByRole('button', { name: /^let's go!, dashboard$/i })).toBeInTheDocument()

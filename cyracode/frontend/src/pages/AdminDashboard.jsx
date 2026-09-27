@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
 import { Search, Users, DollarSign, CalendarClock, Wrench } from 'lucide-react'
 import Header from '../components/common/Header'
+import Footer from '../components/common/Footer'
 import AdminNav from '../components/admin/AdminNav'
 import { PlanBadge, formatMoney } from '../components/admin/Badges'
 import { admin } from '../services/api'
@@ -262,6 +263,8 @@ export default function AdminDashboard() {
           <p className="mt-8 text-xs text-muted">{t('admin.signed_in_as', { email: user.email })}</p>
         )}
       </main>
+
+    <Footer variant="minimal" maxWidth="max-w-5xl" />
     </div>
   )
 }

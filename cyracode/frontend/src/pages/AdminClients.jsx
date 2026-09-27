@@ -7,6 +7,7 @@ import {
   CreditCard, CalendarDays, Terminal, Play, Loader2, ShieldCheck,
 } from 'lucide-react'
 import Header from '../components/common/Header'
+import Footer from '../components/common/Footer'
 import AdminNav from '../components/admin/AdminNav'
 import Button from '../components/common/Button'
 import Input from '../components/common/Input'
@@ -777,6 +778,8 @@ export default function AdminClients() {
       {viewClient && (
         <ClientDetailModal client={viewClient} onClose={closeDetail} onChanged={changed} />
       )}
+
+    <Footer variant="minimal" maxWidth="max-w-5xl" />
     </div>
   )
 }
