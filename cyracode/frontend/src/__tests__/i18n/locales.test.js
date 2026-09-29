@@ -36,7 +36,7 @@ describe('locale files', () => {
       'account',
       'legal',
       'support',
-      'support_email',
+      'contact_us',
       'search',
       'dashboard',
       'manage',

@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { http, HttpResponse } from 'msw'
 import { server } from '../mocks/server'
 import { AuthProvider } from '../../context/AuthContext'
+import { ContactWidgetProvider } from '../../context/ContactWidgetContext'
 import SearchPage from '../../pages/SearchPage'
 
 vi.mock('react-hot-toast', () => ({
@@ -31,9 +32,11 @@ function setup() {
     user: userEvent.setup(),
     ...render(
       <MemoryRouter>
-        <AuthProvider>
-          <SearchPage />
-        </AuthProvider>
+        <ContactWidgetProvider>
+          <AuthProvider>
+            <SearchPage />
+          </AuthProvider>
+        </ContactWidgetProvider>
       </MemoryRouter>
     ),
   }

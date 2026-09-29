@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { AuthProvider } from '../../context/AuthContext'
+import { ContactWidgetProvider } from '../../context/ContactWidgetContext'
 import { Dashboard } from '../../App'
 import { mockUser, mockToken } from '../mocks/handlers'
 
@@ -10,9 +11,11 @@ function setup() {
   localStorage.setItem('cyracode_user', JSON.stringify(mockUser))
   render(
     <MemoryRouter>
-      <AuthProvider>
-        <Dashboard />
-      </AuthProvider>
+      <ContactWidgetProvider>
+        <AuthProvider>
+          <Dashboard />
+        </AuthProvider>
+      </ContactWidgetProvider>
     </MemoryRouter>
   )
 }

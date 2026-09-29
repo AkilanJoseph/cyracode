@@ -2,14 +2,17 @@ import { describe, it, expect } from 'vitest'
 import { render, screen, fireEvent, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { AuthProvider } from '../../context/AuthContext'
+import { ContactWidgetProvider } from '../../context/ContactWidgetContext'
 import PricingPage from '../../pages/PricingPage'
 
 function renderPage() {
   return render(
     <MemoryRouter initialEntries={['/pricing']}>
-      <AuthProvider>
-        <PricingPage />
-      </AuthProvider>
+      <ContactWidgetProvider>
+        <AuthProvider>
+          <PricingPage />
+        </AuthProvider>
+      </ContactWidgetProvider>
     </MemoryRouter>
   )
 }
@@ -81,9 +84,11 @@ describe('PricingPage', () => {
   it('reads the billing frequency from the URL query', async () => {
     render(
       <MemoryRouter initialEntries={['/pricing?billing=annual']}>
-        <AuthProvider>
-          <PricingPage />
-        </AuthProvider>
+        <ContactWidgetProvider>
+          <AuthProvider>
+            <PricingPage />
+          </AuthProvider>
+        </ContactWidgetProvider>
       </MemoryRouter>
     )
     expect(await screen.findByText('billed $948/year')).toBeInTheDocument()

@@ -372,6 +372,18 @@ export default function AdminCyraCodes() {
           {t('edit.cancel')}
         </button>
       </div>
+      {editing && step === 1 && (
+        <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-700">
+          <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+          <span>{t('edit.name_immutable')}</span>
+        </div>
+      )}
+      {editing && step === 2 && (
+        <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-xl p-3 text-sm font-medium">
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          {t('edit.pick_hint', { name: editing.code_name })}
+        </div>
+      )}
       {step === 1 && (
         <div className="space-y-5">
           <MapPicker
@@ -387,10 +399,6 @@ export default function AdminCyraCodes() {
           <div className="flex gap-3">
             <Button variant="secondary" onClick={cancelEdit} className="flex-1">{t('edit.cancel')}</Button>
             <Button onClick={nextFromStep1} disabled={!coords} className="flex-1">{t('common.continue')}</Button>
-          </div>
-          <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-700">
-            <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-            <span>{t('edit.name_immutable')}</span>
           </div>
         </div>
       )}
@@ -421,12 +429,6 @@ export default function AdminCyraCodes() {
             <div className="bg-white rounded-3xl border border-border shadow-card p-6 sm:p-8">
               {renderEdit()}
             </div>
-            {step === 2 && (
-              <div className="mt-4 flex items-center gap-2 text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-xl p-3 text-sm font-medium">
-                <CheckCircle2 className="w-4 h-4 shrink-0" />
-                {t('edit.pick_hint', { name: editing.code_name })}
-              </div>
-            )}
           </>
         ) : (
           <>

@@ -3,6 +3,7 @@ import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { Dashboard } from '../../App'
 import { AuthProvider } from '../../context/AuthContext'
+import { ContactWidgetProvider } from '../../context/ContactWidgetContext'
 import { mockUser } from '../mocks/handlers'
 
 function loginAs(email) {
@@ -14,9 +15,11 @@ function renderDashboard(email) {
   loginAs(email)
   return render(
     <MemoryRouter>
-      <AuthProvider>
-        <Dashboard />
-      </AuthProvider>
+      <ContactWidgetProvider>
+        <AuthProvider>
+          <Dashboard />
+        </AuthProvider>
+      </ContactWidgetProvider>
     </MemoryRouter>
   )
 }
