@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { MapPin, Twitter, Facebook, Instagram, Linkedin, Youtube } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../context/AuthContext'
+import { useContactWidget } from '../../context/ContactWidgetContext'
 import Tagline from './Tagline'
 
 // Edit these if the brand accounts change.
@@ -13,14 +14,13 @@ const SOCIAL_LINKS = [
   { href: 'https://youtube.com/@cyracode', key: 'social_youtube', Icon: Youtube },
 ]
 
-// Keep in sync with the address used in PrivacyPolicy.
-const SUPPORT_EMAIL = 'support@cyracode.com'
+// The Support row opens the Contact-us widget; enquiries are delivered to
+// support@cyracode.com by backend/app/api/contact.py (also used in PrivacyPolicy).
 
 const GROUPS = [
   {
     heading: 'footer.product',
     links: [
-      { to: '/search', key: 'footer.search' },
       { to: '/pricing', key: 'nav.pricing' },
       { to: '/docs', key: 'nav.docs' },
       { to: '/blog', key: 'nav.blog' },
@@ -31,6 +31,7 @@ const GROUPS = [
     links: [
       { to: '/dashboard', key: 'footer.dashboard' },
       { to: '/manage-cyracodes', key: 'footer.manage' },
+      { to: '/search', key: 'footer.search' },
       { to: '/orders', key: 'footer.orders' },
     ],
   },
@@ -40,23 +41,26 @@ const GROUPS = [
     // Renders as a new row inside the Legal column rather than its own column.
     nested: {
       heading: 'footer.support',
-      links: [{ href: `mailto:${SUPPORT_EMAIL}`, key: 'footer.support_email' }],
+      // Opens the Contact-us widget rather than handing off to the mail client,
+      // so the visitor is not dumped into a blank compose window.
+      links: [{ action: 'contact', key: 'footer.contact_us' }],
     },
   },
 ]
 
 function LinkList({ links }) {
   const { t } = useTranslation()
+  const { open: openContact } = useContactWidget()
+  const linkClass = 'text-sm text-muted hover:text-primary transition-colors text-left'
 
   return (
     <ul className="mt-3 space-y-2">
-      {links.map(({ to, href, key }) => (
-        <li key={to || href}>
-          {href ? (
-            // External / mailto targets are plain anchors, not router Links.
-            <a href={href} className="text-sm text-muted hover:text-primary transition-colors break-all">
+      {links.map(({ to, key, action }) => (
+        <li key={to || action}>
+          {action === 'contact' ? (
+            <button type="button" onClick={openContact} className={linkClass}>
               {t(key)}
-            </a>
+            </button>
           ) : (
             <Link to={to} className="text-sm text-muted hover:text-primary transition-colors">
               {t(key)}
@@ -141,6 +145,7 @@ export default function Footer({ maxWidth = 'max-w-3xl', variant = 'full' }) {
         <div className={`${maxWidth} mx-auto px-4 py-8`}>
           <div className="flex flex-col items-center text-center gap-4">
             {brand}
+            {/* Admin pages keep the slogan on a single centred line. */}
             <Tagline className="mt-3 text-sm text-muted max-w-sm leading-relaxed" />
             {socials}
             {copyright}
@@ -156,7 +161,10 @@ export default function Footer({ maxWidth = 'max-w-3xl', variant = 'full' }) {
         <div className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             {brand}
-            <Tagline className="mt-3 text-sm text-muted max-w-xs leading-relaxed" />
+            <Tagline
+              layout="stacked"
+              className="mt-3 text-sm text-muted max-w-xs leading-relaxed"
+            />
           </div>
 
           {GROUPS.map((group) => (

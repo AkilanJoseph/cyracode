@@ -3,6 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { AuthProvider } from '../../context/AuthContext'
+import { ContactWidgetProvider } from '../../context/ContactWidgetContext'
 import OrdersPage from '../../pages/OrdersPage'
 
 const toastMock = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }))
@@ -16,9 +17,11 @@ function renderPage() {
   const user = userEvent.setup()
   const utils = render(
     <MemoryRouter initialEntries={['/orders']}>
-      <AuthProvider>
-        <OrdersPage />
-      </AuthProvider>
+      <ContactWidgetProvider>
+        <AuthProvider>
+          <OrdersPage />
+        </AuthProvider>
+      </ContactWidgetProvider>
     </MemoryRouter>
   )
   return { user, ...utils }
@@ -90,9 +93,11 @@ describe('OrdersPage', () => {
   it('prefills the email from the URL query', async () => {
     render(
       <MemoryRouter initialEntries={['/orders?email=buyer%40example.com']}>
-        <AuthProvider>
-          <OrdersPage />
-        </AuthProvider>
+        <ContactWidgetProvider>
+          <AuthProvider>
+            <OrdersPage />
+          </AuthProvider>
+        </ContactWidgetProvider>
       </MemoryRouter>
     )
     const user = userEvent.setup()

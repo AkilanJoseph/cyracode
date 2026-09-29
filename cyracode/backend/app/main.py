@@ -8,7 +8,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.api import admin, auth, billing, cyracode_api, logistics, otp, registration, search
+from app.api import admin, auth, billing, contact, cyracode_api, logistics, otp, registration, search
 from app.config import settings
 from app.database import Base, SessionLocal, engine
 from app.rate_limiter import limiter
@@ -280,6 +280,7 @@ app.include_router(logistics.router)
 app.include_router(admin.router)
 app.include_router(billing.router)
 app.include_router(cyracode_api.router)
+app.include_router(contact.router)
 
 
 @app.get("/health")

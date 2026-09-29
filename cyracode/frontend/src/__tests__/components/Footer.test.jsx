@@ -3,6 +3,7 @@ import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import Footer from '../../components/common/Footer'
 import { AuthProvider } from '../../context/AuthContext'
+import { ContactWidgetProvider } from '../../context/ContactWidgetContext'
 
 const mockUser = {
   id: 'user-test-id',
@@ -17,7 +18,9 @@ function renderFooter(props = {}) {
   return render(
     <MemoryRouter>
       <AuthProvider>
-        <Footer {...props} />
+        <ContactWidgetProvider>
+          <Footer {...props} />
+        </ContactWidgetProvider>
       </AuthProvider>
     </MemoryRouter>
   )
@@ -29,16 +32,20 @@ describe('Footer', () => {
 
     const footer = screen.getByRole('contentinfo')
     expect(within(footer).getByText('CyraCode')).toBeInTheDocument()
-    // The tagline is rendered as discrete comma-separated phrases, so assert on
-    // the concatenated text rather than a single-element text match.
-    expect(footer.textContent).toContain('Prime Location, Precious Address, Pride Name')
+    // Each tagline phrase is its own line under the logo, so assert on the
+    // block elements rather than a single space-joined text match.
+    const lines = footer.querySelectorAll('.block')
+    expect(Array.from(lines).map((el) => el.textContent)).toEqual([
+      'Prime Location,',
+      'Precious Address,',
+      'Pride Name',
+    ])
   })
 
   it('groups the links under Product, Account, Legal and Support', () => {
     renderFooter()
 
     const product = screen.getByRole('navigation', { name: 'Product' })
-    expect(within(product).getByRole('link', { name: 'Search a CyraCode' }).getAttribute('href')).toBe('/search')
     expect(within(product).getByRole('link', { name: 'Pricing' }).getAttribute('href')).toBe('/pricing')
     expect(within(product).getByRole('link', { name: 'Docs' }).getAttribute('href')).toBe('/docs')
     expect(within(product).getByRole('link', { name: 'Blog' }).getAttribute('href')).toBe('/blog')
@@ -51,10 +58,33 @@ describe('Footer', () => {
     const legal = screen.getByRole('navigation', { name: 'Legal' })
     expect(within(legal).getByRole('link', { name: 'Privacy Policy' }).getAttribute('href')).toBe('/privacy')
 
-    // Support sits after Legal and exposes the address as a mailto link.
+    // Support sits after Legal. It opens the Contact-us widget rather than a
+    // mailto, so it must be a button, not a link.
     const support = screen.getByRole('navigation', { name: 'Support' })
-    const mail = within(support).getByRole('link', { name: 'support@cyracode.com' })
-    expect(mail.getAttribute('href')).toBe('mailto:support@cyracode.com')
+    expect(within(support).getByRole('button', { name: 'Contact us' })).toBeInTheDocument()
+    expect(within(support).queryByRole('link')).not.toBeInTheDocument()
+  })
+
+  it('lists Search a CyraCode under Account, directly below Manage CyraCodes', () => {
+    renderFooter()
+
+    // It used to live in the Product column. It is an account action, so it
+    // must not be offered twice.
+    const product = screen.getByRole('navigation', { name: 'Product' })
+    expect(within(product).queryByRole('link', { name: 'Search a CyraCode' })).not.toBeInTheDocument()
+
+    const account = screen.getByRole('navigation', { name: 'Account' })
+    const search = within(account).getByRole('link', { name: 'Search a CyraCode' })
+    expect(search.getAttribute('href')).toBe('/search')
+
+    // Assert the full order, since the position below Manage CyraCodes is the
+    // requirement and membership alone would not catch a move back to the top.
+    expect(within(account).getAllByRole('link').map((a) => a.getAttribute('href'))).toEqual([
+      '/dashboard',
+      '/manage-cyracodes',
+      '/search',
+      '/orders',
+    ])
   })
 
   it('nests Support inside the Legal column as a row below it', () => {
@@ -141,6 +171,9 @@ describe('Footer — minimal variant', () => {
 
     const footer = screen.getByRole('contentinfo')
     expect(within(footer).getByText('CyraCode')).toBeInTheDocument()
+    // The admin footer keeps the slogan on one line, unlike the client footer's
+    // stacked layout.
+    expect(footer.querySelectorAll('.block')).toHaveLength(0)
     expect(footer.textContent).toContain('Prime Location, Precious Address, Pride Name')
 
     const year = new Date().getFullYear()
@@ -153,7 +186,7 @@ describe('Footer — minimal variant', () => {
     expect(within(footer).queryByRole('navigation', { name: 'Legal' })).not.toBeInTheDocument()
     // Support is public/user only, so it must not leak into the admin footer.
     expect(within(footer).queryByRole('navigation', { name: 'Support' })).not.toBeInTheDocument()
-    expect(within(footer).queryByRole('link', { name: 'support@cyracode.com' })).not.toBeInTheDocument()
+    expect(within(footer).queryByRole('button', { name: 'Contact us' })).not.toBeInTheDocument()
     expect(within(footer).queryByRole('link', { name: 'Pricing' })).not.toBeInTheDocument()
     expect(within(footer).queryByRole('link', { name: 'Privacy Policy' })).not.toBeInTheDocument()
   })

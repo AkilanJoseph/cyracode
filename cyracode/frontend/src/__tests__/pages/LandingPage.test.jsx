@@ -6,6 +6,7 @@ import { http, HttpResponse } from 'msw'
 import { server } from '../mocks/server'
 import { mockToken, mockUser, mockAdminUser, registrationCountStore } from '../mocks/handlers'
 import { AuthProvider } from '../../context/AuthContext'
+import { ContactWidgetProvider } from '../../context/ContactWidgetContext'
 import LandingPage from '../../pages/LandingPage'
 
 vi.mock('react-hot-toast', () => ({
@@ -27,9 +28,11 @@ vi.mock('@react-oauth/google', () => ({
 function setup() {
   const utils = render(
     <MemoryRouter>
-      <AuthProvider>
-        <LandingPage />
-      </AuthProvider>
+      <ContactWidgetProvider>
+        <AuthProvider>
+          <LandingPage />
+        </AuthProvider>
+      </ContactWidgetProvider>
     </MemoryRouter>
   )
   return { user: userEvent.setup(), ...utils }
@@ -45,9 +48,9 @@ describe('LandingPage — layout', () => {
     setup()
 
     const footer = screen.getByRole('contentinfo')
-    // The slogan is split into discrete phrases for wrapping, so assert on the
-    // concatenated text rather than a single-element text match.
-    expect(footer.textContent).toContain('Prime Location, Precious Address, Pride Name')
+    // The slogan is stacked one phrase per line under the logo.
+    expect(footer.querySelectorAll('.block')).toHaveLength(3)
+    expect(footer.textContent).toContain('Prime Location,Precious Address,Pride Name')
     expect(within(footer).getByRole('link', { name: 'Privacy Policy' }).getAttribute('href')).toBe('/privacy')
   })
 

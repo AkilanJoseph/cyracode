@@ -290,6 +290,18 @@ export default function ManageCyraCodes() {
           {t('edit.cancel')}
         </button>
       </div>
+      {editing && step === 1 && (
+        <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-700">
+          <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+          <span>{t('edit.name_immutable')}</span>
+        </div>
+      )}
+      {editing && step === 2 && (
+        <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-xl p-3 text-sm font-medium">
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          {t('edit.pick_hint', { name: editing.code_name })}
+        </div>
+      )}
       {step === 1 && (
         <div className="space-y-5">
           <MapPicker
@@ -315,12 +327,6 @@ export default function ManageCyraCodes() {
             <Button variant="secondary" onClick={() => setStep(1)} className="flex-1">{t('common.back')}</Button>
             <Button onClick={save} loading={saving} className="flex-1">{t('edit.save_changes')}</Button>
           </div>
-        </div>
-      )}
-      {editing && step === 1 && (
-        <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-700">
-          <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-          <span>{t('edit.name_immutable')}</span>
         </div>
       )}
     </div>
@@ -500,12 +506,6 @@ export default function ManageCyraCodes() {
         </div>
       )}
 
-      {editing && step === 2 && (
-        <div className="max-w-3xl mx-auto px-4 mt-4 flex items-center gap-2 text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-xl p-3 text-sm font-medium">
-          <CheckCircle2 className="w-4 h-4 shrink-0" />
-          {t('edit.pick_hint', { name: editing.code_name })}
-        </div>
-      )}
     <Footer maxWidth="max-w-3xl" />
     </div>
   )

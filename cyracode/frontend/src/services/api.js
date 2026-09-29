@@ -72,6 +72,11 @@ export const search = {
   reverseGeocode: (lat, lng) => api.post('/search/reverse', { lat, lng }),
 }
 
+// Contact-us widget. Public, no auth: a visitor can be pre-signup.
+export const contact = {
+  send: (payload) => api.post('/contact', payload),
+}
+
 export const admin = {
   getMe: () => api.get('/admin/auth/me'),
   stats: () => api.get('/admin/stats'),

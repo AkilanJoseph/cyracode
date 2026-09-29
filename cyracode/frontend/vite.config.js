@@ -5,18 +5,35 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
+  const host = env.VITE_HOST || '127.0.0.1'
+
+  // Single source of truth so the dev server and the static preview of dist/
+  // proxy /api to the backend identically and cannot drift apart.
+  const proxy = {
+    '/api': {
+      target: env.VITE_BACKEND_URL || 'http://localhost:8000',
+      changeOrigin: true,
+      rewrite: (path) => path.replace(/^\/api/, ''),
+    },
+  }
+
   return {
     plugins: [react()],
     server: {
-      host: env.VITE_HOST || '127.0.0.1',
+      host,
       port: Number(env.VITE_PORT || 5173),
-      proxy: {
-        '/api': {
-          target: env.VITE_BACKEND_URL || 'http://localhost:8000',
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api/, ''),
-        },
-      },
+      proxy,
+    },
+    // Serves the real production build from dist/ the way a CDN/Nginx would:
+    // hashed assets get long-lived immutable caching, index.html is never
+    // cached, and unknown client-side routes fall back to index.html (appType
+    // stays 'spa'). Used to verify the build locally before deploying.
+    preview: {
+      host,
+      port: Number(env.VITE_PREVIEW_PORT || 4173),
+      // Fail loudly rather than silently drifting to another port.
+      strictPort: true,
+      proxy,
     },
     build: {
       // AC 6.7: Split vendor bundles so unchanged deps are served from CDN cache

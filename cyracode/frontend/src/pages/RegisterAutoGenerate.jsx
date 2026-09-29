@@ -9,9 +9,11 @@ import Input from '../components/common/Input'
 import MapPicker from '../components/MapPicker'
 import Header from '../components/common/Header'
 import Footer from '../components/common/Footer'
+import ConfirmDialog from '../components/common/ConfirmDialog'
 import { AddressStep, validateAddress } from './RegisterTraditional'
 import { registration } from '../services/api'
 import { apiErrorMessage } from '../utils/errors'
+import { useGoBack } from '../utils/navigation'
 
 export default function RegisterAutoGenerate() {
   const navigate = useNavigate()
@@ -64,6 +66,25 @@ export default function RegisterAutoGenerate() {
     } finally {
       setGenerating(false)
     }
+  }
+
+  // Return to whichever screen the user started from, so an abandoned
+  // registration drops them where they expected to be rather than on a
+  // hard-coded page. Nothing is persisted until submit, but generated names,
+  // a selection or a typed address would all be silently lost, so ask first
+  // when there is work to throw away.
+  const goBackToOrigin = useGoBack('/dashboard')
+  const [confirmingDiscard, setConfirmingDiscard] = useState(false)
+
+  const hasInvestedEffort =
+    suggestions.length > 0 ||
+    Boolean(selected) ||
+    Boolean(coords) ||
+    Object.values(address).some((v) => v && v !== 'OTHER')
+
+  const cancelRegistration = () => {
+    if (hasInvestedEffort) setConfirmingDiscard(true)
+    else goBackToOrigin()
   }
 
   const handleLocation = (lat, lng) => {
@@ -216,14 +237,19 @@ export default function RegisterAutoGenerate() {
                 />
               </div>
 
-              <Button
-                onClick={nextFromStep1}
-                disabled={!coords}
-                title={!coords ? t('errors.select_location') : undefined}
-                className="w-full"
-              >
-                {t('common.continue')}
-              </Button>
+              <div className="flex gap-3">
+                <Button variant="secondary" onClick={cancelRegistration} className="flex-1">
+                  {t('common.cancel')}
+                </Button>
+                <Button
+                  onClick={nextFromStep1}
+                  disabled={!coords}
+                  title={!coords ? t('errors.select_location') : undefined}
+                  className="flex-1"
+                >
+                  {t('common.continue')}
+                </Button>
+              </div>
             </div>
           )}
 
@@ -245,6 +271,19 @@ export default function RegisterAutoGenerate() {
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmingDiscard}
+        title={t('register.discard_title')}
+        body={t('register.discard_body')}
+        confirmLabel={t('register.discard_confirm')}
+        onConfirm={() => {
+          setConfirmingDiscard(false)
+          goBackToOrigin()
+        }}
+        onCancel={() => setConfirmingDiscard(false)}
+        testId="discard-dialog"
+      />
     <Footer maxWidth="max-w-2xl" />
     </div>
   )

@@ -5,10 +5,12 @@ import { Sparkles, Zap, ArrowRight, Loader2, Pencil, CreditCard, RefreshCw } fro
 import { useTranslation } from 'react-i18next'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { ContactWidgetProvider } from './context/ContactWidgetContext'
 import { applyDirection } from './i18n/index'
 import Header from './components/common/Header'
 import Footer from './components/common/Footer'
 import Tagline from './components/common/Tagline'
+import ContactWidgetRoute from './components/common/ContactWidgetRoute'
 import { billing } from './services/api'
 import { PENDING_MODE_SELECT_KEY } from './constants'
 
@@ -259,6 +261,8 @@ export function Dashboard() {
   )
 }
 
+// The Contact widget is a public-facing affordance, so it is dropped on /admin
+// routes. The guard lives in ContactWidgetRoute so it can be tested directly.
 function AppRoutes() {
   const { i18n, t } = useTranslation()
 
@@ -273,6 +277,8 @@ function AppRoutes() {
       <BrowserRouter>
       <Toaster position="top-right" />
       <InactivityLogout />
+      <ContactWidgetProvider>
+        <ContactWidgetRoute />
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/" element={<HomeRoute><LandingPage /></HomeRoute>} />
@@ -302,6 +308,7 @@ function AppRoutes() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
+      </ContactWidgetProvider>
     </BrowserRouter>
     </>
   )

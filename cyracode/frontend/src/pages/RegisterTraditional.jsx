@@ -7,11 +7,13 @@ import { useTranslation } from 'react-i18next'
 import ProgressSteps from '../components/common/ProgressSteps'
 import Button from '../components/common/Button'
 import Input from '../components/common/Input'
+import ConfirmDialog from '../components/common/ConfirmDialog'
 import MapPicker from '../components/MapPicker'
 import Header from '../components/common/Header'
 import Footer from '../components/common/Footer'
 import { registration } from '../services/api'
 import { apiErrorMessage } from '../utils/errors'
+import { useGoBack } from '../utils/navigation'
 
 // Haversine distance in meters (client-side, for AC 2.17 warning)
 function haversineMeters(lat1, lng1, lat2, lng2) {
@@ -450,6 +452,21 @@ export default function RegisterTraditional() {
     if (addr) toast.success('Location selected')
   }
 
+  // Return to whichever screen the user started from, so an abandoned
+  // registration drops them where they expected to be rather than on a
+  // hard-coded page. Nothing is persisted until submit, but anything already
+  // typed would be silently lost, so ask first when there is work to throw away.
+  const goBackToOrigin = useGoBack('/dashboard')
+  const [confirmingDiscard, setConfirmingDiscard] = useState(false)
+
+  const hasInvestedEffort =
+    name.trim().length > 0 || Boolean(coords) || Object.values(address).some((v) => v && v !== 'OTHER')
+
+  const cancelRegistration = () => {
+    if (hasInvestedEffort) setConfirmingDiscard(true)
+    else goBackToOrigin()
+  }
+
   const nextFromStep1 = () => {
     if (!coords) return toast.error(t('errors.select_location'))
     if (name.length < 3) return toast.error(t('errors.name_short'))
@@ -513,24 +530,8 @@ export default function RegisterTraditional() {
         <div className="bg-white rounded-3xl border border-border shadow-card p-6 sm:p-8 mt-6">
           {step === 1 && (
             <div className="space-y-5">
-              <MapPicker markerPosition={coords} onLocationSelect={handleLocationSelect} />
-              {/* AC 2.5 & 2.6: Read-only coordinate fields auto-populated from map */}
-              <div className="grid grid-cols-2 gap-3 pt-4">
-                <Input
-                  label="Latitude"
-                  value={coords ? coords.lat.toFixed(6) : ''}
-                  placeholder="Select location on map"
-                  disabled
-                  helperText="Auto-filled from map"
-                />
-                <Input
-                  label="Longitude"
-                  value={coords ? coords.lng.toFixed(6) : ''}
-                  placeholder="Select location on map"
-                  disabled
-                  helperText="Auto-filled from map"
-                />
-              </div>
+              {/* The name is chosen first so the availability check and its
+                  suggestions are read before the user works the map. */}
               <div>
                 <Input
                   label={t('register.name_label')}
@@ -574,15 +575,38 @@ export default function RegisterTraditional() {
                   </div>
                 )}
               </div>
+              <MapPicker markerPosition={coords} onLocationSelect={handleLocationSelect} />
+              {/* AC 2.5 & 2.6: Read-only coordinate fields auto-populated from map */}
+              <div className="grid grid-cols-2 gap-3 pt-4">
+                <Input
+                  label="Latitude"
+                  value={coords ? coords.lat.toFixed(6) : ''}
+                  placeholder="Select location on map"
+                  disabled
+                  helperText="Auto-filled from map"
+                />
+                <Input
+                  label="Longitude"
+                  value={coords ? coords.lng.toFixed(6) : ''}
+                  placeholder="Select location on map"
+                  disabled
+                  helperText="Auto-filled from map"
+                />
+              </div>
               {/* AC 2.7: Disabled with tooltip until location selected */}
-              <Button
-                onClick={nextFromStep1}
-                disabled={!coords}
-                title={!coords ? 'Please select a location on the map first' : undefined}
-                className="w-full"
-              >
-                {t('common.continue')}
-              </Button>
+              <div className="flex gap-3">
+                <Button variant="secondary" onClick={cancelRegistration} className="flex-1">
+                  {t('common.cancel')}
+                </Button>
+                <Button
+                  onClick={nextFromStep1}
+                  disabled={!coords}
+                  title={!coords ? 'Please select a location on the map first' : undefined}
+                  className="flex-1"
+                >
+                  {t('common.continue')}
+                </Button>
+              </div>
             </div>
           )}
 
@@ -603,6 +627,19 @@ export default function RegisterTraditional() {
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmingDiscard}
+        title={t('register.discard_title')}
+        body={t('register.discard_body')}
+        confirmLabel={t('register.discard_confirm')}
+        onConfirm={() => {
+          setConfirmingDiscard(false)
+          goBackToOrigin()
+        }}
+        onCancel={() => setConfirmingDiscard(false)}
+        testId="discard-dialog"
+      />
     <Footer maxWidth="max-w-2xl" />
     </div>
   )

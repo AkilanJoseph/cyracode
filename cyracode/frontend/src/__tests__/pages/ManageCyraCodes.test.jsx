@@ -6,6 +6,7 @@ import { http, HttpResponse } from 'msw'
 import { server } from '../mocks/server'
 import { cyracodeStore } from '../mocks/handlers'
 import { AuthProvider } from '../../context/AuthContext'
+import { ContactWidgetProvider } from '../../context/ContactWidgetContext'
 import ManageCyraCodes from '../../pages/ManageCyraCodes'
 
 const MY_CODES_URL = 'http://localhost:5173/api/registration/my-codes'
@@ -40,9 +41,11 @@ function setup() {
   const user = userEvent.setup()
   render(
     <MemoryRouter>
-      <AuthProvider>
-        <ManageCyraCodes />
-      </AuthProvider>
+      <ContactWidgetProvider>
+        <AuthProvider>
+          <ManageCyraCodes />
+        </AuthProvider>
+      </ContactWidgetProvider>
     </MemoryRouter>
   )
   return { user }
@@ -145,7 +148,41 @@ describe('ManageCyraCodes — edit flow', () => {
     expect(screen.getByTestId('map-picker')).toBeInTheDocument()
   })
 
+  it('shows the immutable-name warning above the map, not below the form', async () => {
+    const { user } = setup()
+    const tile = await screen.findByTestId('code-tile-code-test-id')
+    await user.click(within(tile).getByRole('button', { name: /edit/i }))
+
+    const warning = await screen.findByText(/cannot be changed/i)
+    const map = await screen.findByTestId('map-picker')
+
+    // The warning used to render after the step content, so it appeared under
+    // the map and the buttons. It must be read before the user starts editing.
+    expect(
+      warning.compareDocumentPosition(map) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+  })
+
+  it('shows the edit hint at the top of the address step, not at the page bottom', async () => {
+    const { user } = setup()
+    const tile = await screen.findByTestId('code-tile-code-test-id')
+    await user.click(within(tile).getByRole('button', { name: /edit/i }))
+    await screen.findByTestId('map-picker')
+
+    await user.click(screen.getByRole('button', { name: /continue/i }))
+
+    const hint = await screen.findByText(/adjust the pin on the map/i)
+    const street = await screen.findByLabelText(/Street Name/i)
+
+    // It used to sit below the main content, outside the card. Both notices now
+    // lead the form, so the hint must precede the first address field.
+    expect(
+      hint.compareDocumentPosition(street) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+  })
+
   it('prefills the address form with the selected code values', async () => {
+
     const { user } = setup()
     const tile = await screen.findByTestId('code-tile-code-test-id')
     await user.click(within(tile).getByRole('button', { name: /edit/i }))

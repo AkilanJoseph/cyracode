@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from '../../context/AuthContext'
+import { ContactWidgetProvider } from '../../context/ContactWidgetContext'
 import Confirmation from '../../pages/Confirmation'
 
 vi.mock('react-hot-toast', () => ({
@@ -40,11 +41,13 @@ function renderWithRecord(record = mockRecord) {
     <MemoryRouter
       initialEntries={[{ pathname: '/confirmation', state: { record, mode: 'traditional' } }]}
     >
-      <AuthProvider>
-        <Routes>
-          <Route path="/confirmation" element={<Confirmation />} />
-        </Routes>
-      </AuthProvider>
+      <ContactWidgetProvider>
+        <AuthProvider>
+          <Routes>
+            <Route path="/confirmation" element={<Confirmation />} />
+          </Routes>
+        </AuthProvider>
+      </ContactWidgetProvider>
     </MemoryRouter>
   )
 }
@@ -150,11 +153,13 @@ describe('Confirmation page — without record', () => {
   it('shows fallback message when no state', () => {
     render(
       <MemoryRouter initialEntries={['/confirmation']}>
-        <AuthProvider>
-          <Routes>
-            <Route path="/confirmation" element={<Confirmation />} />
-          </Routes>
-        </AuthProvider>
+        <ContactWidgetProvider>
+          <AuthProvider>
+            <Routes>
+              <Route path="/confirmation" element={<Confirmation />} />
+            </Routes>
+          </AuthProvider>
+        </ContactWidgetProvider>
       </MemoryRouter>
     )
     expect(screen.getByText(/no registration data/i)).toBeInTheDocument()
@@ -163,11 +168,13 @@ describe('Confirmation page — without record', () => {
   it('shows Go Home button when no record', () => {
     render(
       <MemoryRouter initialEntries={['/confirmation']}>
-        <AuthProvider>
-          <Routes>
-            <Route path="/confirmation" element={<Confirmation />} />
-          </Routes>
-        </AuthProvider>
+        <ContactWidgetProvider>
+          <AuthProvider>
+            <Routes>
+              <Route path="/confirmation" element={<Confirmation />} />
+            </Routes>
+          </AuthProvider>
+        </ContactWidgetProvider>
       </MemoryRouter>
     )
     expect(screen.getByRole('button', { name: /go home/i })).toBeInTheDocument()

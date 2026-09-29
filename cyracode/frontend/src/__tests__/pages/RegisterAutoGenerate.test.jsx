@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, within, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { HttpResponse, http } from 'msw'
 import { server } from '../mocks/server'
 import { AuthProvider } from '../../context/AuthContext'
+import { ContactWidgetProvider } from '../../context/ContactWidgetContext'
 import RegisterAutoGenerate from '../../pages/RegisterAutoGenerate'
 
 const toastMock = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }))
@@ -42,9 +43,11 @@ function setup() {
   const user = userEvent.setup()
   render(
     <MemoryRouter>
-      <AuthProvider>
-        <RegisterAutoGenerate />
-      </AuthProvider>
+      <ContactWidgetProvider>
+        <AuthProvider>
+          <RegisterAutoGenerate />
+        </AuthProvider>
+      </ContactWidgetProvider>
     </MemoryRouter>
   )
   return { user }
@@ -78,6 +81,43 @@ describe('RegisterAutoGenerate — personalized names', () => {
     setup()
     expect(screen.getByRole('button', { name: /auto generate my code/i })).toBeInTheDocument()
     expect(screen.getByText(/10 unique name ideas/i)).toBeInTheDocument()
+  })
+
+  it('leaves for the origin screen straight away before any name is generated', async () => {
+    const { user } = setup()
+
+    // Cancel sits beside Continue, and is the only one on the page.
+    await user.click(screen.getByRole('button', { name: /^cancel$/i }))
+
+    // Nothing to lose, so no prompt stands between the user and leaving.
+    expect(screen.queryByTestId('discard-dialog')).not.toBeInTheDocument()
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard')
+  })
+
+  it('asks before discarding names that have already been generated', async () => {
+    const { user } = setup()
+    await user.click(screen.getByRole('button', { name: /auto generate my code/i }))
+    await screen.findByText('TestNova')
+    await user.click(screen.getByTestId('suggestion-TestNova'))
+
+    await user.click(screen.getByRole('button', { name: /^cancel$/i }))
+
+    const dialog = await screen.findByTestId('discard-dialog')
+    expect(within(dialog).getByText(/discard your changes\?/i)).toBeInTheDocument()
+    expect(mockNavigate).not.toHaveBeenCalled()
+
+    // Backing out of the prompt keeps the user on the form with their work.
+    await user.click(within(dialog).getByRole('button', { name: /^cancel$/i }))
+    await waitFor(() => expect(screen.queryByTestId('discard-dialog')).not.toBeInTheDocument())
+    expect(mockNavigate).not.toHaveBeenCalled()
+    expect(screen.getByTestId('suggestion-TestNova')).toHaveAttribute('aria-pressed', 'true')
+
+    // Agreeing is the path that actually leaves.
+    await user.click(screen.getByRole('button', { name: /^cancel$/i }))
+    const again = await screen.findByTestId('discard-dialog')
+    await user.click(within(again).getByRole('button', { name: /yes, discard/i }))
+    await waitFor(() => expect(screen.queryByTestId('discard-dialog')).not.toBeInTheDocument())
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard')
   })
 
   it('generates 10 available suggestions from the backend', async () => {

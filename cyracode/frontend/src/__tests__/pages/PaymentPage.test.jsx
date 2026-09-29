@@ -3,6 +3,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { AuthProvider } from '../../context/AuthContext'
+import { ContactWidgetProvider } from '../../context/ContactWidgetContext'
 import PaymentPage from '../../pages/PaymentPage'
 
 const toastMock = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }))
@@ -16,9 +17,11 @@ function renderPage(plan = 'growth', billing = 'monthly') {
   const user = userEvent.setup()
   const utils = render(
     <MemoryRouter initialEntries={[`/payment?plan=${plan}&billing=${billing}`]}>
-      <AuthProvider>
-        <PaymentPage />
-      </AuthProvider>
+      <ContactWidgetProvider>
+        <AuthProvider>
+          <PaymentPage />
+        </AuthProvider>
+      </ContactWidgetProvider>
     </MemoryRouter>
   )
   return { user, ...utils }
@@ -152,9 +155,11 @@ describe('PaymentPage', () => {
     })
     render(
       <MemoryRouter initialEntries={['/payment?plan=growth&billing=monthly']}>
-        <AuthProvider>
-          <PaymentPage />
-        </AuthProvider>
+        <ContactWidgetProvider>
+          <AuthProvider>
+            <PaymentPage />
+          </AuthProvider>
+        </ContactWidgetProvider>
       </MemoryRouter>
     )
     await user.click(await screen.findByRole('tab', { name: 'UPI' }))
