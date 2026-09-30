@@ -34,9 +34,10 @@ describe('Dashboard subscription summary', () => {
     expect(screen.getByText('Paid by credit card')).toBeInTheDocument()
 
     // Scoped to the subscription card; the page footer also links to /orders.
+    // No email in the query: /orders reads the signed-in account instead.
     const card = screen.getByText('Your plan').closest('section')
     const ordersLink = within(card).getByRole('link', { name: /orders & invoices/i })
-    expect(ordersLink.getAttribute('href')).toBe('/orders?email=test%40example.com')
+    expect(ordersLink.getAttribute('href')).toBe('/orders')
     expect(within(card).getByRole('link', { name: 'Upgrade' })).toBeInTheDocument()
   })
 
@@ -62,7 +63,9 @@ describe('Dashboard subscription summary', () => {
     renderDashboard('test@example.com')
 
     const footer = screen.getByRole('contentinfo')
-    expect(within(footer).getByRole('link', { name: 'Dashboard' })).toBeInTheDocument()
+    // Anchored on a Product link: the Account column (which used to hold the
+    // Dashboard link) is hidden in the footer right now.
+    expect(within(footer).getByRole('link', { name: 'Pricing' })).toBeInTheDocument()
     expect(footer.compareDocumentPosition(screen.getByRole('heading', { level: 1 })) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy()
   })
 

@@ -33,15 +33,17 @@
     },
     "footer": {
       "product": "उत्पाद",
+      "sales": "बिक्री",
       "account": "खाता",
       "legal": "कानूनी",
-      "search": "CyraCode खोजें",
+      "faqs": "अक्सर पूछे जाने वाले प्रश्न",
+      "sitemap": "साइटमैप",
+      "search": "अपने CyraCodes खोजें",
       "dashboard": "डैशबोर्ड",
       "manage": "CyraCodes प्रबंधित करें",
       "orders": "ऑर्डर और इनवॉइस",
       "privacy": "गोपनीयता नीति",
-      "rights_reserved": "सर्वाधिकार सुरक्षित।"
-    ,
+      "rights_reserved": "सर्वाधिकार सुरक्षित।",
       "follow_us": "हमें फ़ॉलो करें",
       "social_x": "X",
       "social_instagram": "Instagram",
@@ -49,7 +51,9 @@
       "social_youtube": "YouTube",
       "social_facebook": "Facebook",
       "support": "सहायता",
-      "contact_us": "हमसे संपर्क करें"},
+      "queries": "किसी भी प्रश्न के लिए, हमें ईमेल लिखें:",
+      "contact_us": "हमसे संपर्क करें"
+    },
     "contact": {
       "title": "हमसे संपर्क करें",
       "open": "संपर्क फ़ॉर्म खोलें",
@@ -179,7 +183,7 @@
       "your_code": "आपका CyraCode",
       "address_label": "पता",
       "coords_label": "निर्देशांक",
-      "download_qr": "QR को PNG के रूप में डाउनलोड करें",
+      "download_qr": "QR डाउनलोड करें",
       "share_email": "ईमेल",
       "go_dashboard": "डैशबोर्ड पर जाएं",
       "next_profile_title": "प्रोफ़ाइल पूरा करें",
@@ -295,13 +299,20 @@
       "save_failed": "पता अपडेट करने में विफल",
       "pick_hint": "{{name}} संपादित हो रहा है — यदि आवश्यक हो तो मानचित्र पर पिन समायोजित करें",
       "coord_hint": "मानचित्र से स्वतः भरा गया",
+      "search_placeholder": "नाम, पता, शहर या देश से खोजें…",
+      "search_no_results": "आपके कोई सी CyraCode श्रय नहीं मिलता।",
       "type_customized": "कस्टमाइज़्ड",
       "type_auto_generate": "स्वतः उत्पन्न",
       "type_personalized": "वैयक्तिकृत",
       "copy_address": "पता कॉपी करें",
       "copied": "कॉपी हो गया!",
       "address_copied": "पता क्लिपबोर्ड पर कॉपी हो गया।",
-      "copy_failed": "पता कॉपी नहीं हो सका।"
+      "copy_failed": "पता कॉपी नहीं हो सका।",
+      "download_qr": "QR डाउनलोड करें",
+      "copy": "कॉपी",
+      "cyracode_name": "सियाकोड नाम",
+      "details_copied": "सियाकोड का नाम और पता कॉपी प्लेबोर्ड में कॉपी किया गया।",
+      "details_copy_failed": "सियाकोड के विवरण कॉपी नहीं जा सकें।"
     },
     "pricing": {
       "eyebrow": "API मूल्य निर्धारण",
@@ -450,6 +461,7 @@
       "err_fix_fields": "कृपया हाइलाइट किए गए फ़ील्ड सही करें।",
       "err_card_number": "मान्य कार्ड नंबर डालें",
       "err_expiry_format": "MM/YY प्रारूप में डालें",
+      "err_expiry_past": "यह कार्ड समाप्त हो गया है",
       "err_cvv": "कार्ड का CVV डालें",
       "err_bank": "अपना बैंक चुनें",
       "err_upi": "name@bank जैसा UPI ID डालें",
@@ -471,13 +483,13 @@
     },
     "orders": {
       "title": "मेरे ऑर्डर",
-      "subtitle": "अपने सब्सक्रिप्शन और इनवॉइस देखें। चेकआउट के समय इस्तेमाल किया ईमेल डालें।",
+      "subtitle": "आपके साइन-इन खाते की सदस्यताएँ और चालान।",
       "email_label": "ऑर्डर ईमेल",
       "email_placeholder": "you@company.com",
       "lookup": "ऑर्डर देखें",
       "lookup_failed": "आपके ऑर्डर लोड नहीं हो सके। कृपया फिर प्रयास करें।",
       "empty_title": "कोई ऑर्डर नहीं मिला",
-      "empty_body": "उस ईमेल के लिए कोई ऑर्डर नहीं मिला। जांचें या प्लान चुनकर शुरू करें।",
+      "empty_body": "आपके खाते में अभी कोई ऑर्डर नहीं मिला। शुरू करने के लिए एक प्लान चुनें।",
       "browse_plans": "प्लान देखें",
       "active_subscription": "सक्रिय सब्सक्रिप्शन",
       "renews_on": "नवीनीकरण: {{date}}",
@@ -496,7 +508,21 @@
       "method_debit": "डेबिट कार्ड",
       "method_netbanking": "नेट बैंकिंग",
       "method_upi": "UPI",
-      "secure_note": "आपके ऑर्डर इतिहास को केवल डाले गए ईमेल पर दिखाया जाता है।"
+      "secure_note": "आपका ऑर्डर इतिहास आपके खाते के भीतर ही निजी है।"
+    },
+    "faq": {
+      "title": "अक्सर पूछे जाने वाले प्रश्न",
+      "subtitle": "CyraCode में पंजीकरण, प्रबंधन और भुगतान से जुड़े सीधे जवाब।",
+      "categories": {
+        "general": "सामान्य",
+        "registration": "पंजीकरण",
+        "location": "स्थान और पता",
+        "manage": "CyraCode प्रबंधित करें",
+        "account": "खाता और सुरक्षा",
+        "pricing": "प्लान और मूल्य",
+        "payments": "भुगतान",
+        "billing": "सदस्यता और बिलिंग"
+      }
     }
   }
 }

@@ -1,4 +1,4 @@
-"""Public self-serve billing API tests (plans, checkout, lookups, lifecycle)."""
+"""Self-serve billing API tests (plans, public checkout, owner-scoped lookups)."""
 import uuid
 
 
@@ -124,37 +124,84 @@ def test_rejects_invalid_frequency(client):
     assert resp.status_code == 422
 
 
-# ---------- Lookups ----------
+# ---------- Lookups (authenticated + owner-scoped) ----------
 
-def test_list_orders_by_normalized_email(client):
+def _headers_for(client, email="buyer@example.com"):
+    """Register + sign in a customer, returning their Authorization header."""
+    from tests.conftest import auth_headers
+
+    return auth_headers(client, email=email)
+
+
+def test_list_orders_scoped_to_authenticated_account(client):
     create_order(client, email="Buyer@Example.com", plan="developer")
-    resp = client.get("/billing/orders", params={"email": "buyer@example.com"})
+    resp = client.get("/billing/orders", headers=_headers_for(client))
     assert resp.status_code == 200
     orders = resp.json()
+    # Case-normalized lookup still matches the order captured at checkout.
     assert len(orders) == 1
     assert orders[0]["plan_code"] == "developer"
     # Raw keys are never exposed on lookups.
     assert "api_key" not in orders[0]
 
 
-def test_list_orders_empty_for_unknown_email(client):
+def test_list_orders_requires_authentication(client):
     create_order(client)
-    resp = client.get("/billing/orders", params={"email": "nobody@example.com"})
+    resp = client.get("/billing/orders")
+    assert resp.status_code == 401
+
+
+def test_list_orders_empty_for_account_with_no_orders(client):
+    resp = client.get("/billing/orders", headers=_headers_for(client))
+    assert resp.status_code == 200
+    assert resp.json() == []
+
+
+# The original hole: the scope came from an `email` query parameter, so anyone
+# who knew a customer's address could read their whole billing history.
+def test_list_orders_ignores_email_query_parameter(client):
+    create_order(client, email="victim@example.com")
+    resp = client.get(
+        "/billing/orders",
+        params={"email": "victim@example.com"},
+        headers=_headers_for(client, email="attacker@example.com"),
+    )
     assert resp.status_code == 200
     assert resp.json() == []
 
 
 def test_get_order_detail(client):
     created = create_order(client).json()
-    resp = client.get(f"/billing/orders/{created['id']}")
+    resp = client.get(
+        f"/billing/orders/{created['id']}", headers=_headers_for(client)
+    )
     assert resp.status_code == 200
     assert resp.json()["order_no"] == created["order_no"]
     assert "api_key" not in resp.json()
 
 
 def test_get_order_not_found(client):
-    resp = client.get(f"/billing/orders/{uuid.uuid4()}")
+    resp = client.get(
+        f"/billing/orders/{uuid.uuid4()}", headers=_headers_for(client)
+    )
     assert resp.status_code == 404
+
+
+def test_get_order_requires_authentication(client):
+    created = create_order(client).json()
+    resp = client.get(f"/billing/orders/{created['id']}")
+    assert resp.status_code == 401
+
+
+def test_get_another_customers_order_is_indistinguishable_from_missing(client):
+    victim = create_order(client, email="victim@example.com").json()
+    resp = client.get(
+        f"/billing/orders/{victim['id']}",
+        headers=_headers_for(client, email="attacker@example.com"),
+    )
+    # 404, not 403 — the API must not confirm that the order exists.
+    assert resp.status_code == 404
+    assert resp.json()["detail"] == "Order not found."
 
 
 # ---------- Idempotency ----------
@@ -175,31 +222,80 @@ def test_idempotent_replay_returns_same_order(client):
     assert first.json()["api_key"]
     assert second.json()["api_key"] is None
 
-    resp = client.get("/billing/orders", params={"email": "buyer@example.com"})
+    resp = client.get("/billing/orders", headers=_headers_for(client))
     assert len(resp.json()) == 1
 
 
-# ---------- Lifecycle ----------
+# ---------- Lifecycle (authenticated + owner-scoped) ----------
 
 def test_cancel_order(client):
     created = create_order(client).json()
-    resp = client.post(f"/billing/orders/{created['id']}/cancel")
+    headers = _headers_for(client)
+    resp = client.post(f"/billing/orders/{created['id']}/cancel", headers=headers)
     assert resp.status_code == 200
     assert resp.json()["status"] == "cancelled"
     assert resp.json()["auto_renew"] is False
 
-    again = client.post(f"/billing/orders/{created['id']}/cancel")
+    again = client.post(f"/billing/orders/{created['id']}/cancel", headers=headers)
     assert again.status_code == 409
+
+
+def test_cancel_order_requires_authentication(client):
+    created = create_order(client).json()
+    resp = client.post(f"/billing/orders/{created['id']}/cancel")
+    assert resp.status_code == 401
+
+
+# Cancelling used to be unauthenticated, so an order id leaked via the public
+# email lookup was enough to cancel somebody else's subscription.
+def test_cannot_cancel_another_customers_order(client, db):
+    victim = create_order(client, email="victim@example.com").json()
+    resp = client.post(
+        f"/billing/orders/{victim['id']}/cancel",
+        headers=_headers_for(client, email="attacker@example.com"),
+    )
+    assert resp.status_code == 404
+
+    from app.models.models import Order
+
+    assert db.query(Order).filter(Order.id == victim["id"]).one().status == "paid"
 
 
 def test_auto_renew_toggle(client):
     created = create_order(client).json()
-    off = client.patch(f"/billing/orders/{created['id']}/auto-renew", json={"auto_renew": False})
+    headers = _headers_for(client)
+    off = client.patch(
+        f"/billing/orders/{created['id']}/auto-renew",
+        json={"auto_renew": False},
+        headers=headers,
+    )
     assert off.status_code == 200
     assert off.json()["auto_renew"] is False
-    on = client.patch(f"/billing/orders/{created['id']}/auto-renew", json={"auto_renew": True})
+    on = client.patch(
+        f"/billing/orders/{created['id']}/auto-renew",
+        json={"auto_renew": True},
+        headers=headers,
+    )
     assert on.status_code == 200
     assert on.json()["auto_renew"] is True
+
+
+def test_auto_renew_requires_authentication(client):
+    created = create_order(client).json()
+    resp = client.patch(
+        f"/billing/orders/{created['id']}/auto-renew", json={"auto_renew": False}
+    )
+    assert resp.status_code == 401
+
+
+def test_cannot_toggle_auto_renew_on_another_customers_order(client):
+    victim = create_order(client, email="victim@example.com").json()
+    resp = client.patch(
+        f"/billing/orders/{victim['id']}/auto-renew",
+        json={"auto_renew": False},
+        headers=_headers_for(client, email="attacker@example.com"),
+    )
+    assert resp.status_code == 404
 
 
 # ---------- Admin integration ----------

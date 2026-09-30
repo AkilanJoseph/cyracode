@@ -13,10 +13,17 @@ vi.mock('react-hot-toast', () => ({
   Toaster: () => null,
 }))
 
-function renderPage() {
+// The page reads the signed-in account from localStorage via AuthProvider.
+function signIn(email) {
+  localStorage.setItem('cyracode_token', 'test-token')
+  localStorage.setItem('cyracode_user', JSON.stringify({ email, name: 'Test User', role: 'user' }))
+}
+
+function renderPage({ email = 'test@example.com', entry = '/orders' } = {}) {
   const user = userEvent.setup()
+  if (email) signIn(email)
   const utils = render(
-    <MemoryRouter initialEntries={['/orders']}>
+    <MemoryRouter initialEntries={[entry]}>
       <ContactWidgetProvider>
         <AuthProvider>
           <OrdersPage />
@@ -27,15 +34,9 @@ function renderPage() {
   return { user, ...utils }
 }
 
-async function lookupOrders(user, email = 'test@example.com') {
-  await user.type(screen.getByLabelText('Order email'), email)
-  await user.click(screen.getByRole('button', { name: /view orders/i }))
-}
-
 describe('OrdersPage', () => {
-  it('looks up orders by email and shows the active subscription', async () => {
-    const { user } = renderPage()
-    await lookupOrders(user)
+  it('loads orders for the signed-in account on mount', async () => {
+    renderPage()
 
     expect(await screen.findByText('Active subscription')).toBeInTheDocument()
     expect(within(screen.getByTestId('active-subscription')).getByText('Growth')).toBeInTheDocument()
@@ -48,26 +49,54 @@ describe('OrdersPage', () => {
     expect(within(rows[1]).getByText(/CYRA-TEST02/)).toBeInTheDocument()
   })
 
-  it('shows an empty state for an email with no orders', async () => {
-    const { user } = renderPage()
-    await lookupOrders(user, 'nobody@example.com')
+  // The page used to accept a typed email, so anyone who knew an address could
+  // read another customer's orders and invoices. The lookup is now scoped to
+  // the signed-in account and there is no way to point it elsewhere.
+  it('offers no way to look up orders by another email', async () => {
+    renderPage()
+
+    expect(await screen.findByText('Active subscription')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Order email')).not.toBeInTheDocument()
+    expect(screen.queryByPlaceholderText('you@company.com')).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /view orders/i })
+    ).not.toBeInTheDocument()
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+  })
+
+  // /orders?email=... used to prefill the (attacker-supplied) lookup field.
+  // The query string is now ignored entirely.
+  it('ignores an email supplied in the query string', async () => {
+    renderPage({ entry: '/orders?email=nobody%40example.com' })
+
+    // Still the signed-in account's two orders, not the empty result that the
+    // query string address would previously have produced.
+    expect(await screen.findByText('Active subscription')).toBeInTheDocument()
+    expect(screen.getAllByTestId('order-row')).toHaveLength(2)
+    expect(screen.queryByText('No orders found')).not.toBeInTheDocument()
+  })
+
+  it('shows an empty state for an account with no orders', async () => {
+    renderPage({ email: 'nobody@example.com' })
 
     expect(await screen.findByText('No orders found')).toBeInTheDocument()
     const cta = screen.getByRole('link', { name: /browse plans/i })
     expect(cta.getAttribute('href')).toBe('/pricing')
   })
 
-  it('validates the email before looking up', async () => {
-    const { user } = renderPage()
-    await lookupOrders(user, 'not-an-email')
+  // The end-to-end guard: another account's orders exist in the store, but a
+  // signed-in user must never see them.
+  it('does not show orders belonging to a different account', async () => {
+    renderPage({ email: 'attacker@example.com' })
 
-    expect(await screen.findByText('Please enter a valid email address')).toBeInTheDocument()
-    expect(screen.queryByText('Invoices')).not.toBeInTheDocument()
+    expect(await screen.findByText('No orders found')).toBeInTheDocument()
+    expect(screen.queryByText(/CYRA-TEST01/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/CYRA-TEST02/)).not.toBeInTheDocument()
+    expect(screen.queryByText('Active subscription')).not.toBeInTheDocument()
   })
 
   it('toggles auto-renew on a paid order', async () => {
     const { user } = renderPage()
-    await lookupOrders(user)
 
     const checkbox = (await screen.findAllByRole('checkbox'))[0]
     expect(checkbox).toBeChecked()
@@ -79,7 +108,6 @@ describe('OrdersPage', () => {
 
   it('cancels a paid subscription and removes it from active state', async () => {
     const { user } = renderPage()
-    await lookupOrders(user)
 
     await user.click(await screen.findByRole('button', { name: 'Cancel' }))
 
@@ -88,21 +116,5 @@ describe('OrdersPage', () => {
     const row = screen.getAllByTestId('order-row')[0]
     expect(within(row).getByText('cancelled')).toBeInTheDocument()
     expect(within(row).queryByRole('checkbox')).not.toBeInTheDocument()
-  })
-
-  it('prefills the email from the URL query', async () => {
-    render(
-      <MemoryRouter initialEntries={['/orders?email=buyer%40example.com']}>
-        <ContactWidgetProvider>
-          <AuthProvider>
-            <OrdersPage />
-          </AuthProvider>
-        </ContactWidgetProvider>
-      </MemoryRouter>
-    )
-    const user = userEvent.setup()
-    expect(screen.getByLabelText('Order email')).toHaveValue('buyer@example.com')
-    await user.click(screen.getByRole('button', { name: /view orders/i }))
-    expect(await screen.findByText('No orders found')).toBeInTheDocument()
   })
 })

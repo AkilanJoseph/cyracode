@@ -6,10 +6,11 @@ import Header from '../components/common/Header'
 import Footer from '../components/common/Footer'
 import { billing } from '../services/api'
 import { PUBLIC_PLANS } from '../lib/plans'
+import { MARKETING_MAX_WIDTH, MARKETING_PADDING_Y } from '../lib/layout'
 
 const CUSTOMER_SALES_MAILTO = 'mailto:sales@cyracode.com'
 
-// Feature matrix for the comparison table (row id â†’ per-plan value).
+// Feature matrix for the comparison table (row id → per-plan value).
 const COMPARISON_ROWS = [
   'allowance',
   'lookup',
@@ -24,7 +25,7 @@ const planFeatureCoverage = {
   developer: { allowance: '100,000', lookup: 'full', uptime: true, support: 'standard', analytics: false, overage: true },
   growth: { allowance: '1M', lookup: 'full', uptime: true, support: 'priority', analytics: true, overage: true },
   scale: { allowance: '10M', lookup: 'full', uptime: true, support: 'priority', analytics: true, overage: true },
-  enterprise: { allowance: 'âˆž', lookup: 'full', uptime: true, support: 'dedicated', analytics: true, overage: true },
+  enterprise: { allowance: '∞', lookup: 'full', uptime: true, support: 'dedicated', analytics: true, overage: true },
 }
 
 const TICKER = [
@@ -61,9 +62,12 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <Header maxWidth="max-w-7xl" marketingNav />
+      <Header maxWidth={MARKETING_MAX_WIDTH} marketingNav />
 
-      <main id="main-content" className="max-w-7xl mx-auto px-4 py-12 md:py-16">
+      <main
+        id="main-content"
+        className={`${MARKETING_MAX_WIDTH} mx-auto px-4 ${MARKETING_PADDING_Y}`}
+      >
         {/* Hero */}
         <section className="text-center max-w-3xl mx-auto animate-fade-in-up">
           <div className="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-primary-light text-primary text-xs font-semibold uppercase tracking-wide">
@@ -168,7 +172,7 @@ export default function PricingPage() {
                   <div className="flex justify-between">
                     <dt className="text-muted">{t('pricing.overage_label')}</dt>
                     <dd className="font-medium text-ink">
-                      {plan.overage_rate ? `$${plan.overage_rate}/1K` : 'â€”'}
+                      {plan.overage_rate ? `$${plan.overage_rate}/1K` : '—'}
                     </dd>
                   </div>
                 </dl>
@@ -365,7 +369,7 @@ export default function PricingPage() {
           </div>
         </section>
       </main>
-    <Footer maxWidth="max-w-7xl" />
+    <Footer maxWidth={MARKETING_MAX_WIDTH} />
     </div>
   )
 }

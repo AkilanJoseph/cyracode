@@ -10,6 +10,17 @@ import {
 import Button from '../components/common/Button'
 import Header from '../components/common/Header'
 import Footer from '../components/common/Footer'
+import { cyraCodeQrValue } from '../utils/qrcode'
+
+// Shared by the address and coords rows so their labels and values sit on the
+// same edges, and so the action slot exists on both rows. Previously the address
+// row ended in a copy button and the coords row in nothing, and the address was
+// capped at max-w-xs while coords was free to run the full width.
+const DETAIL_ROW_CLASS =
+  'grid grid-cols-[4.5rem_1fr_auto] sm:grid-cols-[6rem_1fr_auto] items-start gap-x-3'
+
+const DETAIL_LABEL_CLASS =
+  'text-xs font-semibold text-muted uppercase tracking-wide pt-0.5'
 
 function Confetti() {
   const colors = ['#069494', '#047878', '#2DD4BF', '#34D399', '#60A5FA', '#A78BFA']
@@ -48,13 +59,14 @@ export default function Confirmation() {
     )
   }
 
-    // AC 4.6: QR encodes an OpenStreetMap URL for proper scanning behavior
-    const qrValue = `https://www.openstreetmap.org/?mlat=${record.latitude}&mlon=${record.longitude}#map=16/${record.latitude}/${record.longitude}`
+  // AC 4.6: QR encodes an OpenStreetMap URL for proper scanning behavior
+  const qrValue = cyraCodeQrValue(record)
 
   const addressLine = [
     record.flat_number,
     record.suite_name,
     record.plot_number,
+    record.floor_unit,
     record.building_name,
     record.street_address,
     record.avenue_name,
@@ -65,6 +77,7 @@ export default function Confirmation() {
     record.city,
     record.district,
     record.state,
+    record.po_box,
     record.postal_code,
     record.country,
   ].filter(Boolean).join(', ')
@@ -146,9 +159,9 @@ export default function Confirmation() {
     <div className="min-h-screen bg-surface">
       <Confetti />
 
-      <Header showBack maxWidth="max-w-2xl" />
+      <Header showBack />
 
-      <div className="max-w-lg mx-auto px-4 py-12 animate-fade-in-up">
+      <div className="max-w-3xl mx-auto px-4 py-12 animate-fade-in-up">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-50 border-4 border-emerald-100 animate-checkmark mb-4">
             <CheckCircle2 className="w-8 h-8 text-emerald-500" strokeWidth={2} />
@@ -172,23 +185,27 @@ export default function Confirmation() {
           </div>
 
           <div className="py-5 border-b border-border space-y-2">
-            <div className="flex gap-3 items-start">
-              <span className="text-xs font-semibold text-muted uppercase tracking-wide w-24 shrink-0 pt-0.5">{t('confirmation.address_label')}</span>
-              <span className="text-sm text-ink leading-relaxed flex-1 break-words max-w-xs">{addressLine}</span>
-              <button
-                type="button"
-                onClick={copyAddress}
-                aria-label={t('confirmation.copy_address')}
-                className="shrink-0 p-1.5 rounded-lg text-muted hover:text-primary hover:bg-primary-light transition-colors"
-              >
-                <Copy className="w-4 h-4" aria-hidden="true" />
-              </button>
+            <div className={DETAIL_ROW_CLASS}>
+              <span className={DETAIL_LABEL_CLASS}>{t('confirmation.address_label')}</span>
+              <span className="text-sm text-ink leading-relaxed break-words">{addressLine}</span>
+              <span className="shrink-0">
+                <button
+                  type="button"
+                  onClick={copyAddress}
+                  aria-label={t('confirmation.copy_address')}
+                  className="p-1.5 rounded-lg text-muted hover:text-primary hover:bg-primary-light transition-colors"
+                >
+                  <Copy className="w-4 h-4" aria-hidden="true" />
+                </button>
+              </span>
             </div>
-            <div className="flex gap-3">
-              <span className="text-xs font-semibold text-muted uppercase tracking-wide w-24 shrink-0 pt-0.5">{t('confirmation.coords_label')}</span>
-              <span className="text-sm font-mono text-muted">
+            <div className={DETAIL_ROW_CLASS}>
+              <span className={DETAIL_LABEL_CLASS}>{t('confirmation.coords_label')}</span>
+              <span className="text-sm font-mono text-muted break-words">
                 {Number(record.latitude).toFixed(6)}, {Number(record.longitude).toFixed(6)}
               </span>
+              {/* Empty action slot so this row keeps the same column widths. */}
+              <span aria-hidden="true" />
             </div>
           </div>
 
@@ -226,7 +243,7 @@ export default function Confirmation() {
           </Link>
         </div>
       </div>
-    <Footer maxWidth="max-w-lg" />
+      <Footer maxWidth="max-w-3xl" />
     </div>
   )
 }

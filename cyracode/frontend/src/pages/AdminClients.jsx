@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
 import {
-  Plus, X, Copy, Check, KeyRound, Power, Trash2, RotateCw, Eye, Search,
+  Plus, X, Copy, Check, KeyRound, Power, Trash2, RotateCw, Pencil, Search,
   CreditCard, CalendarDays, Terminal, Play, Loader2, ShieldCheck,
 } from 'lucide-react'
 import Header from '../components/common/Header'
@@ -15,10 +15,10 @@ import { PlanBadge, SubStatusBadge, MONTH_OPTIONS, formatMoney } from '../compon
 import { admin, clientApi } from '../services/api'
 import { apiErrorMessage } from '../utils/errors'
 
-const LOOKUP_PERMISSION = 'cyracode.lookup'
+export const LOOKUP_PERMISSION = 'cyracode.lookup'
 const PAGE_SIZE = 10
 
-function ApiKeyReveal({ apiKey, label, hint }) {
+export function ApiKeyReveal({ apiKey, label, hint }) {
   const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
   const [testCode, setTestCode] = useState('')
@@ -93,7 +93,7 @@ function ApiKeyReveal({ apiKey, label, hint }) {
   )
 }
 
-function ClientFormModal({ onClose, onSaved }) {
+function ClientFormPanel({ onClose, onSaved }) {
   const { t } = useTranslation()
   const [form, setForm] = useState({ name: '', contact_email: '', grantLookup: true })
   const [errors, setErrors] = useState({})
@@ -126,16 +126,22 @@ function ClientFormModal({ onClose, onSaved }) {
     }
   }
 
+  // Inline on the page, like the detail panel. The form keeps its own narrow
+  // measure inside the full-width card so the inputs don't stretch on desktop.
   return (
-    <div className="fixed inset-0 bg-ink/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full max-h-[90vh] overflow-y-auto shadow-modal">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-bold text-ink">{t('admin.client_add_title')}</h2>
-          <button onClick={onClose} aria-label={t('admin.close')} className="text-muted hover:text-ink">
-            <X className="w-5 h-5" aria-hidden="true" />
-          </button>
-        </div>
+    <section
+      id="client-form"
+      aria-labelledby="client-form-heading"
+      className="rounded-2xl border border-border bg-white p-5 sm:p-6 shadow-card"
+    >
+      <div className="flex items-center justify-between mb-6">
+        <h2 id="client-form-heading" className="text-lg font-bold text-ink">{t('admin.client_add_title')}</h2>
+        <button onClick={onClose} aria-label={t('admin.close')} className="text-muted hover:text-ink shrink-0">
+          <X className="w-5 h-5" aria-hidden="true" />
+        </button>
+      </div>
 
+      <div className="max-w-md">
         {createdKey ? (
           <div className="space-y-4">
             <ApiKeyReveal
@@ -171,11 +177,11 @@ function ClientFormModal({ onClose, onSaved }) {
           </form>
         )}
       </div>
-    </div>
+    </section>
   )
 }
 
-function ClientSubscriptionSection({ client, onChanged, busy, setBusy }) {
+export function ClientSubscriptionSection({ client, onChanged, busy, setBusy }) {
   const { t } = useTranslation()
   const [plans, setPlans] = useState(null)
   const [planCode, setPlanCode] = useState('')
@@ -364,7 +370,10 @@ function ClientSubscriptionSection({ client, onChanged, busy, setBusy }) {
   )
 }
 
-function ClientDetailModal({ client, onClose, onChanged }) {
+// Body of the client detail screen. Rendered by AdminClientDetail rather than by
+// this list page, but lives here so the read-only view and the create form keep
+// sharing one implementation.
+export function ClientDetailPanel({ client, onClose, onChanged, refreshing = false, showClose = true }) {
   const { t } = useTranslation()
   const [busy, setBusy] = useState(false)
   const [rotatedKey, setRotatedKey] = useState('')
@@ -432,20 +441,31 @@ function ClientDetailModal({ client, onClose, onChanged }) {
     }
   }
 
+  // Rendered inline on the page rather than as an overlay: it is a labelled
+  // region of the list screen, not a dialog, so it carries no dialog role and
+  // stays reachable while the rest of the page remains visible.
   return (
-    <div className="fixed inset-0 bg-ink/50 backdrop-blur-sm flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true">
-      <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-modal">
-        <div className="flex items-start justify-between gap-3 mb-5">
-          <div>
-            <h2 className="text-lg font-bold text-ink">{client.name}</h2>
-            <p className="text-xs text-muted mt-0.5">{client.contact_email || '—'}</p>
-          </div>
-          <button onClick={onClose} aria-label={t('admin.close')} className="text-muted hover:text-ink">
+    <section
+      id="client-detail"
+      aria-labelledby="client-detail-heading"
+      aria-busy={refreshing || undefined}
+      className="rounded-2xl border border-border bg-white p-5 sm:p-6 shadow-card"
+    >
+      <div className="flex items-start justify-between gap-3 mb-5">
+        <div className="min-w-0">
+          <h2 id="client-detail-heading" className="text-lg font-bold text-ink break-all">{client.name}</h2>
+          <p className="text-xs text-muted mt-0.5">{client.contact_email || '—'}</p>
+        </div>
+        {/* The dedicated detail screen passes its own back control instead, since a
+            "close" affordance would just be a second, worse-labelled way out. */}
+        {showClose && (
+          <button onClick={onClose} aria-label={t('admin.close')} className="text-muted hover:text-ink shrink-0">
             <X className="w-5 h-5" aria-hidden="true" />
           </button>
-        </div>
+        )}
+      </div>
 
-        <div className="space-y-4">
+      <div className="space-y-4">
           <section className="rounded-2xl border border-border bg-surface/60 p-4">
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${client.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
@@ -534,17 +554,17 @@ function ClientDetailModal({ client, onClose, onChanged }) {
               </Button>
             </div>
           </section>
-        </div>
       </div>
-    </div>
+    </section>
   )
 }
 
 export default function AdminClients() {
   const { t } = useTranslation()
-  const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [searchParams] = useSearchParams()
   const qParam = searchParams.get('q') || ''
-  const clientParam = searchParams.get('client') || ''
 
   const [clients, setClients] = useState([])
   const [loading, setLoading] = useState(true)
@@ -554,7 +574,6 @@ export default function AdminClients() {
   const [planFilter, setPlanFilter] = useState('')
   const [page, setPage] = useState(1)
   const [showCreate, setShowCreate] = useState(false)
-  const [viewClient, setViewClient] = useState(null)
   const [plans, setPlans] = useState([])
 
   useEffect(() => {
@@ -578,17 +597,10 @@ export default function AdminClients() {
     if (planFilter) params.plan = planFilter
     admin
       .listClients(params)
-      .then(({ data }) => {
-        setClients(data)
-        if (clientParam) {
-          const found = data.find((c) => c.id === clientParam)
-          if (found && !viewClient) setViewClient(found)
-        }
-      })
+      .then(({ data }) => setClients(data))
       .catch((err) => toast.error(apiErrorMessage(err, t('admin.client_list_failed'))))
       .finally(() => setLoading(false))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, statusFilter, planFilter, clientParam])
+  }, [debouncedSearch, statusFilter, planFilter, t])
 
   useEffect(() => {
     load()
@@ -600,30 +612,15 @@ export default function AdminClients() {
   }, [clients, page])
   const totalPages = Math.max(1, Math.ceil(clients.length / PAGE_SIZE))
 
-  const exposeDetail = (c) => {
-    setViewClient(c)
-    setSearchParams({ client: c.id }, { replace: true })
-  }
+  // Detail lives on its own screen. The full current URL (search and filters
+  // included) travels along in state so that screen can send the admin back here
+  // exactly where they left, rather than to a reset list.
+  const listUrl = `${location.pathname}${location.search}`
+  const openDetail = (c) => navigate(`/admin/clients/${c.id}`, { state: { from: listUrl } })
 
-  const closeDetail = () => {
-    if (qParam || searchParams.get('client')) {
-      setSearchParams({}, { replace: true })
-    }
-    setViewClient(null)
+  const openCreate = () => {
+    setShowCreate(true)
   }
-
-  const changed = useCallback(() => {
-    load()
-    if (viewClient) {
-      admin
-        .listClients({ q: debouncedSearch || undefined })
-        .then(({ data }) => {
-          const fresh = data.find((c) => c.id === viewClient.id)
-          if (fresh) setViewClient(fresh)
-        })
-        .catch(() => {})
-    }
-  }, [load, debouncedSearch, viewClient])
 
   return (
     <div className="min-h-screen bg-surface">
@@ -636,10 +633,22 @@ export default function AdminClients() {
             <h1 className="text-2xl font-bold text-ink">{t('admin.clients_title')}</h1>
             <p className="text-sm text-muted">{t('admin.client_list_subtitle')}</p>
           </div>
-          <Button onClick={() => setShowCreate(true)}>
+          <Button onClick={openCreate}>
             <Plus className="w-4 h-4" aria-hidden="true" /> {t('admin.client_add')}
           </Button>
         </div>
+
+        {showCreate && (
+          <div className="mb-6">
+            <ClientFormPanel
+              onClose={() => setShowCreate(false)}
+              onSaved={() => {
+                setShowCreate(false)
+                load()
+              }}
+            />
+          </div>
+        )}
 
         <div className="grid sm:grid-cols-4 gap-2 mb-4">
           <div className="relative sm:col-span-2">
@@ -700,7 +709,7 @@ export default function AdminClients() {
                   {paged.map((client) => (
                     <tr key={client.id} className="hover:bg-slate-50">
                       <td className="px-4 py-3">
-                        <button onClick={() => exposeDetail(client)} className="text-left">
+                        <button onClick={() => openDetail(client)} className="text-left">
                           <p className="font-semibold text-ink hover:text-primary">{client.name}</p>
                           <p className="text-xs text-muted">{client.contact_email || '—'}</p>
                         </button>
@@ -733,11 +742,12 @@ export default function AdminClients() {
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1">
                           <button
-                            onClick={() => exposeDetail(client)}
-                            aria-label={`${t('admin.view')} ${client.name}`}
+                            onClick={() => openDetail(client)}
+                            aria-label={`${t('admin.edit')} ${client.name}`}
                             className="p-2 text-muted hover:text-primary hover:bg-primary-light rounded-lg"
                           >
-                            <Eye className="w-4 h-4" aria-hidden="true" />
+                            {/* Leads to the screen where this client's details are edited. */}
+                            <Pencil className="w-4 h-4" aria-hidden="true" />
                           </button>
                         </div>
                       </td>
@@ -764,20 +774,6 @@ export default function AdminClients() {
           </>
         )}
       </main>
-
-      {showCreate && (
-        <ClientFormModal
-          onClose={() => setShowCreate(false)}
-          onSaved={() => {
-            setShowCreate(false)
-            load()
-          }}
-        />
-      )}
-
-      {viewClient && (
-        <ClientDetailModal client={viewClient} onClose={closeDetail} onChanged={changed} />
-      )}
 
     <Footer variant="minimal" maxWidth="max-w-5xl" />
     </div>

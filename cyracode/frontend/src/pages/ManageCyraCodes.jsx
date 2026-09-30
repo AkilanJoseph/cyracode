@@ -1,16 +1,19 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { MapPin, Loader2, Eye, Pencil, Trash2, X, AlertTriangle, CheckCircle2, Sparkles, Zap, Copy, Check } from 'lucide-react'
+import { MapPin, Loader2, Eye, Pencil, Trash2, X, AlertTriangle, CheckCircle2, Sparkles, Zap, Copy, Check, Download, Search } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { QRCodeCanvas } from 'qrcode.react'
 import Button from '../components/common/Button'
 import Input from '../components/common/Input'
 import MapPicker from '../components/MapPicker'
 import Header from '../components/common/Header'
 import Footer from '../components/common/Footer'
+import { APP_MAX_WIDTH, APP_PADDING_Y } from '../lib/layout'
 import { AddressStep, validateAddress } from './RegisterTraditional'
 import { registration } from '../services/api'
 import { apiErrorMessage } from '../utils/errors'
+import { cyraCodeQrValue } from '../utils/qrcode'
 
 // Standard CyraCode address display order (most specific → broadest).
 export const ADDRESS_FIELD_ORDER = [
@@ -68,6 +71,18 @@ export async function resolveStateIso(countryCode, stateName) {
   }
 }
 
+// Whether a code matches the search box. Matches the name and the address as it
+// is displayed on the tile, so a query finds a code by city or country without
+// the user having to know its exact name. Scoped to this user's own codes —
+// global lookup across every CyraCode already lives on /search.
+export function matchesQuery(rec, query) {
+  const q = String(query ?? '').trim().toLowerCase()
+  if (!q) return true
+  return [rec?.code_name, formatAddress(rec)].some(
+    (value) => value && String(value).toLowerCase().includes(q)
+  )
+}
+
 export default function ManageCyraCodes() {
   const navigate = useNavigate()
   const { t } = useTranslation()
@@ -75,10 +90,13 @@ export default function ManageCyraCodes() {
   // Tile list
   const [codes, setCodes] = useState([])
   const [loadingCodes, setLoadingCodes] = useState(true)
+  const [query, setQuery] = useState('')
 
   // View / remove modals
   const [viewing, setViewing] = useState(null)
   const [copied, setCopied] = useState(false)
+  const [copiedId, setCopiedId] = useState(null)
+  const qrRef = useRef(null)
   const [removing, setRemoving] = useState(null)
   const [removingId, setRemovingId] = useState(null)
 
@@ -121,6 +139,10 @@ export default function ManageCyraCodes() {
   useEffect(() => {
     loadCodes()
   }, [loadCodes])
+
+  // Derived per render from the already-loaded list, so typing filters instantly
+  // and never re-queries or resets the tiles.
+  const visibleCodes = codes.filter((rec) => matchesQuery(rec, query))
 
   const startEdit = (rec) => {
     const prefill = { ...address }
@@ -223,8 +245,21 @@ export default function ManageCyraCodes() {
   }
 
   // Copy the formatted address using the Clipboard API, falling back to a
+  // Prefer WebP for a smaller file; fall back to PNG where toDataURL does not
+  // support it. Mirrors the confirmation screen's download.
+  const downloadQR = () => {
+    const canvas = qrRef.current?.querySelector('canvas')
+    if (!canvas) return
+    const supportsWebP = canvas.toDataURL('image/webp').startsWith('data:image/webp')
+    const [mime, ext] = supportsWebP ? ['image/webp', 'webp'] : ['image/png', 'png']
+    const a = document.createElement('a')
+    a.href = canvas.toDataURL(mime)
+    a.download = `CyraCode_${viewing.code_name}_${Date.now()}.${ext}`
+    a.click()
+  }
+
   // hidden textarea + execCommand for browsers/contexts without clipboard access.
-  const copyAddress = async (text) => {
+  const writeClipboard = async (text) => {
     const fallback = () => {
       try {
         const ta = document.createElement('textarea')
@@ -244,24 +279,42 @@ export default function ManageCyraCodes() {
       }
     }
 
-    let ok = false
     try {
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(text)
-        ok = true
-      } else {
-        ok = fallback()
+        return true
       }
+      return fallback()
     } catch {
-      ok = fallback()
+      return fallback()
     }
+  }
 
-    if (ok) {
+  const copyAddress = async (text) => {
+    if (await writeClipboard(text)) {
       setCopied(true)
       toast.success(t('edit.address_copied'))
       setTimeout(() => setCopied(false), 2000)
     } else {
       toast.error(t('edit.copy_failed'))
+    }
+  }
+
+  // Tile copy: name and display address together, each on its own labelled line
+  // so the pasted text stays readable outside the app.
+  const copyCodeDetails = async (rec) => {
+    const text = [
+      `${t('edit.cyracode_name')}: ${rec.code_name}`,
+      `${t('edit.address')}: ${formatAddress(rec)}`,
+    ].join('\n')
+
+    if (await writeClipboard(text)) {
+      setCopiedId(rec.id)
+      toast.success(t('edit.details_copied'))
+      // Only clear if the user has not started copying a different tile.
+      setTimeout(() => setCopiedId((cur) => (cur === rec.id ? null : cur)), 2000)
+    } else {
+      toast.error(t('edit.details_copy_failed'))
     }
   }
 
@@ -296,7 +349,9 @@ export default function ManageCyraCodes() {
           <span>{t('edit.name_immutable')}</span>
         </div>
       )}
-      {editing && step === 2 && (
+      {/* The pin is adjusted on the first screen, so the hint belongs above the
+          map rather than on the address form. */}
+      {editing && step === 1 && (
         <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-xl p-3 text-sm font-medium">
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           {t('edit.pick_hint', { name: editing.code_name })}
@@ -310,7 +365,7 @@ export default function ManageCyraCodes() {
             onLocationSelect={(lat, lng) => setCoords({ lat, lng })}
             height="380px"
           />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input label="Latitude" value={coords ? coords.lat.toFixed(6) : ''} placeholder="Select location on map" disabled helperText={t('edit.coord_hint')} />
             <Input label="Longitude" value={coords ? coords.lng.toFixed(6) : ''} placeholder="Select location on map" disabled helperText={t('edit.coord_hint')} />
           </div>
@@ -347,14 +402,22 @@ export default function ManageCyraCodes() {
       <p className="text-xs font-mono text-muted/70">
         {Number(rec.latitude).toFixed(6)}, {Number(rec.longitude).toFixed(6)}
       </p>
-      <div className="flex gap-2 mt-auto pt-1">
-        <Button variant="secondary" size="sm" className="flex-1" onClick={() => openView(rec)}>
+      {/* Same two-row layout at every width: three equal controls on top, Remove
+          spanning the full width below, which keeps the destructive action apart. */}
+      <div className="grid grid-cols-3 gap-2 mt-auto pt-1">
+        <Button variant="secondary" size="sm" onClick={() => copyCodeDetails(rec)}>
+          {copiedId === rec.id
+            ? <Check className="w-3.5 h-3.5 text-emerald-600" aria-hidden="true" />
+            : <Copy className="w-3.5 h-3.5" aria-hidden="true" />}
+          {t('edit.copy')}
+        </Button>
+        <Button variant="secondary" size="sm" onClick={() => openView(rec)}>
           <Eye className="w-3.5 h-3.5" aria-hidden="true" /> {t('edit.view')}
         </Button>
-        <Button variant="secondary" size="sm" className="flex-1" onClick={() => startEdit(rec)}>
+        <Button variant="secondary" size="sm" onClick={() => startEdit(rec)}>
           <Pencil className="w-3.5 h-3.5" aria-hidden="true" /> {t('edit.edit')}
         </Button>
-        <Button variant="danger" size="sm" className="flex-1" onClick={() => handleRemoveClick(rec)}>
+        <Button variant="danger" size="sm" className="col-span-3" onClick={() => handleRemoveClick(rec)}>
           <Trash2 className="w-3.5 h-3.5" aria-hidden="true" /> {t('edit.remove')}
         </Button>
       </div>
@@ -385,9 +448,9 @@ export default function ManageCyraCodes() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <Header showBack breadcrumb={t('edit.title')} />
+      <Header showBack breadcrumb={t('edit.title')} maxWidth={APP_MAX_WIDTH} />
 
-      <div id="main-content" className="max-w-3xl mx-auto px-4 py-10">
+      <div id="main-content" className={`${APP_MAX_WIDTH} mx-auto px-4 ${APP_PADDING_Y}`}>
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-ink">{t('edit.title')}</h1>
           <p className="text-muted mt-1">{t('edit.subtitle')}</p>
@@ -415,8 +478,37 @@ export default function ManageCyraCodes() {
             </div>
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 gap-4">
-            {codes.map(renderTile)}
+          <div className="space-y-4">
+            {/* Only shown once the user has at least one code — with none, the
+                empty state above already prompts them to register. */}
+            <div className="relative">
+              <Search
+                className="w-4 h-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2"
+                aria-hidden="true"
+              />
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t('edit.search_placeholder')}
+                aria-label={t('edit.search_placeholder')}
+                data-testid="manage-search"
+                className="w-full pl-10 pr-3 py-2.5 text-sm border border-border rounded-xl
+                  bg-white outline-none transition-all
+                  focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              />
+            </div>
+
+            {visibleCodes.length === 0 ? (
+              <div className="bg-white rounded-3xl border border-border shadow-card py-12 px-4 text-center">
+                <Search className="w-10 h-10 text-muted/40 mx-auto mb-3" aria-hidden="true" />
+                <p className="text-muted">{t('edit.search_no_results')}</p>
+              </div>
+            ) : (
+              <div className="grid sm:grid-cols-2 gap-4">
+                {visibleCodes.map(renderTile)}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -436,23 +528,38 @@ export default function ManageCyraCodes() {
             </div>
 
             <div className="p-5 max-h-[65vh] overflow-y-auto space-y-4">
+              <div ref={qrRef} data-testid="view-qr" className="flex justify-center">
+                {/* Same encoder and payload as the confirmation screen, so a code
+                    scans identically wherever it is shown. */}
+                <div className="p-4 bg-white rounded-2xl border border-border shadow-sm">
+                  <QRCodeCanvas value={cyraCodeQrValue(viewing)} size={160} fgColor="#069494" level="H" />
+                </div>
+              </div>
+              <div data-testid="view-qr-download">
+                <Button variant="secondary" className="w-full" size="sm" onClick={downloadQR}>
+                  <Download className="w-4 h-4" aria-hidden="true" /> {t('edit.download_qr')}
+                </Button>
+              </div>
               <div>
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <p className="text-xs font-semibold text-muted uppercase tracking-wide">{t('edit.address')}</p>
+                  {/* Icon only; the accessible name carries the action, and the
+                      copy is confirmed by a toast. */}
                   <button
                     type="button"
                     onClick={() => copyAddress(formatAddress(viewing))}
                     aria-label={t('edit.copy_address')}
+                    title={t('edit.copy_address')}
                     data-testid="copy-address"
-                    className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline shrink-0"
+                    className="p-1 -mr-1 rounded-lg text-muted hover:text-primary
+                      hover:bg-primary-light transition-colors shrink-0"
                   >
-                    {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" aria-hidden="true" /> : <Copy className="w-3.5 h-3.5" aria-hidden="true" />}
-                    {copied ? t('edit.copied') : t('edit.copy_address')}
+                    {copied ? <Check className="w-4 h-4 text-emerald-600" aria-hidden="true" /> : <Copy className="w-4 h-4" aria-hidden="true" />}
                   </button>
                 </div>
                 <p data-testid="view-address" className="text-sm text-ink leading-relaxed break-words">{formatAddress(viewing)}</p>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-1">{t('edit.coords')}</p>
                   <p className="text-sm font-mono text-muted break-all">
@@ -506,7 +613,7 @@ export default function ManageCyraCodes() {
         </div>
       )}
 
-    <Footer maxWidth="max-w-3xl" />
+    <Footer maxWidth={APP_MAX_WIDTH} />
     </div>
   )
 }

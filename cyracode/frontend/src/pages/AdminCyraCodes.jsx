@@ -378,7 +378,9 @@ export default function AdminCyraCodes() {
           <span>{t('edit.name_immutable')}</span>
         </div>
       )}
-      {editing && step === 2 && (
+      {/* The pin is adjusted on the first screen, so the hint belongs above the
+          map rather than on the address form — matching ManageCyraCodes. */}
+      {editing && step === 1 && (
         <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-xl p-3 text-sm font-medium">
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           {t('edit.pick_hint', { name: editing.code_name })}

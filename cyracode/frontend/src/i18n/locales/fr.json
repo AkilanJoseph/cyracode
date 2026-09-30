@@ -33,15 +33,17 @@
     },
     "footer": {
       "product": "Produit",
+      "sales": "Ventes",
       "account": "Compte",
       "legal": "Mentions légales",
-      "search": "Rechercher un CyraCode",
+      "faqs": "FAQ",
+      "sitemap": "Plan du site",
+      "search": "Rechercher vos CyraCodes",
       "dashboard": "Tableau de bord",
       "manage": "Gérer les CyraCodes",
       "orders": "Commandes et factures",
       "privacy": "Politique de confidentialité",
-      "rights_reserved": "Tous droits réservés."
-    ,
+      "rights_reserved": "Tous droits réservés.",
       "follow_us": "Nous suivre",
       "social_x": "X",
       "social_instagram": "Instagram",
@@ -49,7 +51,9 @@
       "social_youtube": "YouTube",
       "social_facebook": "Facebook",
       "support": "Support",
-      "contact_us": "Nous contacter"},
+      "queries": "Pour toute question, écrivez-nous à:",
+      "contact_us": "Nous contacter"
+    },
     "contact": {
       "title": "Nous contacter",
       "open": "Ouvrir le formulaire de contact",
@@ -179,7 +183,7 @@
       "your_code": "Votre CyraCode",
       "address_label": "Adresse",
       "coords_label": "Coords",
-      "download_qr": "Télécharger QR en PNG",
+      "download_qr": "Télécharger le QR",
       "share_email": "Email",
       "go_dashboard": "Aller au tableau de bord",
       "next_profile_title": "Compléter le profil",
@@ -295,13 +299,20 @@
       "save_failed": "Échec de la mise à jour de l'adresse",
       "pick_hint": "Modification de {{name}} — ajustez le repère sur la carte si nécessaire",
       "coord_hint": "Rempli automatiquement depuis la carte",
+      "search_placeholder": "Rechercher par nom, adresse, ville ou pays…",
+      "search_no_results": "Aucun CyraCode ne correspond à votre recherche.",
       "type_customized": "Personnalisé",
       "type_auto_generate": "Généré automatiquement",
       "type_personalized": "Personnalisé",
       "copy_address": "Copier l'adresse",
       "copied": "Copié !",
       "address_copied": "Adresse copiée dans le presse-papiers.",
-      "copy_failed": "Impossible de copier l'adresse."
+      "copy_failed": "Impossible de copier l'adresse.",
+      "download_qr": "Télécharger le QR",
+      "copy": "Copier",
+      "cyracode_name": "Nom du CyraCode",
+      "details_copied": "Nom et adresse du CyraCode copiés dans le presse-papiers.",
+      "details_copy_failed": "Échec de la copie des détails du CyraCode."
     },
     "pricing": {
       "eyebrow": "Tarifs de l'API",
@@ -450,6 +461,7 @@
       "err_fix_fields": "Veuillez corriger les champs en surbrillance.",
       "err_card_number": "Saisissez un numéro de carte valide",
       "err_expiry_format": "Utilisez MM/AA",
+      "err_expiry_past": "Cette carte a expiré",
       "err_cvv": "Saisissez le CVV de votre carte",
       "err_bank": "Sélectionnez votre banque",
       "err_upi": "Saisissez un identifiant UPI type nom@banque",
@@ -471,13 +483,13 @@
     },
     "orders": {
       "title": "Mes commandes",
-      "subtitle": "Consultez vos abonnements et factures. Saisissez l'e-mail utilisé lors du paiement.",
+      "subtitle": "Vos abonnements et factures du compte avec lequel vous êtes connecté.",
       "email_label": "E-mail de commande",
       "email_placeholder": "vous@entreprise.fr",
       "lookup": "Voir les commandes",
       "lookup_failed": "Impossible de charger vos commandes. Veuillez réessayer.",
       "empty_title": "Aucune commande trouvée",
-      "empty_body": "Aucune commande trouvée pour cet e-mail. Vérifiez l'orthographe ou choisissez une formule.",
+      "empty_body": "Aucune commande n’apparaît encore sur votre compte. Choisissez un forfait pour commencer.",
       "browse_plans": "Voir les formules",
       "active_subscription": "Abonnement actif",
       "renews_on": "Renouvelé le {{date}}",
@@ -496,7 +508,21 @@
       "method_debit": "Carte de débit",
       "method_netbanking": "Virement en ligne",
       "method_upi": "UPI",
-      "secure_note": "Votre historique de commandes n'est visible que pour l'e-mail saisi."
+      "secure_note": "Votre historique de commandes reste privé sur votre compte."
+    },
+    "faq": {
+      "title": "Questions fréquentes",
+      "subtitle": "Des réponses claires sur l'inscription, la gestion et le paiement chez CyraCode.",
+      "categories": {
+        "general": "Général",
+        "registration": "Inscription",
+        "location": "Lieu et adresse",
+        "manage": "Gérer vos CyraCodes",
+        "account": "Compte et sécurité",
+        "pricing": "Forfaits et tarifs",
+        "payments": "Paiements",
+        "billing": "Abonnement et facturation"
+      }
     }
   }
 }

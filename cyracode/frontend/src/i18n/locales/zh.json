@@ -33,15 +33,17 @@
     },
     "footer": {
       "product": "产品",
+      "sales": "销售",
       "account": "账户",
       "legal": "法律",
-      "search": "搜索 CyraCode",
+      "faqs": "常见问题",
+      "sitemap": "网站地图",
+      "search": "搜索我的 CyraCodes",
       "dashboard": "控制台",
       "manage": "管理 CyraCodes",
       "orders": "订单与发票",
       "privacy": "隐私政策",
-      "rights_reserved": "保留所有权利。"
-    ,
+      "rights_reserved": "保留所有权利。",
       "follow_us": "关注我们",
       "social_x": "X",
       "social_instagram": "Instagram",
@@ -49,7 +51,9 @@
       "social_youtube": "YouTube",
       "social_facebook": "Facebook",
       "support": "支持",
-      "contact_us": "联系我们"},
+      "queries": "如有任何疑问，请发送电子邮件至:",
+      "contact_us": "联系我们"
+    },
     "contact": {
       "title": "联系我们",
       "open": "打开联系表单",
@@ -179,7 +183,7 @@
       "your_code": "您的CyraCode",
       "address_label": "地址",
       "coords_label": "坐标",
-      "download_qr": "下载PNG格式QR码",
+      "download_qr": "下载二维码",
       "share_email": "邮件",
       "go_dashboard": "前往仪表板",
       "next_profile_title": "完善个人资料",
@@ -295,13 +299,20 @@
       "save_failed": "地址更新失败",
       "pick_hint": "正在编辑 {{name}} — 如有需要，请调整地图上的图钉",
       "coord_hint": "从地图自动填充",
+      "search_placeholder": "按名称、地址、城市或国家搜索…",
+      "search_no_results": "没有与搜索匹配的 CyraCode。",
       "type_customized": "自定义",
       "type_auto_generate": "自动生成",
       "type_personalized": "个性化定制",
       "copy_address": "复制地址",
       "copied": "已复制！",
       "address_copied": "地址已复制到剪贴板。",
-      "copy_failed": "无法复制地址。"
+      "copy_failed": "无法复制地址。",
+      "download_qr": "下载二维码",
+      "copy": "复制",
+      "cyracode_name": "CyraCode 名称",
+      "details_copied": "已将 CyraCode 名称和地址复制到剪贴板。",
+      "details_copy_failed": "无法复制 CyraCode 详情。"
     },
     "pricing": {
       "eyebrow": "API 价格",
@@ -450,6 +461,7 @@
       "err_fix_fields": "请修正标红的字段。",
       "err_card_number": "请输入有效的卡号",
       "err_expiry_format": "请使用 MM/YY 格式",
+      "err_expiry_past": "此卡已过期",
       "err_cvv": "请输入卡片背面的 CVV",
       "err_bank": "请选择您的银行",
       "err_upi": "请输入类似 name@bank 的 UPI ID",
@@ -471,13 +483,13 @@
     },
     "orders": {
       "title": "我的订单",
-      "subtitle": "查看您的订阅和发票，请输入结账时使用的邮箱。",
+      "subtitle": "您已登录账户的订阅和账单。",
       "email_label": "订单邮箱",
       "email_placeholder": "you@company.com",
       "lookup": "查看订单",
       "lookup_failed": "无法加载您的订单，请重试。",
       "empty_title": "未找到订单",
-      "empty_body": "该邮箱下没有找到任何订单。请检查是否有拼写错误，或选择套餐开始使用。",
+      "empty_body": "您的账户中还没有订单。选择一个套餐即可开始。",
       "browse_plans": "浏览套餐",
       "active_subscription": "有效订阅",
       "renews_on": "续费日期：{{date}}",
@@ -496,7 +508,21 @@
       "method_debit": "借记卡",
       "method_netbanking": "网银",
       "method_upi": "UPI",
-      "secure_note": "您的订单记录仅对您输入的邮箱显示。"
+      "secure_note": "您的订单历史仅在自己的账户内可见。"
+    },
+    "faq": {
+      "title": "常见问题",
+      "subtitle": "关于 CyraCode 注册、管理与付费的简明解答。",
+      "categories": {
+        "general": "常见问题",
+        "registration": "注册",
+        "location": "位置和地址",
+        "manage": "管理 CyraCode",
+        "account": "账户与安全",
+        "pricing": "套餐和价格",
+        "payments": "支付方式",
+        "billing": "订阅与账单"
+      }
     }
   }
 }

@@ -33,15 +33,17 @@
     },
     "footer": {
       "product": "プロダクト",
+      "sales": "セールス",
       "account": "アカウント",
       "legal": "法務",
-      "search": "CyraCode を検索",
+      "faqs": "よくある質問",
+      "sitemap": "サイトマップ",
+      "search": "自分の CyraCode を検索",
       "dashboard": "ダッシュボード",
       "manage": "CyraCodes の管理",
       "orders": "注文と請求書",
       "privacy": "プライバシーポリシー",
-      "rights_reserved": "無断転載を禁じます。"
-    ,
+      "rights_reserved": "無断転載を禁じます。",
       "follow_us": "フォローする",
       "social_x": "X",
       "social_instagram": "Instagram",
@@ -49,7 +51,9 @@
       "social_youtube": "YouTube",
       "social_facebook": "Facebook",
       "support": "サポート",
-      "contact_us": "お問い合わせ"},
+      "queries": "ご不明な点がございましたら、メールでお問い合わせください:",
+      "contact_us": "お問い合わせ"
+    },
     "contact": {
       "title": "お問い合わせ",
       "open": "お問い合わせフォームを開く",
@@ -179,7 +183,7 @@
       "your_code": "あなたのCyraCode",
       "address_label": "住所",
       "coords_label": "座標",
-      "download_qr": "QRをPNGでダウンロード",
+      "download_qr": "QRをダウンロード",
       "share_email": "メール",
       "go_dashboard": "ダッシュボードへ",
       "next_profile_title": "プロフィールを完成",
@@ -295,13 +299,20 @@
       "save_failed": "住所の更新に失敗しました",
       "pick_hint": "{{name}}を編集中 — 必要に応じて地図のピンを調整してください",
       "coord_hint": "地図から自動入力",
+      "search_placeholder": "名前・住所・城・国で検索…",
+      "search_no_results": "検索に一致する CyraCode はありません。",
       "type_customized": "カスタム",
       "type_auto_generate": "自動生成",
       "type_personalized": "パーソナライズ",
       "copy_address": "住所をコピー",
       "copied": "コピーしました！",
       "address_copied": "住所をクリップボードにコピーしました。",
-      "copy_failed": "住所をコピーできませんでした。"
+      "copy_failed": "住所をコピーできませんでした。",
+      "download_qr": "QRをダウンロード",
+      "copy": "コピー",
+      "cyracode_name": "CyraCode 名前",
+      "details_copied": "CyraCode の名前と住所をクリップボードにコピーしました。",
+      "details_copy_failed": "CyraCode の詳細をコピーできませんでした。"
     },
     "pricing": {
       "eyebrow": "API 料金",
@@ -450,6 +461,7 @@
       "err_fix_fields": "ハイライトされた項目を修正してください。",
       "err_card_number": "有効なカード番号を入力してください",
       "err_expiry_format": "MM/YY 形式で入力",
+      "err_expiry_past": "このカードは期限切れです",
       "err_cvv": "カードの CVV を入力してください",
       "err_bank": "銀行を選択してください",
       "err_upi": "name@bank 形式の UPI ID を入力",
@@ -471,13 +483,13 @@
     },
     "orders": {
       "title": "注文履歴",
-      "subtitle": "ご契約と請求書を確認できます。ご購入時のメールアドレスを入力してください。",
+      "subtitle": "サインイン中のアカウントのサブスクリプションと請求書。",
       "email_label": "注文メール",
       "email_placeholder": "you@company.com",
       "lookup": "注文を表示",
       "lookup_failed": "注文情報を読み込めませんでした。もう一度お試しください。",
       "empty_title": "注文が見つかりません",
-      "empty_body": "そのメールアドレスでは注文が見つかりませんでした。入力ミスをご確認のうえ、プランをお選びください。",
+      "empty_body": "アカウントにはまだ注文がありません。プランを選んで始めましょう。",
       "browse_plans": "プランを見る",
       "active_subscription": "有効な契約",
       "renews_on": "更新日：{{date}}",
@@ -496,7 +508,21 @@
       "method_debit": "デビットカード",
       "method_netbanking": "ネットバンキング",
       "method_upi": "UPI",
-      "secure_note": "注文履歴は入力されたメールアドレスにのみ表示されます。"
+      "secure_note": "ご注文履歴はアカウント内だけに表示されます。"
+    },
+    "faq": {
+      "title": "よくある質問",
+      "subtitle": "CyraCode の登録・管理・支払いについて、明確な答えをまとめました。",
+      "categories": {
+        "general": "一般的な質問",
+        "registration": "登録について",
+        "location": "位置と住所",
+        "manage": "CyraCode の管理",
+        "account": "アカウントとセキュリティ",
+        "pricing": "プランと料金",
+        "payments": "お支払い方法",
+        "billing": "サブスクリプションと請求"
+      }
     }
   }
 }

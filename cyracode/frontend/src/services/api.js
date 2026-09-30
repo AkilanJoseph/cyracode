@@ -129,7 +129,9 @@ export const billing = {
         ? { 'X-Idempotency-Key': checkpointId }
         : undefined,
     }),
-  listOrders: (email) => api.get('/billing/orders', { params: { email } }),
+  // Order reads/writes are scoped to the signed-in account by the backend;
+  // the auth interceptor above attaches the token. No email parameter.
+  listOrders: () => api.get('/billing/orders'),
   getOrder: (id) => api.get(`/billing/orders/${id}`),
   cancelOrder: (id) => api.post(`/billing/orders/${id}/cancel`),
   setAutoRenew: (id, autoRenew) =>

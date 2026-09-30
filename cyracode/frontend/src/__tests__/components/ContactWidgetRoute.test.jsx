@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import ContactWidgetRoute from '../../components/common/ContactWidgetRoute'
@@ -51,7 +51,13 @@ describe('ContactWidgetRoute', () => {
 
     expect(screen.queryByTestId('contact-widget')).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: 'Contact us' }))
+    // Scoped to the footer: the floating launcher is also named "Contact us"
+    // (the launcher hides its label with display:none, so its accessible name
+    // comes from aria-label), and both controls open the same panel.
+    const footerButton = within(
+      document.querySelector('footer')
+    ).getByRole('button', { name: 'Contact us' })
+    await user.click(footerButton)
 
     expect(screen.getByTestId('contact-widget')).toBeInTheDocument()
     expect(screen.getByTestId('contact-launcher')).toHaveAttribute('aria-expanded', 'true')

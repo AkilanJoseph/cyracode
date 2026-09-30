@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
 import {
-  CreditCard, CalendarClock, TrendingUp, Download, ChevronDown, X, ExternalLink,
+  CreditCard, CalendarClock, TrendingUp, Download, X, Ban, Pencil,
 } from 'lucide-react'
 import Header from '../components/common/Header'
 import Footer from '../components/common/Footer'
@@ -14,45 +14,6 @@ import { admin } from '../services/api'
 import { apiErrorMessage } from '../utils/errors'
 
 const PAGE_SIZE = 10
-
-function ActionMenu({ onView, onRenew, onChangePlan, onCancel, disabled }) {
-  const [open, setOpen] = useState(false)
-  const { t } = useTranslation()
-
-  const item = 'px-3 py-2 text-sm hover:bg-slate-50 w-full text-left flex items-center gap-2'
-
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        disabled={disabled}
-        aria-label={t('admin.subs_actions')}
-        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-ink bg-white border border-border rounded-lg hover:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
-      >
-        {t('admin.subs_actions')} <ChevronDown className="w-3 h-3" aria-hidden="true" />
-      </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} aria-hidden="true" />
-          <div className="absolute right-0 mt-1 w-44 bg-white border border-border rounded-xl shadow-card-hover z-20 py-1 overflow-hidden">
-            <button className={item} onClick={() => { setOpen(false); onView(); }}>
-              <ExternalLink className="w-4 h-4 text-muted" aria-hidden="true" /> {t('admin.subs_view_client')}
-            </button>
-            <button className={item} onClick={() => { setOpen(false); onRenew(); }}>
-              <CalendarClock className="w-4 h-4 text-muted" aria-hidden="true" /> {t('admin.subs_renew')}
-            </button>
-            <button className={item} onClick={() => { setOpen(false); onChangePlan(); }}>
-              <CreditCard className="w-4 h-4 text-muted" aria-hidden="true" /> {t('admin.subs_change_plan')}
-            </button>
-            <button className={`${item} text-red-600 hover:bg-red-50`} onClick={() => { setOpen(false); onCancel(); }}>
-              {t('admin.subs_cancel')}
-            </button>
-          </div>
-        </>
-      )}
-    </div>
-  )
-}
 
 function SubscriptionModal({ mode, subscription, onClose, onSaved }) {
   const { t } = useTranslation()
@@ -146,6 +107,7 @@ function SubscriptionModal({ mode, subscription, onClose, onSaved }) {
 export default function AdminSubscriptions() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const location = useLocation()
   const [items, setItems] = useState([])
   const [total, setTotal] = useState(0)
   const [summary, setSummary] = useState(null)
@@ -179,6 +141,10 @@ export default function AdminSubscriptions() {
   }, [statusFilter])
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+
+  // Row actions stay locked while a save is running or a dialog is up, which is
+  // what the old dropdown trigger enforced for the whole set at once.
+  const actionsLocked = busy || !!modal || !!cancelTarget
 
   const summaryCards = summary
     ? [
@@ -245,7 +211,12 @@ export default function AdminSubscriptions() {
     }
   }
 
-  const goToClient = (s) => navigate(`/admin/clients?client=${s.client_id}`)
+  // Sends the admin to the client detail screen, carrying this screen's own URL
+  // so the back control there returns to this list rather than the clients one.
+  const goToClient = (s) =>
+    navigate(`/admin/clients/${s.client_id}`, {
+      state: { from: `${location.pathname}${location.search}` },
+    })
 
   return (
     <div className="min-h-screen bg-surface">
@@ -323,14 +294,43 @@ export default function AdminSubscriptions() {
                       <td className="px-4 py-3 text-muted hidden lg:table-cell">{new Date(s.end_date).toLocaleDateString()}</td>
                       <td className="px-4 py-3"><SubStatusBadge status={s.status} /></td>
                       <td className="px-4 py-3">
-                        <div className="flex justify-end">
-                          <ActionMenu
-                            disabled={!!modal}
-                            onView={() => goToClient(s)}
-                            onRenew={() => setModal({ mode: 'renew', subscription: s })}
-                            onChangePlan={() => setModal({ mode: 'change', subscription: s })}
-                            onCancel={() => setCancelTarget(s)}
-                          />
+                        {/* Same single-row icon layout as the CyraCodes table, so the
+                            four actions are visible per row instead of behind a menu. */}
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => goToClient(s)}
+                            aria-label={`${t('admin.edit')} ${s.client_name}`}
+                            className="p-2 text-muted hover:text-ink hover:bg-slate-100 rounded-lg disabled:opacity-50"
+                            disabled={actionsLocked}
+                          >
+                            {/* Opens the client screen where its details are edited, so it
+                                carries the same pencil and label as the clients table. */}
+                            <Pencil className="w-4 h-4" aria-hidden="true" />
+                          </button>
+                          <button
+                            onClick={() => setModal({ mode: 'renew', subscription: s })}
+                            aria-label={`${t('admin.subs_renew')} ${s.client_name}`}
+                            className="p-2 text-muted hover:text-ink hover:bg-slate-100 rounded-lg disabled:opacity-50"
+                            disabled={actionsLocked}
+                          >
+                            <CalendarClock className="w-4 h-4" aria-hidden="true" />
+                          </button>
+                          <button
+                            onClick={() => setModal({ mode: 'change', subscription: s })}
+                            aria-label={`${t('admin.subs_change_plan')} ${s.client_name}`}
+                            className="p-2 text-muted hover:text-ink hover:bg-slate-100 rounded-lg disabled:opacity-50"
+                            disabled={actionsLocked}
+                          >
+                            <CreditCard className="w-4 h-4" aria-hidden="true" />
+                          </button>
+                          <button
+                            onClick={() => setCancelTarget(s)}
+                            aria-label={`${t('admin.subs_cancel')} ${s.client_name}`}
+                            className="p-2 text-muted hover:text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-50"
+                            disabled={actionsLocked}
+                          >
+                            <Ban className="w-4 h-4" aria-hidden="true" />
+                          </button>
                         </div>
                       </td>
                     </tr>

@@ -52,6 +52,38 @@ describe('ContactWidget', () => {
     expect(screen.getByTestId('contact-launcher')).toBeInTheDocument()
   })
 
+  // The wide pill sat over page content. It now collapses to the icon and only
+  // grows on hover, so the label must not be visible by default.
+  it('collapses the launcher to the icon and reveals the label on hover', async () => {
+    const user = open()
+    const launcher = screen.getByTestId('contact-launcher')
+
+    const label = launcher.querySelector('span')
+    expect(label).toHaveTextContent('Contact us')
+    expect(label).toHaveClass('hidden')
+    expect(label).toHaveClass('hoverable:group-hover:inline')
+    expect(label).toHaveClass('group-focus-visible:inline')
+    // The old always-on label from `sm` upwards is gone.
+    expect(label).not.toHaveClass('sm:inline')
+    // Collapsed geometry: a 44px circle, not a padded pill.
+    expect(launcher).toHaveClass('p-3')
+    expect(launcher).not.toHaveClass('px-4')
+    expect(launcher).toHaveClass('hoverable:hover:px-4')
+  })
+
+  // The label span is display:none, so it leaves the accessibility tree and the
+  // name must come from aria-label — which has to match the visible text.
+  it('keeps the accessible name identical to the visible label in both states', async () => {
+    const user = open()
+    const launcher = screen.getByTestId('contact-launcher')
+
+    expect(launcher).toHaveAccessibleName('Contact us')
+
+    await user.click(launcher)
+    expect(launcher).toHaveAccessibleName('Close')
+    expect(launcher.querySelector('span')).toHaveTextContent('Close')
+  })
+
   it('opens a panel with all four fields', async () => {
     const user = open()
     await user.click(screen.getByTestId('contact-launcher'))

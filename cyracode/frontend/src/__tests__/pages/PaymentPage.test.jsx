@@ -13,7 +13,11 @@ vi.mock('react-hot-toast', () => ({
   Toaster: () => null,
 }))
 
-function renderPage(plan = 'growth', billing = 'monthly') {
+function renderPage(plan = 'growth', billing = 'monthly', { signedInAs } = {}) {
+  if (signedInAs) {
+    localStorage.setItem('cyracode_token', 'mock-token')
+    localStorage.setItem('cyracode_user', JSON.stringify({ email: signedInAs, role: 'user' }))
+  }
   const user = userEvent.setup()
   const utils = render(
     <MemoryRouter initialEntries={[`/payment?plan=${plan}&billing=${billing}`]}>
@@ -29,11 +33,13 @@ function renderPage(plan = 'growth', billing = 'monthly') {
 
 async function fillInvoice(user) {
   await user.type(screen.getAllByLabelText('Company Name or Name')[0], 'Acme Ltd')
+  // Country first: it decides which state dropdown is offered, and India
+  // requires one, so the label is the "required" variant here.
+  await user.selectOptions(screen.getAllByLabelText('Country')[0], 'IN')
+  await user.selectOptions(screen.getAllByLabelText('State / Province / Region')[0], 'Delhi')
   await user.type(screen.getAllByLabelText('Address 1')[0], '12 MG Road')
   await user.type(screen.getAllByLabelText('City')[0], 'Delhi')
-  await user.type(screen.getAllByLabelText('State')[0], 'Delhi')
   await user.type(screen.getAllByLabelText('Postal / ZIP Code')[0], '110001')
-  await user.selectOptions(screen.getAllByLabelText('Country')[0], 'IN')
 }
 
 async function sameAsInvoice(user) {
@@ -121,7 +127,7 @@ describe('PaymentPage', () => {
 
   it('completes a UPI payment and shows the API key once', async () => {
     vi.stubGlobal('scrollTo', vi.fn())
-    const { user } = renderPage('growth', 'monthly')
+    const { user } = renderPage('growth', 'monthly', { signedInAs: 'buyer@example.com' })
     await user.click(await screen.findByRole('tab', { name: 'UPI' }))
     await user.type(screen.getByLabelText('Email'), 'buyer@example.com')
     await fillInvoice(user)
@@ -137,8 +143,39 @@ describe('PaymentPage', () => {
     expect(screen.getByText('cyra_test_selfserve_key_9999')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Copy API key' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /view my orders/i }).getAttribute('href')).toBe(
-      '/orders?email=buyer%40example.com'
+      '/orders'
     )
+    // The success screen keeps the shared marketing frame; the receipt card
+    // stays a readable column inside it.
+    const frame = document.querySelector('main#main-content')
+    expect(frame.className).toContain('max-w-6xl')
+    expect(frame.firstElementChild.className).toContain('max-w-2xl')
+    expect(screen.getByRole('contentinfo').firstElementChild.className).toContain('max-w-6xl')
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+    toastMock.error.mockClear()
+  }, 10000)
+
+  // /orders is owner-scoped behind login, so a guest checkouter must not be
+  // offered a link that would bounce them to the landing page.
+  it('hides the orders shortcut for a guest checkout', async () => {
+    vi.stubGlobal('scrollTo', vi.fn())
+    const { user } = renderPage('growth', 'monthly')
+    await user.click(await screen.findByRole('tab', { name: 'UPI' }))
+    await user.type(screen.getByLabelText('Email'), 'guest@example.com')
+    await fillInvoice(user)
+    await sameAsInvoice(user)
+    await user.type(screen.getByLabelText('UPI ID'), 'guest@okhdfc')
+    await user.type(screen.getByLabelText('Mobile number'), '9876543210')
+    await user.click(screen.getByRole('button', { name: /pay with upi/i }))
+
+    expect(
+      await screen.findByRole('heading', { name: 'Payment successful!' }, { timeout: 4000 })
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /view my orders/i })).not.toBeInTheDocument()
+    // The guest still has somewhere to go (the footer links /pricing too).
+    const pricingLinks = screen.getAllByRole('link', { name: /pricing/i })
+    expect(pricingLinks.some((l) => l.getAttribute('href') === '/pricing')).toBe(true)
     vi.unstubAllGlobals()
     vi.restoreAllMocks()
     toastMock.error.mockClear()
@@ -272,6 +309,248 @@ describe('PaymentPage', () => {
         const required = (await screen.findAllByText('This field is required'))
         expect(required.length).toBeGreaterThanOrEqual(9)
       })
+    })
+  })
+
+  describe('PaymentPage — live validation', () => {
+    it('does not flag fields before the first submit', async () => {
+      const { user } = renderPage('growth', 'monthly')
+      const email = await screen.findByLabelText('Email')
+
+      // Mid-typing nothing is wrong yet, so no error should appear.
+      await user.type(email, 'not-an-email')
+      expect(email).not.toHaveAttribute('aria-invalid')
+      expect(screen.queryByText('This field is required')).not.toBeInTheDocument()
+    })
+
+    it('clears an error as soon as the field is corrected', async () => {
+      const { user } = renderPage('growth', 'monthly')
+      const email = await screen.findByLabelText('Email')
+      await user.click(screen.getByRole('button', { name: /pay with card/i }))
+
+      await waitFor(() => expect(email).toHaveAttribute('aria-invalid', 'true'))
+
+      await user.type(email, 'buyer@example.com')
+      await waitFor(() => expect(email).not.toHaveAttribute('aria-invalid'))
+    })
+
+    it('keeps only the fields that are still wrong', async () => {
+      const { user } = renderPage('growth', 'monthly')
+      const email = await screen.findByLabelText('Email')
+      await user.type(email, 'buyer@example.com')
+      await fillInvoice(user)
+      await sameAsInvoice(user)
+      await user.type(screen.getByLabelText('Cardholder name'), 'Jane Doe')
+      await user.type(screen.getByLabelText('Card number'), '4111111111111111')
+      await user.type(screen.getByLabelText('Expiry'), '12/30')
+      await user.click(screen.getByRole('button', { name: /pay with card/i }))
+
+      const cvv = screen.getByLabelText('CVV')
+      await waitFor(() => expect(cvv).toHaveAttribute('aria-invalid', 'true'))
+      // Corrected fields stay clean while the untouched CVV keeps its message.
+      expect(screen.getByLabelText('Email')).not.toHaveAttribute('aria-invalid')
+      expect(screen.getByLabelText('Card number')).not.toHaveAttribute('aria-invalid')
+
+      await user.type(cvv, '123')
+      await waitFor(() => expect(cvv).not.toHaveAttribute('aria-invalid'))
+    })
+
+    it('rejects a well-formed expiry date that is already past', async () => {
+      const { user } = renderPage('growth', 'monthly')
+      await user.type(await screen.findByLabelText('Email'), 'buyer@example.com')
+      await fillInvoice(user)
+      await sameAsInvoice(user)
+      await user.type(screen.getByLabelText('Cardholder name'), 'Jane Doe')
+      await user.type(screen.getByLabelText('Card number'), '4111111111111111')
+      // 01/24 is correctly shaped but expired, so format validation alone misses it.
+      await user.type(screen.getByLabelText('Expiry'), '01/24')
+      await user.type(screen.getByLabelText('CVV'), '123')
+      await user.click(screen.getByRole('button', { name: /pay with card/i }))
+
+      expect(await screen.findByText('This card has expired')).toBeInTheDocument()
+    })
+
+    it('announces a bank select error and clears it on change', async () => {
+      const { user } = renderPage('growth', 'monthly')
+      await user.click(await screen.findByRole('tab', { name: /net banking/i }))
+      const bank = screen.getByLabelText('Select your bank')
+      await user.click(screen.getByRole('button', { name: /proceed to net banking/i }))
+
+      await waitFor(() => expect(bank).toHaveAttribute('aria-invalid', 'true'))
+      expect(bank).toHaveAttribute('aria-describedby', 'pay-bank-error')
+      // Other fields are invalid too, so assert this one by id rather than
+      // grabbing the first role="alert" on the page.
+      const bankError = document.getElementById('pay-bank-error')
+      expect(bankError).toHaveAttribute('role', 'alert')
+      expect(bankError).toHaveTextContent('Select your bank')
+
+      await user.selectOptions(bank, 'HDFC Bank')
+      await waitFor(() => expect(bank).not.toHaveAttribute('aria-invalid'))
+    })
+
+    it('moves focus to the first invalid field on submit', async () => {
+      const { user } = renderPage('growth', 'monthly')
+      await user.click(await screen.findByRole('button', { name: /pay with card/i }))
+      await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText('Email')))
+    })
+  })
+
+  describe('PaymentPage — address field order', () => {
+    // Company, then country (with the state/province it governs), then the
+    // street, city and postal lines. Country leads because whether a state is
+    // required depends on it.
+    const ORDER = [
+      'Company Name or Name',
+      'Country',
+      'State',
+      'Address 1',
+      'Address 2 (optional)',
+      'City',
+      'Postal / ZIP Code',
+    ]
+
+    const visibleOrder = (container) =>
+      [...container.querySelectorAll('input, select')]
+        .map((el) => el.labels?.[0]?.textContent?.trim())
+        .filter(Boolean)
+
+    it.each([
+      ['invoice', 'Invoice address'],
+      ['billing', 'Billing address'],
+    ])('orders the %s address fields as specified', async (_ns, heading) => {
+      renderPage('growth', 'monthly')
+      const section = (await screen.findByText(heading)).closest('div.rounded-2xl')
+      expect(visibleOrder(section)).toEqual(ORDER)
+    })
+
+    it('marks state/province required only once a country needs one', async () => {
+      const { user } = renderPage('growth', 'monthly')
+      const invoice = (await screen.findByText('Invoice address')).closest('div.rounded-2xl')
+      const stateLabel = () => invoice.querySelector('#invoice-state').labels[0].textContent.trim()
+
+      expect(stateLabel()).toBe('State')
+      // The United States has states, so the field becomes mandatory.
+      await user.selectOptions(invoice.querySelector('#invoice-country'), 'US')
+      expect(stateLabel()).toBe('State / Province / Region')
+      // The United Kingdom does not, so the requirement is dropped again.
+      await user.selectOptions(invoice.querySelector('#invoice-country'), 'GB')
+      expect(stateLabel()).toBe('State')
+    })
+  })
+
+  describe('PaymentPage — state dropdown', () => {
+    const invoiceSection = async () =>
+      (await screen.findByText('Invoice address')).closest('div.rounded-2xl')
+
+    it('offers the regions of the selected country', async () => {
+      const { user } = renderPage('growth', 'monthly')
+      const invoice = await invoiceSection()
+
+      await user.selectOptions(invoice.querySelector('#invoice-country'), 'IN')
+      const state = invoice.querySelector('#invoice-state')
+      // A dropdown, not a free-text box.
+      expect(state.tagName).toBe('SELECT')
+
+      const options = [...state.options].map((o) => o.value)
+      expect(options[0]).toBe('') // placeholder
+      expect(options).toContain('Delhi')
+      expect(options).toContain('Maharashtra')
+      // Sorted, so the list is scannable.
+      expect([...options.slice(1)]).toEqual([...options.slice(1)].sort((a, b) => a.localeCompare(b, 'en')))
+
+      await user.selectOptions(state, 'Maharashtra')
+      expect(state.value).toBe('Maharashtra')
+    })
+
+    it('swaps the region list when the country changes', async () => {
+      const { user } = renderPage('growth', 'monthly')
+      const invoice = await invoiceSection()
+
+      await user.selectOptions(invoice.querySelector('#invoice-country'), 'US')
+      const us = [...invoice.querySelector('#invoice-state').options].map((o) => o.value)
+      expect(us).toContain('California')
+      expect(us).not.toContain('Delhi')
+
+      await user.selectOptions(invoice.querySelector('#invoice-country'), 'AU')
+      const au = [...invoice.querySelector('#invoice-state').options].map((o) => o.value)
+      expect(au).toContain('Victoria')
+      expect(au).not.toContain('California')
+    })
+
+    it('clears a region that is not valid for the newly selected country', async () => {
+      const { user } = renderPage('growth', 'monthly')
+      const invoice = await invoiceSection()
+
+      await user.selectOptions(invoice.querySelector('#invoice-country'), 'IN')
+      await user.selectOptions(invoice.querySelector('#invoice-state'), 'Delhi')
+      expect(invoice.querySelector('#invoice-state').value).toBe('Delhi')
+
+      // "Delhi" is not a US state, so it must not survive as a hidden value.
+      await user.selectOptions(invoice.querySelector('#invoice-country'), 'US')
+      expect(invoice.querySelector('#invoice-state').value).toBe('')
+    })
+
+    it('keeps a region that is still valid for the new country', async () => {
+      const { user } = renderPage('growth', 'monthly')
+      const invoice = await invoiceSection()
+
+      // Germany has no list on file, so the region is free text and carries
+      // over to another country that also has none.
+      await user.selectOptions(invoice.querySelector('#invoice-country'), 'DE')
+      await user.type(invoice.querySelector('#invoice-state'), 'Bavaria')
+      await user.selectOptions(invoice.querySelector('#invoice-country'), 'FR')
+      expect(invoice.querySelector('#invoice-state')).toHaveValue('Bavaria')
+    })
+
+    it('stays free text for a country with no region list on file', async () => {
+      const { user } = renderPage('growth', 'monthly')
+      const invoice = await invoiceSection()
+
+      // Germany has regions but no list here, so entry must not be blocked.
+      await user.selectOptions(invoice.querySelector('#invoice-country'), 'DE')
+      const state = invoice.querySelector('#invoice-state')
+      expect(state.tagName).toBe('INPUT')
+      await user.type(state, 'Bavaria')
+      expect(state).toHaveValue('Bavaria')
+    })
+
+    it('requires a region once a listed country needs one', async () => {
+      const { user } = renderPage('growth', 'monthly')
+      const invoice = await invoiceSection()
+      await fillInvoice(user)
+
+      // Switching to a country that needs a region drops the incompatible one,
+      // leaving the field empty and mandatory.
+      await user.selectOptions(invoice.querySelector('#invoice-country'), 'US')
+      expect(invoice.querySelector('#invoice-state').value).toBe('')
+
+      await user.click(screen.getByRole('button', { name: /pay with card/i }))
+      const stateError = document.getElementById('invoice-state-error')
+      expect(stateError).toHaveTextContent('This field is required')
+      expect(stateError).toHaveAttribute('role', 'alert')
+      expect(invoice.querySelector('#invoice-state')).toHaveAttribute('aria-invalid', 'true')
+    })
+  })
+
+  describe('PaymentPage — responsive layout', () => {
+    it('puts the order summary above the form on narrow screens only', async () => {
+      renderPage('growth', 'monthly')
+      const main = (await screen.findByRole('heading', { name: 'Checkout' })).closest('main')
+      const section = main.querySelector('section')
+      const aside = main.querySelector('aside')
+
+      // Narrow: the summary leads, so the total is visible before the form.
+      expect(aside).toHaveClass('order-first')
+      // Wide: order flips back so the form is on the left, as before.
+      expect(aside).toHaveClass('lg:order-last')
+      expect(section).toHaveClass('lg:order-first')
+      // Pinned on mobile the summary would cover the form fields below it.
+      expect(aside).toHaveClass('lg:sticky')
+      expect(aside.className).not.toMatch(/(^|\s)sticky(\s|$)/)
+      expect(aside.className).not.toMatch(/(^|\s)top-20(\s|$)/)
+      // The DOM order is unchanged, so keyboard users still reach the form first.
+      expect(main.querySelector('section').compareDocumentPosition(aside))
+        .toBe(Node.DOCUMENT_POSITION_FOLLOWING)
     })
   })
 })

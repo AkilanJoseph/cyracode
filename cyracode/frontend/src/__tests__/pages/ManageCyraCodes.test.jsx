@@ -75,6 +75,191 @@ describe('ManageCyraCodes — tile list', () => {
   })
 })
 
+describe('ManageCyraCodes — search', () => {
+  beforeEach(() => {
+    cyracodeStore.reset()
+  })
+
+  it('exposes the search box with an accessible name', async () => {
+    setup()
+    expect(await screen.findByRole('searchbox', { name: /search by name, address, city, or country/i })).toBeInTheDocument()
+  })
+
+  it('filters the tiles down to a single code by name', async () => {
+    const { user } = setup()
+    await screen.findByRole('heading', { name: 'TestHome' })
+
+    await user.type(screen.getByTestId('manage-search'), 'office')
+
+    expect(screen.getByRole('heading', { name: 'MyOffice' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'TestHome' })).not.toBeInTheDocument()
+  })
+
+  it('matches address fields too, so a code is findable without knowing its name', async () => {
+    const { user } = setup()
+    await screen.findByRole('heading', { name: 'TestHome' })
+
+    // "koramangala" appears only in MyOffice's address, never in its name.
+    await user.type(screen.getByTestId('manage-search'), 'koramangala')
+
+    expect(screen.getByRole('heading', { name: 'MyOffice' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'TestHome' })).not.toBeInTheDocument()
+  })
+
+  it('keeps every code whose address matches a shared city', async () => {
+    const { user } = setup()
+    await screen.findByRole('heading', { name: 'TestHome' })
+
+    // Both codes are in Bangalore, so neither should be dropped.
+    await user.type(screen.getByTestId('manage-search'), 'bangalore')
+
+    expect(screen.getByRole('heading', { name: 'TestHome' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'MyOffice' })).toBeInTheDocument()
+  })
+
+  it('ignores surrounding whitespace and casing', async () => {
+    const { user } = setup()
+    await screen.findByRole('heading', { name: 'TestHome' })
+
+    await user.type(screen.getByTestId('manage-search'), '  OFFICE  ')
+
+    expect(screen.getByRole('heading', { name: 'MyOffice' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'TestHome' })).not.toBeInTheDocument()
+  })
+
+  it('shows a no-results message instead of an empty grid when nothing matches', async () => {
+    const { user } = setup()
+    await screen.findByRole('heading', { name: 'TestHome' })
+
+    await user.type(screen.getByTestId('manage-search'), 'zzzznomatch')
+
+    expect(screen.getByText(/no cyracodes match your search/i)).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'TestHome' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'MyOffice' })).not.toBeInTheDocument()
+  })
+
+  it('restores the full list once the query is cleared', async () => {
+    const { user } = setup()
+    await screen.findByRole('heading', { name: 'TestHome' })
+    const input = screen.getByTestId('manage-search')
+
+    await user.type(input, 'office')
+    expect(screen.queryByRole('heading', { name: 'TestHome' })).not.toBeInTheDocument()
+
+    await user.clear(input)
+    expect(screen.getByRole('heading', { name: 'TestHome' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'MyOffice' })).toBeInTheDocument()
+  })
+
+  it('uses the same two-row layout at every width, with Remove spanning a full row', async () => {
+    setup()
+    const tile = await screen.findByTestId('code-tile-code-test-id')
+
+    // Three equal columns, and no breakpoint override — desktop matches mobile.
+    const row = tile.querySelector('.grid-cols-3')
+    expect(row).not.toBeNull()
+    expect(row.className).not.toContain('sm:')
+
+    const [copy, view, edit, remove] = within(tile).getAllByRole('button')
+
+    // Only Remove spans the full width; the first three each take one column.
+    expect(copy.className).not.toContain('col-span-3')
+    expect(view.className).not.toContain('col-span-3')
+    expect(edit.className).not.toContain('col-span-3')
+    expect(remove.className).toContain('col-span-3')
+
+    // None of the buttons carry a breakpoint-specific width override either.
+    for (const button of [copy, view, edit, remove]) {
+      expect(button.className).not.toContain('sm:flex-1')
+    }
+  })
+
+  it('offers copy before view on every tile, matching the view/edit row', async () => {
+    setup()
+    const tile = await screen.findByTestId('code-tile-code-test-id')
+    const labels = within(tile)
+      .getAllByRole('button')
+      .map((b) => b.textContent.trim())
+    expect(labels).toEqual(['Copy', 'View', 'Edit', 'Remove'])
+  })
+
+  it('copies the code name and address, each with its own title', async () => {
+    const { user } = setup()
+    const tile = await screen.findByTestId('code-tile-code-test-id')
+
+    await user.click(within(tile).getByRole('button', { name: 'Copy' }))
+
+    await vi.waitFor(async () => {
+      expect(await navigator.clipboard.readText()).toBe(
+        'CyraCode Name: TestHome\nAddress: MG Road, 100 Feet Road, Indiranagar, Bengaluru East, Bangalore, 560001, Bengaluru Urban, Karnataka, India'
+      )
+    })
+  })
+
+  it('confirms the tile copy with a toast', async () => {
+    const { user } = setup()
+    const tile = await screen.findByTestId('code-tile-code-test-id')
+
+    await user.click(within(tile).getByRole('button', { name: 'Copy' }))
+
+    await vi.waitFor(() => {
+      expect(toastMock.success).toHaveBeenCalledWith(
+        'CyraCode name and address copied to clipboard.'
+      )
+    })
+  })
+
+  it('copies each tile its own details, not the first one', async () => {
+    const { user } = setup()
+    const second = await screen.findByTestId('code-tile-code-test-id-2')
+
+    await user.click(within(second).getByRole('button', { name: 'Copy' }))
+
+    await vi.waitFor(async () => {
+      expect(await navigator.clipboard.readText()).toContain('CyraCode Name: MyOffice')
+    })
+    const copied = await navigator.clipboard.readText()
+    // MyOffice has its own area, so it must not leak the other tile's address.
+    expect(copied).toContain('Koramangala')
+    expect(copied).not.toContain('Indiranagar')
+  })
+
+  it('marks only the tile that was copied', async () => {
+    const { user } = setup()
+    const first = await screen.findByTestId('code-tile-code-test-id')
+    const second = await screen.findByTestId('code-tile-code-test-id-2')
+
+    await user.click(within(first).getByRole('button', { name: 'Copy' }))
+
+    expect(first.querySelector('.text-emerald-600')).not.toBeNull()
+    expect(second.querySelector('.text-emerald-600')).toBeNull()
+  })
+
+  it('reports a failure when the clipboard write is rejected', async () => {
+    const { user } = setup()
+    const tile = await screen.findByTestId('code-tile-code-test-id')
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: vi.fn().mockRejectedValue(new Error('denied')) },
+      writable: true,
+      configurable: true,
+    })
+
+    await user.click(within(tile).getByRole('button', { name: 'Copy' }))
+
+    await vi.waitFor(() => {
+      expect(toastMock.error).toHaveBeenCalledWith('Could not copy the CyraCode details.')
+    })
+  })
+
+  it('hides the search box when the user has no codes at all', async () => {
+    server.use(http.get(MY_CODES_URL, () => HttpResponse.json([])))
+    setup()
+    expect(await screen.findByText(/you don't have any registered cyracodes/i)).toBeInTheDocument()
+    // The empty state already prompts registration, so a filter box would be dead UI.
+    expect(screen.queryByTestId('manage-search')).not.toBeInTheDocument()
+  })
+})
+
 describe('ManageCyraCodes — view mode', () => {
   beforeEach(() => {
     cyracodeStore.reset()
@@ -90,6 +275,81 @@ describe('ManageCyraCodes — view mode', () => {
     expect(within(modal).getByText(/MG Road, 100 Feet Road/)).toBeInTheDocument()
     expect(within(modal).getByText(/12\.971600/)).toBeInTheDocument()
     expect(within(modal).getByText('Customized')).toBeInTheDocument()
+  })
+
+  it('shows the QR code at the top of the view modal with a download button', async () => {
+    const { user } = setup()
+    const tile = await screen.findByTestId('code-tile-code-test-id')
+    await user.click(within(tile).getByRole('button', { name: /view/i }))
+
+    const modal = await screen.findByTestId('view-modal')
+    const address = within(modal).getByTestId('view-address')
+    const download = within(modal).getByRole('button', { name: /download qr/i })
+
+    // Same renderer as the confirmation screen, so the code scans identically.
+    const qr = within(modal).getByTestId('view-qr')
+    const canvas = qr.querySelector('canvas')
+    expect(canvas).toBeInTheDocument()
+
+    // The code leads the modal, and its download action sits directly beneath
+    // it, both above the address details they encode.
+    const follows = (a, b) =>
+      Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)
+    expect(follows(canvas, download)).toBe(true)
+    expect(follows(download, address)).toBe(true)
+  })
+
+  it('downloads the QR code from the view modal', async () => {
+    const { user } = setup()
+    const tile = await screen.findByTestId('code-tile-code-test-id')
+    await user.click(within(tile).getByRole('button', { name: /view/i }))
+    const modal = await screen.findByTestId('view-modal')
+
+    // jsdom has no 2D context, so give the canvas a toDataURL and capture the
+    // synthetic anchor the download relies on.
+    const clicked = []
+    const realCreate = document.createElement.bind(document)
+    const spy = vi.spyOn(document, 'createElement').mockImplementation((tag) => {
+      const el = realCreate(tag)
+      if (tag === 'a') el.click = () => clicked.push({ download: el.download, href: el.href })
+      return el
+    })
+    const canvas = within(modal).getByTestId('view-qr').querySelector('canvas')
+    canvas.toDataURL = (mime = 'image/png') =>
+      mime === 'image/webp' ? 'data:image/webp;base64,x' : 'data:image/png;base64,x'
+
+    await user.click(within(modal).getByRole('button', { name: /download qr/i }))
+    spy.mockRestore()
+
+    expect(clicked).toHaveLength(1)
+    expect(clicked[0].download).toMatch(/^CyraCode_TestHome_\d+\.(webp|png)$/)
+  })
+
+  it('keeps sharing controls out of the view modal', async () => {
+    const { user } = setup()
+    const tile = await screen.findByTestId('code-tile-code-test-id')
+    await user.click(within(tile).getByRole('button', { name: /view/i }))
+
+    const modal = await screen.findByTestId('view-modal')
+    expect(within(modal).queryByRole('link')).not.toBeInTheDocument()
+    for (const label of [/whatsapp/i, /copy link/i, /email share/i, /facebook/i]) {
+      expect(within(modal).queryByRole('button', { name: label })).not.toBeInTheDocument()
+      expect(within(modal).queryByRole('link', { name: label })).not.toBeInTheDocument()
+    }
+  })
+
+  it('shows the copy control as an icon with no text label', async () => {
+    const { user } = setup()
+    const tile = await screen.findByTestId('code-tile-code-test-id')
+    await user.click(within(tile).getByRole('button', { name: /view/i }))
+
+    const modal = await screen.findByTestId('view-modal')
+    const copy = within(modal).getByTestId('copy-address')
+
+    // The visible label is gone; the accessible name still names the action.
+    expect(copy.textContent).toBe('')
+    expect(copy).toHaveAttribute('aria-label', 'Copy address')
+    expect(copy.querySelector('svg')).toBeInTheDocument()
   })
 
   it('closes the view modal', async () => {
@@ -163,22 +423,28 @@ describe('ManageCyraCodes — edit flow', () => {
     ).toBeTruthy()
   })
 
-  it('shows the edit hint at the top of the address step, not at the page bottom', async () => {
+  it('shows the edit hint on the first screen, below the warning and above the map', async () => {
     const { user } = setup()
     const tile = await screen.findByTestId('code-tile-code-test-id')
     await user.click(within(tile).getByRole('button', { name: /edit/i }))
-    await screen.findByTestId('map-picker')
 
-    await user.click(screen.getByRole('button', { name: /continue/i }))
-
+    const warning = await screen.findByText(/cannot be changed/i)
     const hint = await screen.findByText(/adjust the pin on the map/i)
-    const street = await screen.findByLabelText(/Street Name/i)
+    const map = await screen.findByTestId('map-picker')
 
-    // It used to sit below the main content, outside the card. Both notices now
-    // lead the form, so the hint must precede the first address field.
+    // The pin is adjusted on the first screen, so the hint reads between the
+    // name warning and the map rather than on the address form.
     expect(
-      hint.compareDocumentPosition(street) & Node.DOCUMENT_POSITION_FOLLOWING
+      warning.compareDocumentPosition(hint) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy()
+    expect(
+      hint.compareDocumentPosition(map) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+
+    // It is guidance for the map, so it must not follow onto the address form.
+    await user.click(screen.getByRole('button', { name: /continue/i }))
+    await screen.findByLabelText(/Street Name/i)
+    expect(screen.queryByText(/adjust the pin on the map/i)).not.toBeInTheDocument()
   })
 
   it('prefills the address form with the selected code values', async () => {

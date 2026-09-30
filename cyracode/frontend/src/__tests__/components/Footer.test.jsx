@@ -42,75 +42,116 @@ describe('Footer', () => {
     ])
   })
 
-  it('groups the links under Product, Account, Legal and Support', () => {
+  it('groups the links under Product and Legal', () => {
     renderFooter()
 
+    // Docs and Blog moved to the Support column, so Product is Pricing only.
     const product = screen.getByRole('navigation', { name: 'Product' })
-    expect(within(product).getByRole('link', { name: 'Pricing' }).getAttribute('href')).toBe('/pricing')
-    expect(within(product).getByRole('link', { name: 'Docs' }).getAttribute('href')).toBe('/docs')
-    expect(within(product).getByRole('link', { name: 'Blog' }).getAttribute('href')).toBe('/blog')
-
-    const account = screen.getByRole('navigation', { name: 'Account' })
-    expect(within(account).getByRole('link', { name: 'Dashboard' }).getAttribute('href')).toBe('/dashboard')
-    expect(within(account).getByRole('link', { name: 'Manage CyraCodes' }).getAttribute('href')).toBe('/manage-cyracodes')
-    expect(within(account).getByRole('link', { name: 'Orders & Invoices' }).getAttribute('href')).toBe('/orders')
+    expect(within(product).getAllByRole('link').map((a) => a.getAttribute('href'))).toEqual(['/pricing'])
 
     const legal = screen.getByRole('navigation', { name: 'Legal' })
     expect(within(legal).getByRole('link', { name: 'Privacy Policy' }).getAttribute('href')).toBe('/privacy')
+  })
 
-    // Support sits after Legal. It opens the Contact-us widget rather than a
-    // mailto, so it must be a button, not a link.
+  it('lists the Support links in order with Contact us last', () => {
+    renderFooter()
+
     const support = screen.getByRole('navigation', { name: 'Support' })
+
+    // Full order is the requirement, so assert the whole list rather than
+    // membership: Blog, Docs, FAQs, then Contact us.
+    const hrefs = within(support)
+      .getAllByRole('link')
+      .map((a) => a.getAttribute('href'))
+    expect(hrefs).toEqual(['/blog', '/docs', '/faqs'])
+
+    // Contact us opens the Contact-us widget rather than a mailto, so it must
+    // be a button, and it must come after the reference links.
+    const contact = within(support).getByRole('button', { name: 'Contact us' })
+    const labels = [...support.querySelectorAll('a, button')].map(
+      (el) => el.textContent
+    )
+    expect(labels[labels.length - 1]).toBe(contact.textContent)
+    expect(within(support).queryByRole('link', { name: 'Contact us' })).not.toBeInTheDocument()
+  })
+
+  it('hides the Sitemap link for now but leaves the route working', () => {
+    renderFooter()
+
+    const footer = screen.getByRole('contentinfo')
+    // Hidden from the footer entirely, not just visually downgraded.
+    expect(footer.querySelector('a[href="/sitemap"]')).toBeNull()
+    expect(
+      within(screen.getByRole('navigation', { name: 'Support' })).queryByRole('link', { name: 'Sitemap' })
+    ).not.toBeInTheDocument()
+
+    // Its siblings must be unaffected.
+    const support = screen.getByRole('navigation', { name: 'Support' })
+    expect(within(support).getByRole('link', { name: 'FAQs' })).toBeInTheDocument()
     expect(within(support).getByRole('button', { name: 'Contact us' })).toBeInTheDocument()
-    expect(within(support).queryByRole('link')).not.toBeInTheDocument()
   })
 
-  it('lists Search a CyraCode under Account, directly below Manage CyraCodes', () => {
+  it('renders Support as its own column rather than inside Legal', () => {
     renderFooter()
 
-    // It used to live in the Product column. It is an account action, so it
-    // must not be offered twice.
     const product = screen.getByRole('navigation', { name: 'Product' })
-    expect(within(product).queryByRole('link', { name: 'Search a CyraCode' })).not.toBeInTheDocument()
-
-    const account = screen.getByRole('navigation', { name: 'Account' })
-    const search = within(account).getByRole('link', { name: 'Search a CyraCode' })
-    expect(search.getAttribute('href')).toBe('/search')
-
-    // Assert the full order, since the position below Manage CyraCodes is the
-    // requirement and membership alone would not catch a move back to the top.
-    expect(within(account).getAllByRole('link').map((a) => a.getAttribute('href'))).toEqual([
-      '/dashboard',
-      '/manage-cyracodes',
-      '/search',
-      '/orders',
-    ])
-  })
-
-  it('nests Support inside the Legal column as a row below it', () => {
-    renderFooter()
-
     const legal = screen.getByRole('navigation', { name: 'Legal' })
     const support = screen.getByRole('navigation', { name: 'Support' })
 
-    // Same grid column, i.e. Support is a row inside Legal's div, not a 4th column.
-    expect(support.parentElement).toBe(legal.parentElement)
-    expect(support.parentElement.tagName).toBe('DIV')
+    // A sibling column: each group owns its own grid cell.
+    expect(support.parentElement).not.toBe(legal.parentElement)
+    expect(support.parentElement).not.toBe(product.parentElement)
+    expect(legal.parentElement).not.toBe(product.parentElement)
 
-    // Rendered after Legal in document order.
     const headings = within(screen.getByRole('contentinfo'))
       .getAllByRole('navigation')
       .map((nav) => nav.getAttribute('aria-label'))
-    expect(headings).toEqual(['Product', 'Account', 'Legal', 'Support', 'Follow us'])
+    expect(headings).toEqual(['Product', 'Legal', 'Support', 'Follow us'])
   })
 
-  it('keeps the full footer to four grid columns', () => {
+  it('lists Docs and Blog only under Support, never under Product', () => {
+    renderFooter()
+
+    const footer = screen.getByRole('contentinfo')
+    // Same target reachable from two columns would duplicate it for visitors
+    // and screen readers.
+    for (const href of ['/docs', '/blog']) {
+      expect(footer.querySelectorAll(`a[href="${href}"]`)).toHaveLength(1)
+    }
+  })
+
+  it('hides the Sales and Account columns for now', () => {
+    renderFooter()
+
+    const footer = screen.getByRole('contentinfo')
+    expect(within(footer).queryByRole('navigation', { name: 'Sales' })).not.toBeInTheDocument()
+    expect(within(footer).queryByRole('navigation', { name: 'Account' })).not.toBeInTheDocument()
+
+    // Their links must disappear entirely rather than being left orphaned in
+    // another column. Dashboard and Search are reachable from the app itself.
+    for (const href of ['/orders', '/dashboard', '/manage-cyracodes', '/search']) {
+      expect(footer.querySelector(`a[href="${href}"]`)).toBeNull()
+    }
+  })
+
+  it('lays the remaining columns out on one row with the brand spanning two tracks', () => {
     renderFooter()
 
     const grid = screen.getByRole('contentinfo').querySelector('.grid')
-    // Brand + Product + Account + Legal. Support lives inside Legal, so it
-    // must not add a fifth child and push the layout onto a second row.
+    // Brand + Product + Legal + Support. The hidden Sales and Account groups are
+    // skipped, so nothing spills onto a second row.
     expect(grid.children).toHaveLength(4)
+
+    // Brand takes two of five tracks and each menu group one, which is exactly
+    // 2 + 3 = 5. A stale column count would orphan the last group.
+    expect(grid.className).toContain('lg:grid-cols-5')
+    expect(grid.firstElementChild.className).toContain('lg:col-span-2')
+
+    // Responsive at every breakpoint: stacked on phones, one even row of menu
+    // groups from sm up.
+    expect(grid.className).toContain('grid-cols-1')
+    expect(grid.className).toContain('sm:grid-cols-3')
+    expect(grid.firstElementChild.className).toContain('sm:col-span-3')
   })
 
   it('renders the copyright line with the current year', () => {
@@ -182,6 +223,7 @@ describe('Footer — minimal variant', () => {
     // The social row is kept, the link columns are not.
     expect(within(footer).getByRole('navigation', { name: 'Follow us' })).toBeInTheDocument()
     expect(within(footer).queryByRole('navigation', { name: 'Product' })).not.toBeInTheDocument()
+    expect(within(footer).queryByRole('navigation', { name: 'Sales' })).not.toBeInTheDocument()
     expect(within(footer).queryByRole('navigation', { name: 'Account' })).not.toBeInTheDocument()
     expect(within(footer).queryByRole('navigation', { name: 'Legal' })).not.toBeInTheDocument()
     // Support is public/user only, so it must not leak into the admin footer.
@@ -189,6 +231,28 @@ describe('Footer — minimal variant', () => {
     expect(within(footer).queryByRole('button', { name: 'Contact us' })).not.toBeInTheDocument()
     expect(within(footer).queryByRole('link', { name: 'Pricing' })).not.toBeInTheDocument()
     expect(within(footer).queryByRole('link', { name: 'Privacy Policy' })).not.toBeInTheDocument()
+  })
+
+  it('shows the support email for queries as a mailto link on its own line', () => {
+    renderFooter()
+
+    const footer = screen.getByRole('contentinfo')
+    const lead = within(footer).getByText('For any queries, write us an email at:')
+    expect(lead).toBeInTheDocument()
+    // The address sits below the sentence rather than being wrapped into it.
+    expect(lead.querySelector('a')).toBeNull()
+
+    // Clicking the address hands off to the visitor's mail client.
+    const mail = within(footer).getByRole('link', { name: 'support@cyracode.com' })
+    expect(mail.getAttribute('href')).toBe('mailto:support@cyracode.com')
+    expect(mail.className).toContain('whitespace-nowrap')
+  })
+
+  it('keeps the queries email out of the admin footer', () => {
+    renderFooter({ variant: 'minimal' })
+
+    // The admin module has no enquiry path, so the address must not be there.
+    expect(screen.getByRole('contentinfo').textContent).not.toContain('support@cyracode.com')
   })
 
   it('applies the maxWidth prop', () => {

@@ -35,15 +35,17 @@
     },
     "footer": {
       "product": "Product",
+      "sales": "Sales",
       "account": "Account",
       "legal": "Legal",
-      "search": "Search a CyraCode",
+      "faqs": "FAQs",
+      "sitemap": "Sitemap",
+      "search": "Search your CyraCodes",
       "dashboard": "Dashboard",
       "manage": "Manage CyraCodes",
       "orders": "Orders & Invoices",
       "privacy": "Privacy Policy",
-      "rights_reserved": "All rights reserved."
-    ,
+      "rights_reserved": "All rights reserved.",
       "follow_us": "Follow us",
       "social_x": "X",
       "social_instagram": "Instagram",
@@ -51,7 +53,9 @@
       "social_youtube": "YouTube",
       "social_facebook": "Facebook",
       "support": "Support",
-      "contact_us": "Contact us"},
+      "queries": "For any queries, write us an email at:",
+      "contact_us": "Contact us"
+    },
     "contact": {
       "title": "Contact us",
       "open": "Open the contact form",
@@ -92,7 +96,7 @@
       "last_name": "Last name",
       "remember_me": "Remember me",
       "forgot_password": "Forgot password?",
-      "btn_login": "Let's Go!, Dashboard",
+      "btn_login": "Let's Go",
       "btn_create": "Let's Setup Your Account",
       "or_continue": "or continue with",
       "btn_google": "Sign up with Google",
@@ -207,7 +211,7 @@
       "your_code": "Your CyraCode",
       "address_label": "Address",
       "coords_label": "Coords",
-      "download_qr": "Download QR as PNG",
+      "download_qr": "Download QR",
       "share_text": "My CyraCode is {{code}}! Find me:",
       "email_subject": "My CyraCode:",
       "email_body": "Here is my CyraCode address: {{code}}",
@@ -312,13 +316,20 @@
       "save_failed": "Failed to update the address",
       "pick_hint": "Editing {{name}} — adjust the pin on the map if needed",
       "coord_hint": "Auto-filled from map",
+      "search_placeholder": "Search by name, address, city, or country…",
+      "search_no_results": "No CyraCodes match your search.",
       "type_customized": "Customized",
       "type_auto_generate": "Auto-generated",
       "type_personalized": "Personalized",
       "copy_address": "Copy address",
       "copied": "Copied!",
       "address_copied": "Address copied to clipboard.",
-      "copy_failed": "Could not copy the address."
+      "copy_failed": "Could not copy the address.",
+      "download_qr": "Download QR",
+      "copy": "Copy",
+      "cyracode_name": "CyraCode Name",
+      "details_copied": "CyraCode name and address copied to clipboard.",
+      "details_copy_failed": "Could not copy the CyraCode details."
     },
     "reset": {
       "title": "Reset Password",
@@ -548,8 +559,6 @@
       "subs_list_failed": "Could not load subscriptions.",
       "subs_no_items": "No subscriptions match your filters.",
       "subs_cost": "Monthly cost",
-      "subs_actions": "Actions",
-      "subs_view_client": "View client",
       "subs_renew": "Renew",
       "subs_change_plan": "Change plan",
       "subs_cancel": "Cancel",
@@ -615,7 +624,10 @@
       "audit_action": "Action",
       "audit_ip": "IP address",
       "disable_client": "Disable client",
-      "enable_client": "Enable client"
+      "enable_client": "Enable client",
+      "back_to_clients": "Back to API Clients",
+      "back_to_subscriptions": "Back to Subscriptions",
+      "client_not_found": "That API client could not be found."
     },
     "language": {
       "select": "Language",
@@ -768,6 +780,7 @@
       "err_fix_fields": "Please fix the highlighted fields.",
       "err_card_number": "Enter a valid card number",
       "err_expiry_format": "Use MM/YY",
+      "err_expiry_past": "This card has expired",
       "err_cvv": "Enter the CVV on your card",
       "err_bank": "Select your bank",
       "err_upi": "Enter a UPI ID like name@bank",
@@ -789,13 +802,13 @@
     },
     "orders": {
       "title": "My orders",
-      "subtitle": "See your subscriptions and invoices. Enter the email you checked out with.",
+      "subtitle": "Your subscriptions and invoices for the account you are signed in to.",
       "email_label": "Order email",
       "email_placeholder": "you@company.com",
       "lookup": "View orders",
       "lookup_failed": "Could not load your orders. Please try again.",
       "empty_title": "No orders found",
-      "empty_body": "We couldn't find any orders for that email. Check for typos, or pick a plan to get started.",
+      "empty_body": "We could not find any orders on your account yet. Pick a plan to get started.",
       "browse_plans": "Browse plans",
       "active_subscription": "Active subscription",
       "renews_on": "Renews on {{date}}",
@@ -814,7 +827,21 @@
       "method_debit": "Debit card",
       "method_netbanking": "Net banking",
       "method_upi": "UPI",
-      "secure_note": "Your order history is only shown for the email you enter."
+      "secure_note": "Your order history is private to your account."
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "subtitle": "Straight answers about registering, managing, and paying for CyraCode.",
+      "categories": {
+        "general": "General",
+        "registration": "Registration",
+        "location": "Location and Address",
+        "manage": "Manage CyraCodes",
+        "account": "Account and Security",
+        "pricing": "Plans and Pricing",
+        "payments": "Payments",
+        "billing": "Subscription and Billing"
+      }
     }
   }
 }
