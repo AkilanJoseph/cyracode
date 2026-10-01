@@ -288,9 +288,15 @@ class TestGoogleAuth:
         assert resp.status_code == 200
         assert resp.json()["user"]["email"] == "googleuser@gmail.com"
 
-    def test_google_token_audience_mismatch_returns_401(self, client):
+    def test_google_token_audience_mismatch_returns_401(self, client, monkeypatch):
         from unittest.mock import MagicMock
         from app.config import settings
+        # The audience is only checked when GOOGLE_CLIENT_ID is configured
+        # (auth.py guards on it so deployments without Google OAuth still work),
+        # so the mismatch case has to configure one to be reachable at all.
+        monkeypatch.setattr(
+            settings, "GOOGLE_CLIENT_ID", "our-client-id.apps.googleusercontent.com"
+        )
         google_info = {
             "sub": "google-uid-123",
             "email": "googleuser@gmail.com",

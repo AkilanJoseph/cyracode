@@ -14,3 +14,13 @@ qrcode>=8.0
 Pillow>=12.3.0
 geohash2>=1.1
 slowapi>=0.1.9
+# App Service's Python 3.11 image puts /agents/python -- which holds an older
+# bundled typing_extensions -- on PYTHONPATH ahead of the Oryx-built venv, so the
+# venv's own typing_extensions is never the one imported. app/launcher.py strips
+# /agents/python from sys.path at startup, which is the real fix. The anyio cap
+# below is belt-and-braces for that same shadowing: anyio 4.12+ does
+# `from typing_extensions import sentinel` (a typing_extensions 4.13 addition),
+# so a container that ever falls back to the shim dies at import with
+# `ImportError: cannot import name 'sentinel' from 'typing_extensions'`.
+anyio>=4.9,<4.12
+typing_extensions>=4.13.0

@@ -25,7 +25,12 @@ import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const PORT = Number(process.env.PORT || 3000)
-const HOST = process.env.HOST || '127.0.0.1'
+// Must default to all interfaces, not loopback. App Service runs the startup
+// probe against the container from outside it, so a 127.0.0.1 bind is invisible
+// to the platform and the container is killed with "did not respond to startup
+// probe on port <PORT>" even though the process is alive and listening.
+// Override with HOST only when you deliberately want a narrower bind.
+const HOST = process.env.HOST || '0.0.0.0'
 const DIST = path.join(__dirname, 'dist')
 const INDEX = path.join(DIST, 'index.html')
 
