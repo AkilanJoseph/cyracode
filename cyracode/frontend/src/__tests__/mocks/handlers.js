@@ -703,18 +703,40 @@ export const billingStore = {
   },
 }
 
+// Mirrors the backend: the scope comes from the authenticated caller, never
+// from a query parameter. Reading the stored user keeps the mock honest — a
+// component that passed an arbitrary email would now get nothing back.
+function currentUserEmail() {
+  try {
+    const stored = JSON.parse(localStorage.getItem('cyracode_user') || '{}')
+    return (stored.email || '').trim().toLowerCase()
+  } catch {
+    return ''
+  }
+}
+
 export const billingHandlers = [
   http.get(`${BASE}/billing/plans`, () => HttpResponse.json(billingStore.plans)),
 
-  http.get(`${BASE}/billing/orders`, ({ request }) => {
-    const url = new URL(request.url)
-    const email = (url.searchParams.get('email') || '').trim().toLowerCase()
+  http.get(`${BASE}/billing/orders`, () => {
+    const email = currentUserEmail()
+    if (!email) {
+      return HttpResponse.json({ detail: 'Not authenticated' }, { status: 401 })
+    }
     const orders = billingStore.orders.filter((o) => o.email === email)
     return HttpResponse.json(orders)
   }),
 
+  // 404 for another customer's order, matching the backend's refusal to
+  // confirm that an order id exists.
   http.get(`${BASE}/billing/orders/:id`, ({ params }) => {
-    const order = billingStore.orders.find((o) => o.id === params.id)
+    const email = currentUserEmail()
+    if (!email) {
+      return HttpResponse.json({ detail: 'Not authenticated' }, { status: 401 })
+    }
+    const order = billingStore.orders.find(
+      (o) => o.id === params.id && o.email === email
+    )
     if (!order) return HttpResponse.json({ detail: 'Order not found.' }, { status: 404 })
     return HttpResponse.json(order)
   }),
@@ -758,7 +780,13 @@ export const billingHandlers = [
   }),
 
   http.post(`${BASE}/billing/orders/:id/cancel`, ({ params }) => {
-    const order = billingStore.orders.find((o) => o.id === params.id)
+    const email = currentUserEmail()
+    if (!email) {
+      return HttpResponse.json({ detail: 'Not authenticated' }, { status: 401 })
+    }
+    const order = billingStore.orders.find(
+      (o) => o.id === params.id && o.email === email
+    )
     if (!order) return HttpResponse.json({ detail: 'Order not found.' }, { status: 404 })
     if (order.status !== 'paid') {
       return HttpResponse.json({ detail: 'This order has already been cancelled.' }, { status: 409 })
@@ -770,7 +798,13 @@ export const billingHandlers = [
   }),
 
   http.patch(`${BASE}/billing/orders/:id/auto-renew`, async ({ params, request }) => {
-    const order = billingStore.orders.find((o) => o.id === params.id)
+    const email = currentUserEmail()
+    if (!email) {
+      return HttpResponse.json({ detail: 'Not authenticated' }, { status: 401 })
+    }
+    const order = billingStore.orders.find(
+      (o) => o.id === params.id && o.email === email
+    )
     if (!order) return HttpResponse.json({ detail: 'Order not found.' }, { status: 404 })
     const body = await request.json()
     order.auto_renew = Boolean(body.auto_renew)

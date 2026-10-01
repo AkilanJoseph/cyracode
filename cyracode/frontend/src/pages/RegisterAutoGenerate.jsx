@@ -11,6 +11,7 @@ import Header from '../components/common/Header'
 import Footer from '../components/common/Footer'
 import ConfirmDialog from '../components/common/ConfirmDialog'
 import { AddressStep, validateAddress } from './RegisterTraditional'
+import { APP_MAX_WIDTH, APP_PADDING_Y } from '../lib/layout'
 import { registration } from '../services/api'
 import { apiErrorMessage } from '../utils/errors'
 import { useGoBack } from '../utils/navigation'
@@ -150,9 +151,9 @@ export default function RegisterAutoGenerate() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <Header showBack breadcrumb={t('nav.auto_generate')} maxWidth="max-w-2xl" />
+      <Header showBack breadcrumb={t('nav.auto_generate')} maxWidth={APP_MAX_WIDTH} />
 
-      <div className="max-w-2xl mx-auto px-4 py-10">
+      <div id="main-content" className={`${APP_MAX_WIDTH} mx-auto px-4 ${APP_PADDING_Y}`}>
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-ink">{t('register.title_auto')}</h1>
           <p className="text-muted mt-1">{t('common.step_of', { current: step, total: 2, name: STEPS[step - 1] })}</p>
@@ -220,7 +221,7 @@ export default function RegisterAutoGenerate() {
               {/* Location */}
               <MapPicker markerPosition={coords} onLocationSelect={handleLocation} />
               {/* Latitude/longitude auto-populated from the map selection */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Input
                   label="Latitude"
                   value={coords ? coords.lat.toFixed(6) : ''}
@@ -284,7 +285,7 @@ export default function RegisterAutoGenerate() {
         onCancel={() => setConfirmingDiscard(false)}
         testId="discard-dialog"
       />
-    <Footer maxWidth="max-w-2xl" />
+    <Footer maxWidth={APP_MAX_WIDTH} />
     </div>
   )
 }

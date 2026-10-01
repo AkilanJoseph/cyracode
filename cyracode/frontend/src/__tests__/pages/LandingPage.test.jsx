@@ -56,7 +56,7 @@ describe('LandingPage — layout', () => {
 
   it('renders Login tab active by default', () => {
     setup()
-    expect(screen.getByRole('button', { name: /^let's go!, dashboard$/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^let's go$/i })).toBeInTheDocument()
   })
 
   it('renders Sign In and Sign Up tabs', () => {
@@ -128,14 +128,14 @@ describe('LandingPage — Login tab', () => {
   it('shows validation error for invalid email', async () => {
     const { user } = setup()
     await user.type(screen.getByPlaceholderText('you@example.com'), 'not-an-email')
-    await user.click(screen.getByRole('button', { name: /^let's go!, dashboard$/i }))
+    await user.click(screen.getByRole('button', { name: /^let's go$/i }))
     expect(await screen.findByText(/valid email/i)).toBeInTheDocument()
   })
 
   it('shows error when password is empty', async () => {
     const { user } = setup()
     await user.type(screen.getByPlaceholderText('you@example.com'), 'a@b.com')
-    await user.click(screen.getByRole('button', { name: /^let's go!, dashboard$/i }))
+    await user.click(screen.getByRole('button', { name: /^let's go$/i }))
     expect(await screen.findByText(/this field is required/i)).toBeInTheDocument()
   })
 
@@ -143,7 +143,7 @@ describe('LandingPage — Login tab', () => {
     const { user } = setup()
     await user.type(screen.getByPlaceholderText('you@example.com'), 'test@example.com')
     await user.type(screen.getByPlaceholderText('••••••••'), 'ValidP@ss1')
-    await user.click(screen.getByRole('button', { name: /^let's go!, dashboard$/i }))
+    await user.click(screen.getByRole('button', { name: /^let's go$/i }))
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/dashboard'))
   })
 
@@ -157,7 +157,7 @@ describe('LandingPage — Login tab', () => {
     const { user } = setup()
     await user.type(screen.getByPlaceholderText('you@example.com'), 'admin@example.com')
     await user.type(screen.getByPlaceholderText('••••••••'), 'ValidP@ss1')
-    await user.click(screen.getByRole('button', { name: /^let's go!, dashboard$/i }))
+    await user.click(screen.getByRole('button', { name: /^let's go$/i }))
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/admin'))
   })
 
@@ -171,7 +171,7 @@ describe('LandingPage — Login tab', () => {
     const { user } = setup()
     await user.type(screen.getByPlaceholderText('you@example.com'), 'bad@example.com')
     await user.type(screen.getByPlaceholderText('••••••••'), 'WrongPass1!')
-    await user.click(screen.getByRole('button', { name: /^let's go!, dashboard$/i }))
+    await user.click(screen.getByRole('button', { name: /^let's go$/i }))
     await waitFor(() => expect(toast.default.error).toHaveBeenCalled())
   })
 

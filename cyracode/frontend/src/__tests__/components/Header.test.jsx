@@ -21,13 +21,13 @@ const mockUser = {
   role: 'user',
 }
 
-function renderHeader(user = mockUser) {
+function renderHeader(user = mockUser, props = {}) {
   localStorage.setItem('cyracode_token', 'mock-jwt-token')
   localStorage.setItem('cyracode_user', JSON.stringify(user))
   return render(
     <MemoryRouter>
       <AuthProvider>
-        <Header />
+        <Header {...props} />
       </AuthProvider>
     </MemoryRouter>
   )
@@ -160,6 +160,34 @@ describe('Header — brand', () => {
     renderHeader(mockUser)
     expect(screen.getByText('CyraCode')).toBeInTheDocument()
     expect(screen.queryByText(/Prime Location|Precious Address|Pride Name/)).not.toBeInTheDocument()
+  })
+})
+
+describe('Header — marketing nav', () => {
+  it('shows Pricing in the bar at every width instead of behind a menu button', () => {
+    renderHeader(mockUser, { marketingNav: true })
+    const pricing = screen.getByRole('link', { name: 'Pricing' })
+    expect(pricing).toHaveAttribute('href', '/pricing')
+    // jsdom applies no stylesheet, so a breakpoint class is the only way to
+    // catch this: `hidden md:block` would keep Pricing off small screens.
+    expect(pricing.className).not.toMatch(/(^|\s)hidden(\s|$)/)
+    // The hamburger only ever held this one link, so it is gone too.
+    expect(screen.queryByRole('button', { name: /open menu/i })).not.toBeInTheDocument()
+  })
+
+  it('places Pricing in the right-hand cluster just before the language selector', () => {
+    renderHeader(mockUser, { marketingNav: true })
+    const pricing = screen.getByRole('link', { name: 'Pricing' })
+    const language = screen.getByTestId('language-button')
+    // Same flex row, so Pricing is right-aligned rather than stranded mid-bar.
+    expect(pricing.closest('div.ml-auto')).toBe(language.closest('div.ml-auto'))
+    // DOCUMENT_POSITION_FOLLOWING: pricing precedes the language button.
+    expect(pricing.compareDocumentPosition(language) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('leaves the pricing link out when marketingNav is off', () => {
+    renderHeader(mockUser)
+    expect(screen.queryByRole('link', { name: 'Pricing' })).not.toBeInTheDocument()
   })
 })
 

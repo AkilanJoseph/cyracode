@@ -112,18 +112,29 @@ export default function ContactWidget() {
         onClick={toggle}
         aria-expanded={open}
         aria-controls="contact-widget-panel"
-        aria-label={open ? t('contact.close') : t('contact.open')}
+        // The label span is display:none until hover, which also drops it from
+        // the accessibility tree, so the name has to come from aria-label. Keep
+        // it identical to the text that appears on hover (WCAG 2.5.3);
+        // aria-expanded and aria-controls carry the open/closed state.
+        aria-label={open ? t('contact.close') : t('contact.title')}
         data-testid="contact-launcher"
-        className="fixed bottom-5 right-5 z-40 inline-flex items-center gap-2 rounded-full
-          bg-primary px-4 py-3 text-sm font-semibold text-white shadow-lg
-          hover:bg-primary-dark active:scale-95 transition-all"
+        className="group fixed bottom-5 right-5 z-40 inline-flex items-center justify-center
+          rounded-full bg-primary p-3 text-sm font-semibold text-white shadow-lg
+          hover:bg-primary-dark active:scale-95 transition-all
+          hoverable:hover:gap-2 hoverable:hover:px-4
+          focus-visible:gap-2 focus-visible:px-4
+          focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
       >
         {open ? (
-          <X className="w-5 h-5" aria-hidden="true" />
+          <X className="w-5 h-5 shrink-0" aria-hidden="true" />
         ) : (
-          <MessageCircle className="w-5 h-5" aria-hidden="true" />
+          <MessageCircle className="w-5 h-5 shrink-0" aria-hidden="true" />
         )}
-        <span className="hidden sm:inline">{open ? t('contact.close') : t('contact.title')}</span>
+        {/* Collapsed to the icon so the pill does not sit over page content; the
+            name appears on hover, and on keyboard focus so it is not lost. */}
+        <span className="hidden whitespace-nowrap hoverable:group-hover:inline group-focus-visible:inline">
+          {open ? t('contact.close') : t('contact.title')}
+        </span>
       </button>
 
       {open && (

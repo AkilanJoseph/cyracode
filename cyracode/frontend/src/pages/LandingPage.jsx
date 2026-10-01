@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext'
 import { auth, registration } from '../services/api'
 import { apiErrorMessage } from '../utils/errors'
 import { PENDING_MODE_SELECT_KEY } from '../constants'
+import { MARKETING_HERO_TITLE_CLASS } from '../lib/layout'
 
 const REMEMBER_EMAIL_KEY = 'cyracode_remember_email'
 
@@ -262,7 +263,7 @@ export default function LandingPage() {
             <FeaturePill icon={Sparkles} label={t('landing.pill_custom')} />
           </div>
 
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-ink leading-[1.08] tracking-tight">
+          <h1 className={MARKETING_HERO_TITLE_CLASS}>
             {t('landing.hero_title')}{' '}
             <span className="text-primary">{t('landing.hero_accent')}</span>
           </h1>

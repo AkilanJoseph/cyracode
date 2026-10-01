@@ -87,7 +87,8 @@ describe('Confirmation page — with record', () => {
 
   it('renders Email share button', () => {
     renderWithRecord()
-    expect(screen.getByText(/email/i)).toBeInTheDocument()
+    // Role-scoped: a bare /email/i also matches the footer's queries line.
+    expect(screen.getByRole('button', { name: /email/i })).toBeInTheDocument()
   })
 
   it('renders Copy Link button', () => {
@@ -146,6 +147,50 @@ describe('Confirmation page — with record', () => {
     }
     renderWithRecord(sparseRecord)
     expect(screen.getByText('MyTestCode')).toBeInTheDocument()
+  })
+
+  // The address row ended in a copy button while the coords row ended in
+  // nothing, so the two rows had different column widths and the address was
+  // additionally capped at max-w-xs while coords ran full width.
+  it('gives the address and coords rows the same column template', () => {
+    renderWithRecord()
+
+    // Located via their labels rather than by matching the escaped
+    // arbitrary-value class, which is brittle to write in a selector.
+    const addressRow = screen.getByText('Address').closest('.grid')
+    const coordsRow = screen.getByText('Coords').closest('.grid')
+    expect(addressRow).not.toBeNull()
+    expect(coordsRow).not.toBeNull()
+
+    expect(addressRow.className).toBe(coordsRow.className)
+    expect(addressRow.className).toContain('items-start')
+    // Both reserve the trailing action slot, so the right edge lines up.
+    expect(addressRow.children).toHaveLength(3)
+    expect(coordsRow.children).toHaveLength(3)
+
+    // Neither value is arbitrarily capped (the footer tagline also uses
+    // max-w-xs, so this is scoped to the two value cells rather than the tree).
+    expect(addressRow.children[1]).not.toHaveClass('max-w-xs')
+    expect(coordsRow.children[1]).not.toHaveClass('max-w-xs')
+  })
+
+  // floor_unit and po_box are collected by AddressStep and persisted (FloorUnit,
+  // DigiPin), and are in the API response, but were missing from the address
+  // line shown here.
+  it('shows the floor unit and PO box that were registered', () => {
+    renderWithRecord({ ...mockRecord, floor_unit: '3rd Floor', po_box: 'DGP' })
+
+    const address = screen.getByText(/MG Road/)
+    expect(address).toHaveTextContent('3rd Floor')
+    expect(address).toHaveTextContent('DGP')
+  })
+
+  it('omits floor and PO box when they were not provided', () => {
+    renderWithRecord({ ...mockRecord, floor_unit: null, po_box: null })
+
+    const address = screen.getByText(/MG Road/)
+    expect(address).not.toHaveTextContent('null')
+    expect(address).not.toHaveTextContent('undefined')
   })
 })
 

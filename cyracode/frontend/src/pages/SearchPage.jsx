@@ -252,7 +252,7 @@ export default function SearchPage() {
 
   return (
     <div className="min-h-screen bg-slate-100">
-      <Header maxWidth="max-w-md" />
+      <Header />
 
       {/* Offline banner */}
       {isOffline && (
@@ -261,7 +261,7 @@ export default function SearchPage() {
         </div>
       )}
 
-      <div className="relative max-w-md mx-auto px-4 pt-4">
+      <div className="relative max-w-3xl mx-auto px-4 pt-4 pb-4">
         {/* Search bar */}
         <div className="bg-white rounded-2xl shadow-card-hover border border-border p-3">
           <div className="flex items-center gap-2">
@@ -339,85 +339,86 @@ export default function SearchPage() {
           </div>
         </div>
 
-        {/* AC 5.3 / 5.9: Result card after search */}
+        {/* AC 5.3 / 5.9: Result card after search. Sits beside the map once
+            there is room for it, and stacks above it on narrow screens. */}
         {result && (
-          <div
-            ref={resultCardRef}
-            className="bg-white rounded-2xl shadow-card-hover border border-border p-5 mt-3 animate-fade-in-up"
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <p className="text-xs font-semibold text-muted uppercase tracking-wide">{t('search.cyracode_label')}</p>
-                <h2 className="text-xl font-bold text-ink font-mono mt-0.5">{result.name}</h2>
+          <div className="mt-3 grid gap-3 md:grid-cols-2 md:items-start">
+            <div
+              ref={resultCardRef}
+              className="bg-white rounded-2xl shadow-card-hover border border-border p-5 animate-fade-in-up"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-xs font-semibold text-muted uppercase tracking-wide">{t('search.cyracode_label')}</p>
+                  <h2 className="text-xl font-bold text-ink font-mono mt-0.5">{result.name}</h2>
+                </div>
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-full shrink-0">
+                  <MapPin className="w-3 h-3" /> {t('search.found')}
+                </span>
               </div>
-              <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-full shrink-0">
-                <MapPin className="w-3 h-3" /> {t('search.found')}
-              </span>
-            </div>
 
-            <p className="text-sm text-muted mt-3 leading-relaxed">{result.full_address}</p>
-            <p className="text-xs text-muted/70 font-mono mt-1">
-              {Number(result.latitude).toFixed(6)}, {Number(result.longitude).toFixed(6)}
-            </p>
-            {distance !== null && (
-              <p className="text-xs font-medium text-primary mt-1">
-                {t('search.distance', { dist: formatDistance(distance) })}
+              <p className="text-sm text-muted mt-3 leading-relaxed">{result.full_address}</p>
+              <p className="text-xs text-muted/70 font-mono mt-1">
+                {Number(result.latitude).toFixed(6)}, {Number(result.longitude).toFixed(6)}
               </p>
-            )}
+              {distance !== null && (
+                <p className="text-xs font-medium text-primary mt-1">
+                  {t('search.distance', { dist: formatDistance(distance) })}
+                </p>
+              )}
 
-            {/* AC 5.6: Get Directions; AC 5.7: Start Navigation; AC 5.8: Share */}
-            <div className="flex gap-2 mt-4">
-              <Button onClick={getDirections} variant="secondary" className="flex-1" size="sm">
-                <Route className="w-3.5 h-3.5" /> {t('search.get_directions')}
-              </Button>
-              <Button onClick={startNavigation} className="flex-1" size="sm">
-                <Navigation className="w-3.5 h-3.5" /> {t('search.navigate')}
-              </Button>
-              <Button
-                onClick={() => setShowShareSheet((v) => !v)}
-                variant="secondary"
-                size="sm"
-                className="shrink-0 px-3"
-                aria-label={t('search.share')}
-              >
-                <Share2 className="w-3.5 h-3.5" aria-hidden="true" />
-              </Button>
+              {/* AC 5.6: Get Directions; AC 5.7: Start Navigation; AC 5.8: Share */}
+              <div className="flex gap-2 mt-4">
+                <Button onClick={getDirections} variant="secondary" className="flex-1" size="sm">
+                  <Route className="w-3.5 h-3.5" /> {t('search.get_directions')}
+                </Button>
+                <Button onClick={startNavigation} className="flex-1" size="sm">
+                  <Navigation className="w-3.5 h-3.5" /> {t('search.navigate')}
+                </Button>
+                <Button
+                  onClick={() => setShowShareSheet((v) => !v)}
+                  variant="secondary"
+                  size="sm"
+                  className="shrink-0 px-3"
+                  aria-label={t('search.share')}
+                >
+                  <Share2 className="w-3.5 h-3.5" aria-hidden="true" />
+                </Button>
+              </div>
+
+              {/* AC 5.8: Share sheet — Email, WhatsApp, Facebook, Copy Link */}
+              {showShareSheet && (
+                <div className="mt-3 grid grid-cols-4 gap-2 animate-fade-in-up">
+                  {[
+                    { label: 'WhatsApp', icon: MessageCircle, color: 'text-emerald-500', action: shareWhatsApp },
+                    { label: t('search.email'), icon: Mail, color: 'text-blue-500', action: shareEmail },
+                    { label: 'Facebook', icon: Facebook, color: 'text-blue-600', action: shareFacebook },
+                    { label: t('search.copy'), icon: Copy, color: 'text-muted', action: copyLink },
+                  ].map(({ label, icon: Icon, color, action }) => (
+                    <button
+                      key={label}
+                      onClick={action}
+                      className="flex flex-col items-center gap-1 p-2.5 rounded-xl border border-border hover:border-primary/40 hover:bg-primary-light transition-all"
+                    >
+                      <Icon className={`w-4 h-4 ${color}`} />
+                      <span className="text-xs font-medium text-muted text-center leading-tight">{label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* AC 5.8: Share sheet — Email, WhatsApp, Facebook, Copy Link */}
-            {showShareSheet && (
-              <div className="mt-3 grid grid-cols-4 gap-2 animate-fade-in-up">
-                {[
-                  { label: 'WhatsApp', icon: MessageCircle, color: 'text-emerald-500', action: shareWhatsApp },
-                  { label: t('search.email'), icon: Mail, color: 'text-blue-500', action: shareEmail },
-                  { label: 'Facebook', icon: Facebook, color: 'text-blue-600', action: shareFacebook },
-                  { label: t('search.copy'), icon: Copy, color: 'text-muted', action: copyLink },
-                ].map(({ label, icon: Icon, color, action }) => (
-                  <button
-                    key={label}
-                    onClick={action}
-                    className="flex flex-col items-center gap-1 p-2.5 rounded-xl border border-border hover:border-primary/40 hover:bg-primary-light transition-all"
-                  >
-                    <Icon className={`w-4 h-4 ${color}`} />
-                    <span className="text-xs font-medium text-muted text-center leading-tight">{label}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Small map window — shown underneath the search after a result is selected */}
-        {result && (
-          <div className="mt-3 rounded-2xl overflow-hidden border border-border shadow-card-hover animate-fade-in-up">
-            <MapPicker
-              readonly
-              height="280px"
-              markerPosition={{ lat: Number(result.latitude), lng: Number(result.longitude) }}
-              searchResult={result}
-              userPos={userPos}
-              onGetDirections={getDirections}
-            />
+            {/* Small map window — beside the result card on wide screens */}
+            <div className="rounded-2xl overflow-hidden border border-border shadow-card-hover animate-fade-in-up">
+              <MapPicker
+                readonly
+                height="280px"
+                markerPosition={{ lat: Number(result.latitude), lng: Number(result.longitude) }}
+                searchResult={result}
+                userPos={userPos}
+                onGetDirections={getDirections}
+              />
+            </div>
           </div>
         )}
 
@@ -440,7 +441,7 @@ export default function SearchPage() {
         )}
       </div>
 
-      <Footer maxWidth="max-w-md" />
+      <Footer maxWidth="max-w-3xl" />
     </div>
   )
 }

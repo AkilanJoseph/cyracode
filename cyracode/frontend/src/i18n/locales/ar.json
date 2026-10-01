@@ -33,15 +33,17 @@
     },
     "footer": {
       "product": "المنتج",
+      "sales": "المبيعات",
       "account": "الحساب",
       "legal": "الشؤون القانونية",
-      "search": "ابحث عن CyraCode",
+      "faqs": "الأسئلة الشائعة",
+      "sitemap": "خريطة الموقع",
+      "search": "ابحث عن CyraCodes الخاصة بك",
       "dashboard": "لوحة التحكم",
       "manage": "إدارة CyraCodes",
       "orders": "الطلبات والفواتير",
       "privacy": "سياسة الخصوصية",
-      "rights_reserved": "جميع الحقوق محفوظة."
-    ,
+      "rights_reserved": "جميع الحقوق محفوظة.",
       "follow_us": "تابعنا",
       "social_x": "X",
       "social_instagram": "Instagram",
@@ -49,7 +51,9 @@
       "social_youtube": "YouTube",
       "social_facebook": "Facebook",
       "support": "الدعم",
-      "contact_us": "اتصل بنا"},
+      "queries": "لأي استفسارات، راسلنا عبر البريد الإلكتروني على:",
+      "contact_us": "اتصل بنا"
+    },
     "contact": {
       "title": "اتصل بنا",
       "open": "فتح نموذج الاتصال",
@@ -179,7 +183,7 @@
       "your_code": "رمز CyraCode الخاص بك",
       "address_label": "العنوان",
       "coords_label": "الإحداثيات",
-      "download_qr": "تحميل رمز QR بتنسيق PNG",
+      "download_qr": "تحميل رمز QR",
       "share_email": "البريد الإلكتروني",
       "go_dashboard": "الذهاب إلى لوحة التحكم",
       "next_profile_title": "إكمال الملف الشخصي",
@@ -295,13 +299,20 @@
       "save_failed": "فشل تحديث العنوان",
       "pick_hint": "جارٍ تعديل {{name}} — اضبط الدبوس على الخريطة إذا لزم الأمر",
       "coord_hint": "ملىء تلقائياً من الخريطة",
+      "search_placeholder": "ابحث باسم أو العنوان أو المدينة أو الدولة…",
+      "search_no_results": "لا توجد أي رمز مطابق لبحثك.",
       "type_customized": "مخصص",
       "type_auto_generate": "مُولّد تلقائياً",
       "type_personalized": "مخصص شخصياً",
       "copy_address": "نسخ العنوان",
       "copied": "تم النسخ!",
       "address_copied": "تم نسخ العنوان إلى الحافظة.",
-      "copy_failed": "تعذر نسخ العنوان."
+      "copy_failed": "تعذر نسخ العنوان.",
+      "download_qr": "تحميل رمز QR",
+      "copy": "نسخ",
+      "cyracode_name": "اسم الرمز الإلكتروني",
+      "details_copied": "تم نسخ اسم الرمز والعنوان إلى الحافظ.",
+      "details_copy_failed": "تعذر نسخ تفاصيل الرمز."
     },
     "pricing": {
       "eyebrow": "أسعار الواجهة البرمجية",
@@ -450,6 +461,7 @@
       "err_fix_fields": "يرجى تصحيح الحقول المحددة.",
       "err_card_number": "أدخل رقم بطاقة صحيحاً",
       "err_expiry_format": "استخدم صيغة شهر/سنة",
+      "err_expiry_past": "انتهت صلاحية هذه البطاقة",
       "err_cvv": "أدخل رمز CVV الموجود على بطاقتك",
       "err_bank": "اختر مصرفك",
       "err_upi": "أدخل معرّف UPI بصيغة name@bank",
@@ -471,13 +483,13 @@
     },
     "orders": {
       "title": "طلباتي",
-      "subtitle": "اطّلع على اشتراكاتك وفواتيرك. أدخل البريد الإلكتروني المستخدم عند الدفع.",
+      "subtitle": "اشتراكاتك وفواتيرك للحساب الذي سجّلت الدخول إليه.",
       "email_label": "بريد الطلب",
       "email_placeholder": "you@company.com",
       "lookup": "عرض الطلبات",
       "lookup_failed": "تعذّر تحميل طلباتك. حاول مجدداً.",
       "empty_title": "لم يتم العثور على طلبات",
-      "empty_body": "لم نعثر على طلبات لهذا البريد. تحقق من الكتابة أو اختر خطة للبدء.",
+      "empty_body": "لم نعثر على أي طلبات في حسابك بعد. اختر خطة للبدء.",
       "browse_plans": "تصفح الخطط",
       "active_subscription": "اشتراك نشط",
       "renews_on": "يُتجدد في {{date}}",
@@ -496,7 +508,21 @@
       "method_debit": "بطاقة مدين",
       "method_netbanking": "خدمات مصرفية",
       "method_upi": "UPI",
-      "secure_note": "يظهر سجل طلباتك للبريد الإلكتروني الذي تُدخله فقط."
+      "secure_note": "سجل طلباتك خاص بحسابك."
+    },
+    "faq": {
+      "title": "الأسئلة الشائعة",
+      "subtitle": "إجابات مباشرة حول التسجيل وإدارة CyraCode والدفع.",
+      "categories": {
+        "general": "عام",
+        "registration": "التسجيل",
+        "location": "الموقع والعنوان",
+        "manage": "إدارة رموز CyraCode",
+        "account": "الحساب والأمان",
+        "pricing": "الخطط والأسعار",
+        "payments": "المدفوعات",
+        "billing": "الاشتراك والفوترة"
+      }
     }
   }
 }

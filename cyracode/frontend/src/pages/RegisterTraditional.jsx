@@ -11,6 +11,7 @@ import ConfirmDialog from '../components/common/ConfirmDialog'
 import MapPicker from '../components/MapPicker'
 import Header from '../components/common/Header'
 import Footer from '../components/common/Footer'
+import { APP_MAX_WIDTH, APP_PADDING_Y } from '../lib/layout'
 import { registration } from '../services/api'
 import { apiErrorMessage } from '../utils/errors'
 import { useGoBack } from '../utils/navigation'
@@ -170,7 +171,7 @@ export function AddressStep({ address, setAddress, errors, clearError }) {
       {/* AC 2.9: India — cascading State → District dropdowns */}
       {address.country_code === 'IN' && (
         <>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">{t('register.state')}</label>
               <SelectWithLoader loading={loadingStates} value={address.stateIso || ''} onChange={(e) => { const s = states.find((x) => x.isoCode === e.target.value); setAddress({ ...address, stateIso: e.target.value, state: s?.name || '', district: '' }); if (typeof clearError === 'function') { clearError('state'); clearError('district') } }} className={selectCls}>
@@ -188,7 +189,7 @@ export function AddressStep({ address, setAddress, errors, clearError }) {
               {errors.district && <p className="mt-1 text-sm text-red-500">{errors.district}</p>}
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input label={t('register.area')} value={address.area} onChange={(e) => set('area', e.target.value)} error={errors.area} maxLength={100} />
             <Input label={t('register.town')} value={address.town} onChange={(e) => set('town', e.target.value)} error={errors.town} maxLength={100} />
           </div>
@@ -196,11 +197,11 @@ export function AddressStep({ address, setAddress, errors, clearError }) {
           <Input label={t('register.road_name')} value={address.road_name} onChange={(e) => set('road_name', e.target.value)} error={errors.road_name} maxLength={100} />
           <Input label={t('register.avenue_name')} value={address.avenue_name} onChange={(e) => set('avenue_name', e.target.value)} error={errors.avenue_name} maxLength={100} />
           <Input label={t('register.street')} value={address.street_address} onChange={(e) => set('street_address', e.target.value)} error={errors.street_address} maxLength={100} />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input label={t('register.building')} value={address.building_name} onChange={(e) => set('building_name', e.target.value)} error={errors.building_name} maxLength={100} />
             <Input label={t('register.floor')} value={address.floor_unit} onChange={(e) => set('floor_unit', e.target.value)} error={errors.floor_unit} maxLength={50} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input label={t('register.flat_number')} value={address.flat_number} onChange={(e) => set('flat_number', e.target.value)} error={errors.flat_number} maxLength={50} />
             <Input label={t('register.plot_number')} value={address.plot_number} onChange={(e) => set('plot_number', e.target.value)} error={errors.plot_number} maxLength={50} />
           </div>
@@ -219,12 +220,12 @@ export function AddressStep({ address, setAddress, errors, clearError }) {
           <Input label={t('register.street')} value={address.street_address} onChange={(e) => set('street_address', e.target.value)} error={errors.street_address} maxLength={100} />
           <Input label={t('register.road_name')} value={address.road_name} onChange={(e) => set('road_name', e.target.value)} error={errors.road_name} maxLength={100} />
           <Input label={t('register.avenue_name')} value={address.avenue_name} onChange={(e) => set('avenue_name', e.target.value)} error={errors.avenue_name} maxLength={100} />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input label={t('register.flat_number')} value={address.flat_number} onChange={(e) => set('flat_number', e.target.value)} error={errors.flat_number} maxLength={50} />
             <Input label={t('register.plot_number')} value={address.plot_number} onChange={(e) => set('plot_number', e.target.value)} error={errors.plot_number} maxLength={50} />
           </div>
           <Input label={t('register.suite_name')} value={address.suite_name} onChange={(e) => set('suite_name', e.target.value)} error={errors.suite_name} maxLength={50} />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input label={t('register.area')} value={address.area} onChange={(e) => set('area', e.target.value)} error={errors.area} maxLength={100} />
             <Input label={t('register.town')} value={address.town} onChange={(e) => set('town', e.target.value)} error={errors.town} maxLength={100} />
           </div>
@@ -249,12 +250,12 @@ export function AddressStep({ address, setAddress, errors, clearError }) {
           <Input label={t('register.street')} value={address.street_address} onChange={(e) => set('street_address', e.target.value)} error={errors.street_address} maxLength={100} />
           <Input label={t('register.road_name')} value={address.road_name} onChange={(e) => set('road_name', e.target.value)} error={errors.road_name} maxLength={100} />
           <Input label={t('register.avenue_name')} value={address.avenue_name} onChange={(e) => set('avenue_name', e.target.value)} error={errors.avenue_name} maxLength={100} />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input label={t('register.area')} value={address.area} onChange={(e) => set('area', e.target.value)} error={errors.area} maxLength={100} />
             <Input label={t('register.town')} value={address.town} onChange={(e) => set('town', e.target.value)} error={errors.town} maxLength={100} />
           </div>
           <Input label={t('register.city')} value={address.city || ''} onChange={(e) => set('city', e.target.value)} error={errors.city} maxLength={100} />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input label={t('register.flat_number')} value={address.flat_number} onChange={(e) => set('flat_number', e.target.value)} error={errors.flat_number} maxLength={50} />
             <Input label={t('register.plot_number')} value={address.plot_number} onChange={(e) => set('plot_number', e.target.value)} error={errors.plot_number} maxLength={50} />
           </div>
@@ -270,7 +271,7 @@ export function AddressStep({ address, setAddress, errors, clearError }) {
         <>
           <Input label={t('register.postal_jp')} value={address.postal_code} onChange={(e) => handlePostalChange(e.target.value)} error={postalErr} helperText={!postalErr ? t('register.postal_hint_jp') : undefined} />
           <Input label={t('register.prefecture')} value={address.state} onChange={(e) => set('state', e.target.value)} error={errors.state} maxLength={100} />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input label={t('register.area')} value={address.area} onChange={(e) => set('area', e.target.value)} error={errors.area} maxLength={100} />
             <Input label={t('register.town')} value={address.town} onChange={(e) => set('town', e.target.value)} error={errors.town} maxLength={100} />
           </div>
@@ -279,7 +280,7 @@ export function AddressStep({ address, setAddress, errors, clearError }) {
           <Input label={t('register.avenue_name')} value={address.avenue_name} onChange={(e) => set('avenue_name', e.target.value)} error={errors.avenue_name} maxLength={100} />
           <Input label={t('register.district_ward')} value={address.district} onChange={(e) => set('district', e.target.value)} maxLength={100} />
           <Input label={t('register.building')} value={address.building_name} onChange={(e) => set('building_name', e.target.value)} error={errors.building_name} maxLength={100} />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input label={t('register.flat_number')} value={address.flat_number} onChange={(e) => set('flat_number', e.target.value)} error={errors.flat_number} maxLength={50} />
             <Input label={t('register.plot_number')} value={address.plot_number} onChange={(e) => set('plot_number', e.target.value)} error={errors.plot_number} maxLength={50} />
           </div>
@@ -295,7 +296,7 @@ export function AddressStep({ address, setAddress, errors, clearError }) {
           <Input label={t('register.street')} value={address.street_address} onChange={(e) => set('street_address', e.target.value)} error={errors.street_address} maxLength={100} />
           <Input label={t('register.road_name')} value={address.road_name} onChange={(e) => set('road_name', e.target.value)} error={errors.road_name} maxLength={100} />
           <Input label={t('register.avenue_name')} value={address.avenue_name} onChange={(e) => set('avenue_name', e.target.value)} error={errors.avenue_name} maxLength={100} />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input label={t('register.area')} value={address.area} onChange={(e) => set('area', e.target.value)} error={errors.area} maxLength={100} />
             <Input label={t('register.town')} value={address.town} onChange={(e) => set('town', e.target.value)} error={errors.town} maxLength={100} />
           </div>
@@ -312,7 +313,7 @@ export function AddressStep({ address, setAddress, errors, clearError }) {
           ) : (
             <Input label={t('register.state_province')} value={address.state} onChange={(e) => set('state', e.target.value)} error={errors.state} maxLength={100} />
           )}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input label={t('register.building')} value={address.building_name} onChange={(e) => set('building_name', e.target.value)} error={errors.building_name} maxLength={100} />
             <Input label={t('register.flat_number')} value={address.flat_number} onChange={(e) => set('flat_number', e.target.value)} error={errors.flat_number} maxLength={50} />
           </div>
@@ -518,9 +519,9 @@ export default function RegisterTraditional() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <Header showBack breadcrumb={t('nav.register')} maxWidth="max-w-2xl" />
+      <Header showBack breadcrumb={t('nav.register')} maxWidth={APP_MAX_WIDTH} />
 
-      <div id="main-content" className="max-w-2xl mx-auto px-4 py-10">
+      <div id="main-content" className={`${APP_MAX_WIDTH} mx-auto px-4 ${APP_PADDING_Y}`}>
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-ink">{t('register.title_traditional')}</h1>
           <p className="text-muted mt-1">{t('common.step_of', { current: step, total: 2, name: STEPS[step - 1] })}</p>
@@ -577,7 +578,7 @@ export default function RegisterTraditional() {
               </div>
               <MapPicker markerPosition={coords} onLocationSelect={handleLocationSelect} />
               {/* AC 2.5 & 2.6: Read-only coordinate fields auto-populated from map */}
-              <div className="grid grid-cols-2 gap-3 pt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4">
                 <Input
                   label="Latitude"
                   value={coords ? coords.lat.toFixed(6) : ''}
@@ -640,7 +641,7 @@ export default function RegisterTraditional() {
         onCancel={() => setConfirmingDiscard(false)}
         testId="discard-dialog"
       />
-    <Footer maxWidth="max-w-2xl" />
+    <Footer maxWidth={APP_MAX_WIDTH} />
     </div>
   )
 }

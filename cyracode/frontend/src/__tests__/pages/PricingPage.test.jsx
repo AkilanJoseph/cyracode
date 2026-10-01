@@ -79,6 +79,13 @@ describe('PricingPage', () => {
     expect(within(table).getByText('Feature')).toBeInTheDocument()
     expect(within(table).getAllByRole('columnheader')).toHaveLength(6)
     expect(screen.getByText('Secure checkout. Instant activation. Cancel anytime.')).toBeInTheDocument()
+
+    // The Enterprise allowance cell is a hardcoded literal, unlike the plan
+    // cards, which take their values from the API. It was mojibake, so the
+    // table showed broken characters directly under a card reading
+    // "Unlimited" for the same plan.
+    expect(within(table).getByText('\u221e')).toBeInTheDocument()
+    expect(screen.queryByText(/\u00e2/)).not.toBeInTheDocument()
   })
 
   it('reads the billing frequency from the URL query', async () => {

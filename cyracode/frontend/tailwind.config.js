@@ -1,3 +1,5 @@
+import plugin from 'tailwindcss/plugin'
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
@@ -31,5 +33,12 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    // v3 emits plain `hover:` unconditionally, so on a touch screen a tap sticks
+    // the hover state open. `hoverable:` only applies where a real pointer can
+    // actually hover, which is what reveal-on-hover affordances need.
+    plugin(({ addVariant }) => {
+      addVariant('hoverable', '@media (hover: hover) and (pointer: fine)')
+    }),
+  ],
 }

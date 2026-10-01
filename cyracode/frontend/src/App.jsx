@@ -13,6 +13,7 @@ import Tagline from './components/common/Tagline'
 import ContactWidgetRoute from './components/common/ContactWidgetRoute'
 import { billing } from './services/api'
 import { PENDING_MODE_SELECT_KEY } from './constants'
+import { MARKETING_MAX_WIDTH, MARKETING_PADDING_Y, MARKETING_HERO_TITLE_CLASS, MARKETING_HERO_SUBTITLE_CLASS, APP_MAX_WIDTH, APP_PADDING_Y } from './lib/layout'
 
 const LandingPage = lazy(() => import('./pages/LandingPage'))
 const RegisterTraditional = lazy(() => import('./pages/RegisterTraditional'))
@@ -26,9 +27,11 @@ const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
 const PricingPage = lazy(() => import('./pages/PricingPage'))
 const PaymentPage = lazy(() => import('./pages/PaymentPage'))
 const OrdersPage = lazy(() => import('./pages/OrdersPage'))
+const FAQPage = lazy(() => import('./pages/FAQPage'))
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'))
 const AdminCyraCodes = lazy(() => import('./pages/AdminCyraCodes'))
 const AdminClients = lazy(() => import('./pages/AdminClients'))
+const AdminClientDetail = lazy(() => import('./pages/AdminClientDetail'))
 const AdminSubscriptions = lazy(() => import('./pages/AdminSubscriptions'))
 const AdminPlans = lazy(() => import('./pages/AdminPlans'))
 const AdminUsers = lazy(() => import('./pages/AdminUsers'))
@@ -43,18 +46,29 @@ function PageLoader() {
 }
 
 // Placeholder for docs/blog (content lives in later modules); keeps the
-// marketing nav links from dead-ending.
-function ComingSoonPage({ title }) {
+// marketing nav links from dead-ending. Shares the marketing frame with the
+// landing hero, and uses the same type scale for its heading, so the two read
+// as the same screen rather than a bare centred line on a tall empty page.
+export function ComingSoonPage({ title }) {
   const { t } = useTranslation()
   return (
     <div className="min-h-screen bg-surface">
-      <Header maxWidth="max-w-6xl" marketingNav />
-      <main id="main-content" className="max-w-3xl mx-auto px-4 py-20 text-center">
-        <h1 className="text-3xl font-bold text-ink">{title}</h1>
-        <p className="mt-3 text-muted">{t('common.coming_soon')}</p>
+      <Header maxWidth={MARKETING_MAX_WIDTH} marketingNav />
+      <main
+        id="main-content"
+        className={`${MARKETING_MAX_WIDTH} mx-auto px-4 ${MARKETING_PADDING_Y} text-center`}
+      >
+        {/* Same scale as LandingPage's hero h1 — both read from the shared
+            constant so the two cannot drift apart again. */}
+        <h1 className={MARKETING_HERO_TITLE_CLASS}>
+          {title}
+        </h1>
+        <p className={`mt-5 max-w-2xl mx-auto ${MARKETING_HERO_SUBTITLE_CLASS}`}>
+          {t('common.coming_soon')}
+        </p>
       </main>
 
-      <Footer maxWidth="max-w-3xl" />
+      <Footer maxWidth={MARKETING_MAX_WIDTH} />
     </div>
   )
 }
@@ -98,7 +112,9 @@ function InactivityLogout() {
 
 const VITE_GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
 
-function ProtectedRoute({ children }) {
+// Client-only pages. /orders is included because it exposes a customer's
+// subscriptions and invoices, which must never render for a signed-out visitor.
+export function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth()
   if (loading) return null
   if (!isAuthenticated) return <Navigate to="/" replace />
@@ -143,7 +159,7 @@ export function Dashboard() {
   useEffect(() => {
     if (!user?.email) return
     let active = true
-    billing.listOrders(user.email)
+    billing.listOrders()
       .then(({ data }) => {
         if (active) setSubscription((data || []).find((o) => o.status === 'paid') || null)
       })
@@ -162,9 +178,9 @@ export function Dashboard() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <Header />
+      <Header maxWidth={APP_MAX_WIDTH} />
 
-      <main id="main-content" className="max-w-3xl mx-auto px-4 py-12">
+      <main id="main-content" className={`${APP_MAX_WIDTH} mx-auto px-4 ${APP_PADDING_Y}`}>
         {/* Brand slogan as a rolling ticker, shown only on the user dashboard. */}
         <div className="marquee-track relative mb-6 overflow-hidden rounded-2xl border border-primary/20 bg-primary-light/60 py-2 sm:py-2.5">
           <div className="flex w-max animate-marquee">
@@ -216,7 +232,7 @@ export function Dashboard() {
             <div className="flex items-center gap-2">
               {subscription && (
                 <Link
-                  to={`/orders?email=${encodeURIComponent(subscription.email)}`}
+                  to="/orders"
                   className="inline-flex items-center gap-1.5 rounded-xl border border-border px-4 py-2 text-sm font-semibold text-ink hover:bg-surface transition-colors"
                 >
                   <RefreshCw className="w-4 h-4" aria-hidden="true" />
@@ -256,7 +272,7 @@ export function Dashboard() {
         </div>
       </main>
 
-      <Footer maxWidth="max-w-3xl" />
+      <Footer maxWidth={APP_MAX_WIDTH} />
     </div>
   )
 }
@@ -295,12 +311,17 @@ function AppRoutes() {
           {/* Alias so both /pricing and /plans-and-pricing bookmarks work. */}
           <Route path="/plans-and-pricing" element={<Navigate to="/pricing" replace />} />
           <Route path="/payment" element={<PaymentPage />} />
-          <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/orders" element={<ProtectedRoute><OrdersPage /></ProtectedRoute>} />
           <Route path="/docs" element={<ComingSoonPage title={t('nav.docs')} />} />
           <Route path="/blog" element={<ComingSoonPage title={t('nav.blog')} />} />
+          {/* Linked from the footer's Support column, so they need a real route
+              rather than falling through to the catch-all redirect home. */}
+          <Route path="/faqs" element={<FAQPage />} />
+          <Route path="/sitemap" element={<ComingSoonPage title={t('footer.sitemap')} />} />
           <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
           <Route path="/admin/cyracodes" element={<AdminRoute><AdminCyraCodes /></AdminRoute>} />
           <Route path="/admin/clients" element={<AdminRoute><AdminClients /></AdminRoute>} />
+          <Route path="/admin/clients/:clientId" element={<AdminRoute><AdminClientDetail /></AdminRoute>} />
           <Route path="/admin/subscriptions" element={<AdminRoute><AdminSubscriptions /></AdminRoute>} />
           <Route path="/admin/plans" element={<AdminRoute><AdminPlans /></AdminRoute>} />
           <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />

@@ -64,6 +64,33 @@ describe('SearchPage — rendering', () => {
     await screen.findByText(/Get Directions/i)
     expect(screen.getByTestId('map-picker')).toBeInTheDocument()
   })
+
+  it('lays the result out beside the map on wide screens and stacks on narrow ones', async () => {
+    const { user } = setup()
+    await user.type(screen.getByPlaceholderText(/search a cyracode/i), 'TestHome{Enter}')
+    await screen.findByText(/Get Directions/i)
+
+    // Both live in one grid that only splits into columns from md up, so the
+    // extra width is used instead of leaving a 448px column in a 768px page.
+    const grid = screen.getByTestId('map-picker').parentElement.parentElement
+    expect(grid).toHaveClass('md:grid-cols-2')
+    expect(grid).toHaveClass('gap-3')
+
+    // The result card and the map are siblings within that grid.
+    const card = screen.getByText(/Get Directions/i).closest('div.bg-white')
+    expect(card.parentElement).toBe(grid)
+    expect(screen.getByTestId('map-picker').parentElement.parentElement).toBe(grid)
+  })
+
+  it('uses the same page width as the dashboard and manage screens', () => {
+    setup()
+    // Header, content and footer all sit at max-w-3xl, the width the dashboard
+    // and manage screens use. Header and Footer render plain divs, not
+    // <header>/<footer>, so they are matched by class instead of tag.
+    expect(document.querySelector('.h-14.max-w-3xl')).toBeInTheDocument()
+    expect(document.querySelector('.relative.max-w-3xl')).toBeInTheDocument()
+    expect(document.querySelectorAll('.max-w-3xl').length).toBeGreaterThanOrEqual(3)
+  })
 })
 
 describe('SearchPage — autocomplete', () => {

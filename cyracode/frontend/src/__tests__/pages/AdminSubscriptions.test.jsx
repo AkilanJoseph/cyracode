@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { AuthProvider } from '../../context/AuthContext'
@@ -53,12 +53,24 @@ describe('AdminSubscriptions', () => {
     expect(await screen.findByText('No subscriptions match your filters.')).toBeInTheDocument()
   })
 
-  it('cancels a subscription from the actions menu', async () => {
+  it('shows the row actions as icons without opening a menu', async () => {
+    setup()
+    await screen.findByText('Courier Partner')
+
+    const row = screen.getByText('Courier Partner').closest('tr')
+    // Each action is directly reachable, in the CyraCodes table's icon style.
+    for (const name of [/edit courier partner/i, /renew courier partner/i, /change plan courier partner/i, /cancel courier partner/i]) {
+      expect(within(row).getByRole('button', { name })).toBeInTheDocument()
+    }
+    // No collapsed menu to open first.
+    expect(screen.queryByRole('button', { name: /^actions$/i })).not.toBeInTheDocument()
+  })
+
+  it('cancels a subscription straight from the row icon', async () => {
     const { user } = setup()
     await screen.findByText('Courier Partner')
 
-    await user.click(screen.getByRole('button', { name: /actions/i }))
-    await user.click(await screen.findByRole('button', { name: /^cancel$/i }))
+    await user.click(screen.getByRole('button', { name: /^cancel courier partner$/i }))
     await user.click(screen.getByRole('button', { name: /yes, cancel/i }))
 
     expect((await screen.findAllByText('Cancelled')).length).toBeGreaterThanOrEqual(1)

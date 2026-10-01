@@ -33,15 +33,17 @@
     },
     "footer": {
       "product": "Продукт",
+      "sales": "Продажи",
       "account": "Аккаунт",
       "legal": "Правовая информация",
-      "search": "Поиск CyraCode",
+      "faqs": "Вопросы и ответы",
+      "sitemap": "Карта сайта",
+      "search": "Поиск своих CyraCodes",
       "dashboard": "Панель",
       "manage": "Управление CyraCodes",
       "orders": "Заказы и счета",
       "privacy": "Политика конфиденциальности",
-      "rights_reserved": "Все права защищены."
-    ,
+      "rights_reserved": "Все права защищены.",
       "follow_us": "Подписывайтесь",
       "social_x": "X",
       "social_instagram": "Instagram",
@@ -49,7 +51,9 @@
       "social_youtube": "YouTube",
       "social_facebook": "Facebook",
       "support": "Поддержка",
-      "contact_us": "Свяжитесь с нами"},
+      "queries": "По любым вопросам пишите нам на:",
+      "contact_us": "Свяжитесь с нами"
+    },
     "contact": {
       "title": "Свяжитесь с нами",
       "open": "Открыть форму обратной связи",
@@ -179,7 +183,7 @@
       "your_code": "Ваш CyraCode",
       "address_label": "Адрес",
       "coords_label": "Координаты",
-      "download_qr": "Скачать QR как PNG",
+      "download_qr": "Скачать QR",
       "share_email": "Email",
       "go_dashboard": "На панель управления",
       "next_profile_title": "Заполнить профиль",
@@ -295,13 +299,20 @@
       "save_failed": "Не удалось обновить адрес",
       "pick_hint": "Редактирование {{name}} — при необходимости настройте метку на карте",
       "coord_hint": "Автоматически заполнено с карты",
+      "search_placeholder": "Поиск по имени, адресу, городу или стране…",
+      "search_no_results": "Нет ни одного CyraCode не соответствует вашему запросу.",
       "type_customized": "Пользовательский",
       "type_auto_generate": "Автоматически сгенерированный",
       "type_personalized": "Персонализированный",
       "copy_address": "Скопировать адрес",
       "copied": "Скопировано!",
       "address_copied": "Адрес скопирован в буфер обмена.",
-      "copy_failed": "Не удалось скопировать адрес."
+      "copy_failed": "Не удалось скопировать адрес.",
+      "download_qr": "Скачать QR",
+      "copy": "Копировать",
+      "cyracode_name": "Название CyraCode",
+      "details_copied": "Имя и адрес копированы в буфер обмена.",
+      "details_copy_failed": "Не удалось скопировать сведения о CyraCode."
     },
     "pricing": {
       "eyebrow": "Тарифы API",
@@ -450,6 +461,7 @@
       "err_fix_fields": "Исправьте выделенные поля.",
       "err_card_number": "Введите корректный номер карты",
       "err_expiry_format": "Используйте формат ММ/ГГ",
+      "err_expiry_past": "Срок действия этой карты истёк",
       "err_cvv": "Введите CVV с карты",
       "err_bank": "Выберите ваш банк",
       "err_upi": "Введите UPI ID вида name@bank",
@@ -471,13 +483,13 @@
     },
     "orders": {
       "title": "Мои заказы",
-      "subtitle": "Просмотр подписок и счетов. Введите e-mail, использованный при оплате.",
+      "subtitle": "Ваши подписки и счета для аккаунта, под которым вы вошли.",
       "email_label": "E-mail заказа",
       "email_placeholder": "you@company.com",
       "lookup": "Показать заказы",
       "lookup_failed": "Не удалось загрузить ваши заказы. Попробуйте ещё раз.",
       "empty_title": "Заказы не найдены",
-      "empty_body": "Для этого e-mail заказы не найдены. Проверьте правильность ввода или выберите тариф.",
+      "empty_body": "В вашем аккаунте пока нет заказов. Выберите план, чтобы начать.",
       "browse_plans": "Посмотреть тарифы",
       "active_subscription": "Активная подписка",
       "renews_on": "Продлевается {{date}}",
@@ -496,7 +508,21 @@
       "method_debit": "Дебетовая карта",
       "method_netbanking": "Интернет-банк",
       "method_upi": "UPI",
-      "secure_note": "История заказов показывается только по введённому e-mail."
+      "secure_note": "История ваших заказов доступна только в вашем аккаунте."
+    },
+    "faq": {
+      "title": "Часто задаваемые вопросы",
+      "subtitle": "Короткие ответы о регистрации, управлении и оплате в CyraCode.",
+      "categories": {
+        "general": "Общие вопросы",
+        "registration": "Регистрация",
+        "location": "Местоположение и адрес",
+        "manage": "Управление CyraCode",
+        "account": "Аккаунт и безопасность",
+        "pricing": "Тарифы и цены",
+        "payments": "Способы оплаты",
+        "billing": "Подписка и выставление счетов"
+      }
     }
   }
 }

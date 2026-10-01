@@ -45,7 +45,7 @@ export default function ForgotPassword() {
 
   return (
     <div className="min-h-screen bg-surface flex flex-col">
-      <Header showBack backFallback="/" maxWidth="max-w-6xl" />
+      <Header maxWidth="max-w-6xl" />
 
       <div className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="bg-white rounded-3xl shadow-card border border-border p-8 w-full max-w-sm animate-fade-in-up">

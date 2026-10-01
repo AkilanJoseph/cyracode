@@ -1,6 +1,5 @@
-import { useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
-import { MapPin, LogOut, Menu, X } from 'lucide-react'
+import { MapPin, LogOut } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import BackButton from './BackButton'
 import LanguageSelector from './LanguageSelector'
@@ -15,7 +14,6 @@ export default function Header({ showBack = false, backFallback = '/dashboard', 
   const { t } = useTranslation()
   const { user, isAuthenticated, logout } = useAuth()
   const navigate = useNavigate()
-  const [mobileOpen, setMobileOpen] = useState(false)
 
   const handleLogout = () => { logout(); navigate('/') }
 
@@ -38,28 +36,17 @@ export default function Header({ showBack = false, backFallback = '/dashboard', 
           </>
         )}
 
-        {marketingNav && (
-          <>
-            <button
-              type="button"
-              onClick={() => setMobileOpen((v) => !v)}
-              className="md:hidden ml-auto flex items-center justify-center w-9 h-9 rounded-lg text-ink hover:bg-surface transition-colors"
-              aria-label={mobileOpen ? undefined : t('nav.open_menu')}
-              aria-expanded={mobileOpen}
-            >
-              {mobileOpen ? <X className="w-5 h-5" aria-hidden="true" /> : <Menu className="w-5 h-5" aria-hidden="true" />}
-            </button>
-          </>
-        )}
-
         <div className="ml-auto flex items-center gap-2 sm:gap-4">
+          {/* Marketing links sit in the right-hand cluster ahead of the language
+              selector, so Pricing stays reachable on small screens instead of
+              dropping into a full-width panel below the bar. */}
           {marketingNav &&
             MARKETING_LINKS.map(({ to, key }) => (
               <NavLink
                 key={to}
                 to={to}
                 className={({ isActive }) =>
-                  `hidden md:block px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  `px-2 sm:px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                     isActive ? 'text-primary bg-primary-light/60' : 'text-muted hover:text-ink'
                   }`
                 }
@@ -81,25 +68,6 @@ export default function Header({ showBack = false, backFallback = '/dashboard', 
           )}
         </div>
       </div>
-
-      {marketingNav && mobileOpen && (
-        <div className="md:hidden border-t border-border bg-white px-4 py-2 space-y-1">
-          {MARKETING_LINKS.map(({ to, key }) => (
-            <NavLink
-              key={to}
-              to={to}
-              onClick={() => setMobileOpen(false)}
-              className={({ isActive }) =>
-                `block px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive ? 'text-primary bg-primary-light/60' : 'text-muted hover:text-ink'
-                }`
-              }
-            >
-              {t(`nav.${key}`)}
-            </NavLink>
-          ))}
-        </div>
-      )}
     </nav>
   )
 }

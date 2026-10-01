@@ -33,15 +33,17 @@
     },
     "footer": {
       "product": "Produto",
+      "sales": "Vendas",
       "account": "Conta",
       "legal": "Legal",
-      "search": "Pesquisar um CyraCode",
+      "faqs": "Perguntas frequentes",
+      "sitemap": "Mapa do site",
+      "search": "Pesquisar seus CyraCodes",
       "dashboard": "Painel",
       "manage": "Gerenciar CyraCodes",
       "orders": "Pedidos e faturas",
       "privacy": "Política de privacidade",
-      "rights_reserved": "Todos os direitos reservados."
-    ,
+      "rights_reserved": "Todos os direitos reservados.",
       "follow_us": "Siga-nos",
       "social_x": "X",
       "social_instagram": "Instagram",
@@ -49,7 +51,9 @@
       "social_youtube": "YouTube",
       "social_facebook": "Facebook",
       "support": "Suporte",
-      "contact_us": "Fale conosco"},
+      "queries": "Para qualquer dúvida, escreva-nos para:",
+      "contact_us": "Fale conosco"
+    },
     "contact": {
       "title": "Fale conosco",
       "open": "Abrir o formulário de contato",
@@ -179,7 +183,7 @@
       "your_code": "Seu CyraCode",
       "address_label": "Endereço",
       "coords_label": "Coordenadas",
-      "download_qr": "Baixar QR como PNG",
+      "download_qr": "Baixar QR",
       "share_email": "E-mail",
       "go_dashboard": "Ir para o painel",
       "next_profile_title": "Completar perfil",
@@ -295,13 +299,20 @@
       "save_failed": "Falha ao atualizar o endereço",
       "pick_hint": "Editando {{name}} — ajuste o marcador no mapa, se necessário",
       "coord_hint": "Preenchido automaticamente do mapa",
+      "search_placeholder": "Buscar por nome, endereço, cidade ou país…",
+      "search_no_results": "Nenhum CyraCode corresponde à sua busca.",
       "type_customized": "Personalizado",
       "type_auto_generate": "Gerado automaticamente",
       "type_personalized": "Personalizado",
       "copy_address": "Copiar endereço",
       "copied": "Copiado!",
       "address_copied": "Endereço copiado para a área de transferência.",
-      "copy_failed": "Não foi possível copiar o endereço."
+      "copy_failed": "Não foi possível copiar o endereço.",
+      "download_qr": "Baixar QR",
+      "copy": "Copiar",
+      "cyracode_name": "Nome do CyraCode",
+      "details_copied": "Nome e endereço do CyraCode copiados para a área de transferência.",
+      "details_copy_failed": "Não foi possível copiar os detalhes do CyraCode."
     },
     "pricing": {
       "eyebrow": "Preços da API",
@@ -450,6 +461,7 @@
       "err_fix_fields": "Corrija os campos destacados.",
       "err_card_number": "Insira um número de cartão válido",
       "err_expiry_format": "Use MM/AA",
+      "err_expiry_past": "Este cartão expirou",
       "err_cvv": "Insira o CVV do cartão",
       "err_bank": "Selecione seu banco",
       "err_upi": "Insira um ID UPI como nome@banco",
@@ -471,13 +483,13 @@
     },
     "orders": {
       "title": "Meus pedidos",
-      "subtitle": "Veja suas assinaturas e faturas. Informe o e-mail usado no checkout.",
+      "subtitle": "Suas assinaturas e faturas da conta em que você está conectado.",
       "email_label": "E-mail do pedido",
       "email_placeholder": "voce@empresa.com",
       "lookup": "Ver pedidos",
       "lookup_failed": "Não foi possível carregar seus pedidos. Tente novamente.",
       "empty_title": "Nenhum pedido encontrado",
-      "empty_body": "Não encontramos pedidos para esse e-mail. Verifique a grafia ou escolha um plano.",
+      "empty_body": "Ainda não encontramos pedidos na sua conta. Escolha um plano para começar.",
       "browse_plans": "Ver planos",
       "active_subscription": "Assinatura ativa",
       "renews_on": "Renova em {{date}}",
@@ -496,7 +508,21 @@
       "method_debit": "Cartão de débito",
       "method_netbanking": "Internet banking",
       "method_upi": "UPI",
-      "secure_note": "Seu histórico de pedidos só é exibido para o e-mail informado."
+      "secure_note": "Seu histórico de pedidos é privado na sua conta."
+    },
+    "faq": {
+      "title": "Perguntas frequentes",
+      "subtitle": "Respostas diretas sobre cadastro, gestão e pagamento no CyraCode.",
+      "categories": {
+        "general": "Geral",
+        "registration": "Cadastro",
+        "location": "Localização e endereço",
+        "manage": "Gerenciar CyraCodes",
+        "account": "Conta e segurança",
+        "pricing": "Planos e preços",
+        "payments": "Pagamentos",
+        "billing": "Assinatura e faturamento"
+      }
     }
   }
 }

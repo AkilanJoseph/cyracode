@@ -14,39 +14,57 @@ const SOCIAL_LINKS = [
   { href: 'https://youtube.com/@cyracode', key: 'social_youtube', Icon: Youtube },
 ]
 
-// The Support row opens the Contact-us widget; enquiries are delivered to
-// support@cyracode.com by backend/app/api/contact.py (also used in PrivacyPolicy).
+// Shown as a plain line under the logo/tagline. Widget enquiries are delivered
+// to this address by backend/app/api/contact.py; keep in sync with PrivacyPolicy.
+const SUPPORT_EMAIL = 'support@cyracode.com'
 
 const GROUPS = [
   {
     heading: 'footer.product',
-    links: [
-      { to: '/pricing', key: 'nav.pricing' },
-      { to: '/docs', key: 'nav.docs' },
-      { to: '/blog', key: 'nav.blog' },
-    ],
+    links: [{ to: '/pricing', key: 'nav.pricing' }],
+  },
+  {
+    // Temporarily hidden. The definition is kept so the columns come back in
+    // their original order with a one-word change; drop `hidden` to restore.
+    heading: 'footer.sales',
+    hidden: true,
+    links: [{ to: '/orders', key: 'footer.orders' }],
   },
   {
     heading: 'footer.account',
+    hidden: true,
     links: [
       { to: '/dashboard', key: 'footer.dashboard' },
       { to: '/manage-cyracodes', key: 'footer.manage' },
       { to: '/search', key: 'footer.search' },
-      { to: '/orders', key: 'footer.orders' },
     ],
   },
   {
     heading: 'footer.legal',
     links: [{ to: '/privacy', key: 'footer.privacy' }],
-    // Renders as a new row inside the Legal column rather than its own column.
-    nested: {
-      heading: 'footer.support',
+  },
+  {
+    // Its own column rather than a row inside Legal: it now carries the
+    // help content, which is too much to stack under a single policy link.
+    heading: 'footer.support',
+    links: [
+      { to: '/blog', key: 'nav.blog' },
+      { to: '/docs', key: 'nav.docs' },
+      { to: '/faqs', key: 'footer.faqs' },
+      // Temporarily hidden, like the Sales and Account columns. The entry is
+      // kept in place so it returns in the right order; drop `hidden` to
+      // restore. The /sitemap route stays live.
+      { to: '/sitemap', key: 'footer.sitemap', hidden: true },
       // Opens the Contact-us widget rather than handing off to the mail client,
-      // so the visitor is not dumped into a blank compose window.
-      links: [{ action: 'contact', key: 'footer.contact_us' }],
-    },
+      // so the visitor is not dumped into a blank compose window. Kept last so
+      // the enquiry action follows the reference links.
+      { action: 'contact', key: 'footer.contact_us' },
+    ],
   },
 ]
+
+// Groups flagged `hidden` are skipped without losing their place in GROUPS.
+const VISIBLE_GROUPS = GROUPS.filter((group) => !group.hidden)
 
 function LinkList({ links }) {
   const { t } = useTranslation()
@@ -55,7 +73,8 @@ function LinkList({ links }) {
 
   return (
     <ul className="mt-3 space-y-2">
-      {links.map(({ to, key, action }) => (
+      {/* Same `hidden` convention as the groups above, applied per link. */}
+      {links.filter((link) => !link.hidden).map(({ to, key, action }) => (
         <li key={to || action}>
           {action === 'contact' ? (
             <button type="button" onClick={openContact} className={linkClass}>
@@ -72,7 +91,7 @@ function LinkList({ links }) {
   )
 }
 
-function FooterGroup({ heading, links, nested }) {
+function FooterGroup({ heading, links }) {
   const { t } = useTranslation()
   const headingClass = 'text-xs font-semibold uppercase tracking-wide text-primary'
 
@@ -82,12 +101,6 @@ function FooterGroup({ heading, links, nested }) {
         <p className={headingClass}>{t(heading)}</p>
         <LinkList links={links} />
       </nav>
-      {nested ? (
-        <nav aria-label={t(nested.heading)} className="mt-6">
-          <p className={headingClass}>{t(nested.heading)}</p>
-          <LinkList links={nested.links} />
-        </nav>
-      ) : null}
     </div>
   )
 }
@@ -158,16 +171,31 @@ export default function Footer({ maxWidth = 'max-w-3xl', variant = 'full' }) {
   return (
     <footer className="border-t border-border bg-white">
       <div className={`${maxWidth} mx-auto px-4 py-8 sm:py-10`}>
-        <div className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
-          <div>
+        {/* Track math: brand takes 2, each visible menu group takes 1. At lg
+            that is 2 + 3 = 5 columns on one row. From sm the brand takes the
+            whole row so the three menu groups share one even row instead of
+            leaving the last column alone. */}
+        <div className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-3 lg:grid-cols-5">
+          <div className="sm:col-span-3 lg:col-span-2">
             {brand}
             <Tagline
               layout="stacked"
               className="mt-3 text-sm text-muted max-w-xs leading-relaxed"
             />
+            {/* Admin uses the minimal variant, so this only shows on public pages. */}
+            <p className="mt-3 text-sm text-muted max-w-xs leading-relaxed">
+              {t('footer.queries')}
+            </p>
+            <a
+              href={`mailto:${SUPPORT_EMAIL}`}
+              className="mt-1 inline-block text-sm font-medium text-primary hover:underline
+                whitespace-nowrap"
+            >
+              {SUPPORT_EMAIL}
+            </a>
           </div>
 
-          {GROUPS.map((group) => (
+          {VISIBLE_GROUPS.map((group) => (
             <FooterGroup key={group.heading} {...group} />
           ))}
         </div>

@@ -201,6 +201,35 @@ describe('AdminCyraCodes', () => {
     expect(screen.queryByText('Traditional registration screen')).not.toBeInTheDocument()
   })
 
+  // "adjust the pin on the map" describes step 1, where the map picker is. This
+  // banner was gated on step === 2 and so appeared over the address form, the
+  // opposite of how ManageCyraCodes presents it.
+  it('shows the adjust-the-pin hint on step 1, between the warning and the map', async () => {
+    const { user } = setup()
+    await screen.findByText('TestHome')
+
+    await user.click(screen.getByRole('button', { name: /edit TestHome/i }))
+
+    const warning = await screen.findByText(/cannot be changed/i)
+    const hint = await screen.findByText(/adjust the pin on the map if needed/i)
+    const map = await screen.findByTestId('map-picker')
+
+    expect(
+      warning.compareDocumentPosition(hint) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+    expect(
+      hint.compareDocumentPosition(map) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+
+    // It is guidance for the map, so it must not follow onto the address form.
+    await user.click(screen.getByRole('button', { name: /^continue$/i }))
+    await screen.findByLabelText(/Street Name/i)
+
+    expect(screen.queryByTestId('map-picker')).not.toBeInTheDocument()
+    expect(screen.queryByText(/adjust the pin on the map if needed/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/cannot be changed/i)).not.toBeInTheDocument()
+  })
+
   it('prefills the address form with the stored values on the second step', async () => {
     const { user } = setup()
     await screen.findByText('TestHome')

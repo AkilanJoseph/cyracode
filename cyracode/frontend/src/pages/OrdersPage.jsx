@@ -1,16 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Search, Receipt, Download, Loader2, Check, X, ArrowRight } from 'lucide-react'
+import { Receipt, Download, Loader2, Check, X, ArrowRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import Header from '../components/common/Header'
 import Footer from '../components/common/Footer'
-import Button from '../components/common/Button'
-import Input from '../components/common/Input'
+import { useAuth } from '../context/AuthContext'
 import { billing } from '../services/api'
 import { apiErrorMessage } from '../utils/errors'
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 function money(n) {
   return `$${Number(n || 0).toLocaleString('en-US')}`
@@ -61,9 +58,7 @@ function downloadInvoice(order) {
 
 export default function OrdersPage() {
   const { t } = useTranslation()
-  const [searchParams] = useSearchParams()
-  const [email, setEmail] = useState(() => searchParams.get('email') || '')
-  const [emailError, setEmailError] = useState(null)
+  const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
   const [orders, setOrders] = useState([])
@@ -71,35 +66,33 @@ export default function OrdersPage() {
 
   const active = orders.find((o) => o.status === 'paid')
 
-  const doLookup = async (target) => {
-    const val = (target ?? email).trim()
-    if (!val) { setEmailError(t('common.required')); return }
-    if (!EMAIL_RE.test(val)) { setEmailError(t('errors.invalid_email')); return }
-    setEmailError(null)
-    setLoading(true)
-    try {
-      const { data } = await billing.listOrders(val)
-      setOrders(data)
-      setSearched(true)
-    } catch (err) {
-      toast.error(apiErrorMessage(err, t('orders.lookup_failed')))
-    } finally {
-      setLoading(false)
-    }
-  }
+  // The route sits behind ProtectedRoute and the backend scopes the query to
+  // the token's account, so a customer's orders and invoices cannot be read by
+  // anyone who happens to know their email address. There is no search box
+  // because there is nothing left to search on.
+  const email = user?.email
 
-  // Deep link from the payment success screen (/orders?email=...) — look up
-  // straight away so the buyer lands on their invoice history.
   useEffect(() => {
-    const q = searchParams.get('email')
-    if (q) doLookup(q)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const handleLookup = (e) => {
-    e.preventDefault()
-    doLookup()
-  }
+    if (!email) return undefined
+    let cancelled = false
+    setLoading(true)
+    billing
+      .listOrders()
+      .then(({ data }) => {
+        if (cancelled) return
+        setOrders(data)
+        setSearched(true)
+      })
+      .catch((err) => {
+        if (!cancelled) toast.error(apiErrorMessage(err, t('orders.lookup_failed')))
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [email, t])
 
   const toggleAutoRenew = async (order) => {
     setToggling(order.id)
@@ -135,29 +128,17 @@ export default function OrdersPage() {
         <h1 className="text-3xl font-bold text-ink">{t('orders.title')}</h1>
         <p className="mt-1 text-muted">{t('orders.subtitle')}</p>
 
-        <form onSubmit={handleLookup} noValidate className="mt-6 flex flex-col sm:flex-row gap-3">
-          <label className="sr-only" htmlFor="orders-email">{t('orders.email_label')}</label>
-          <div className="flex-1 relative">
-            <input
-              id="orders-email"
-              type="email"
-              placeholder={t('orders.email_placeholder')}
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value)
-                if (emailError) setEmailError(null)
-              }}
-              className={`w-full rounded-xl border bg-white px-4 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 ${emailError ? 'border-red-400' : 'border-border'}`}
-            />
-            {emailError && <p className="mt-1 text-xs text-red-500">{emailError}</p>}
-          </div>
-          <Button type="submit" loading={loading} className="sm:w-auto">
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Search className="w-4 h-4" aria-hidden="true" />}
+        {loading && !searched && (
+          <p
+            className="mt-10 flex items-center justify-center gap-2 text-sm text-muted"
+            data-testid="orders-loading"
+          >
+            <Loader2 className="w-4 h-4 animate-spin text-primary" aria-hidden="true" />
             {t('orders.lookup')}
-          </Button>
-        </form>
+          </p>
+        )}
 
-        {searched && orders.length === 0 && (
+        {searched && !loading && orders.length === 0 && (
           <div className="mt-10 rounded-2xl border border-border bg-white p-10 text-center shadow-card">
             <Receipt className="w-10 h-10 text-muted mx-auto" aria-hidden="true" />
             <p className="mt-3 font-semibold text-ink">{t('orders.empty_title')}</p>
@@ -255,7 +236,7 @@ export default function OrdersPage() {
           </section>
         )}
 
-        {!searched && (
+        {!searched && !loading && (
           <p className="mt-10 flex items-center justify-center gap-2 text-sm text-muted">
             <Check className="w-4 h-4 text-emerald-500" aria-hidden="true" />
             {t('orders.secure_note')}

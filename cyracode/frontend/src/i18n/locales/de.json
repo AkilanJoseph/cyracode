@@ -33,15 +33,17 @@
     },
     "footer": {
       "product": "Produkt",
+      "sales": "Vertrieb",
       "account": "Konto",
       "legal": "Rechtliches",
-      "search": "CyraCode suchen",
+      "faqs": "FAQs",
+      "sitemap": "Sitemap",
+      "search": "Eigene CyraCodes suchen",
       "dashboard": "Übersicht",
       "manage": "CyraCodes verwalten",
       "orders": "Bestellungen & Rechnungen",
       "privacy": "Datenschutzerklärung",
-      "rights_reserved": "Alle Rechte vorbehalten."
-    ,
+      "rights_reserved": "Alle Rechte vorbehalten.",
       "follow_us": "Folge uns",
       "social_x": "X",
       "social_instagram": "Instagram",
@@ -49,7 +51,9 @@
       "social_youtube": "YouTube",
       "social_facebook": "Facebook",
       "support": "Support",
-      "contact_us": "Kontakt"},
+      "queries": "Bei Fragen schreiben Sie uns eine E-Mail an:",
+      "contact_us": "Kontakt"
+    },
     "contact": {
       "title": "Kontakt",
       "open": "Kontaktformular öffnen",
@@ -179,7 +183,7 @@
       "your_code": "Ihr CyraCode",
       "address_label": "Adresse",
       "coords_label": "Koordinaten",
-      "download_qr": "QR als PNG herunterladen",
+      "download_qr": "QR herunterladen",
       "share_email": "E-Mail",
       "go_dashboard": "Zum Dashboard",
       "next_profile_title": "Profil vervollständigen",
@@ -295,13 +299,20 @@
       "save_failed": "Adresse konnte nicht aktualisiert werden",
       "pick_hint": "{{name}} wird bearbeitet — passen Sie die Markierung auf der Karte bei Bedarf an",
       "coord_hint": "Automatisch von der Karte ausgefüllt",
+      "search_placeholder": "Nach Name, Adresse, Stadt oder Land suchen…",
+      "search_no_results": "Keine CyraCodes stimmen mit deiner Suche überein.",
       "type_customized": "Angepasst",
       "type_auto_generate": "Automatisch generiert",
       "type_personalized": "Personalisiert",
       "copy_address": "Adresse kopieren",
       "copied": "Kopiert!",
       "address_copied": "Adresse in die Zwischenablage kopiert.",
-      "copy_failed": "Adresse konnte nicht kopiert werden."
+      "copy_failed": "Adresse konnte nicht kopiert werden.",
+      "download_qr": "QR herunterladen",
+      "copy": "Kopieren",
+      "cyracode_name": "CyraCode-Name",
+      "details_copied": "Name und Adresse des CyraCodes in die Zwischenablage kopiert.",
+      "details_copy_failed": "Kopieren der CyraCode-Details fehlgeschlagen."
     },
     "pricing": {
       "eyebrow": "API-Preise",
@@ -450,6 +461,7 @@
       "err_fix_fields": "Bitte korrigieren Sie die markierten Felder.",
       "err_card_number": "Geben Sie eine gültige Kartennummer ein",
       "err_expiry_format": "Format MM/JJ verwenden",
+      "err_expiry_past": "Diese Karte ist abgelaufen",
       "err_cvv": "Geben Sie den CVV Ihrer Karte ein",
       "err_bank": "Wählen Sie Ihre Bank",
       "err_upi": "UPI-ID im Format name@bank eingeben",
@@ -471,13 +483,13 @@
     },
     "orders": {
       "title": "Meine Bestellungen",
-      "subtitle": "Abonnements und Rechnungen ansehen. E-Mail von der Kasse eingeben.",
+      "subtitle": "Ihre Abonnements und Rechnungen für das angemeldete Konto.",
       "email_label": "Bestell-E-Mail",
       "email_placeholder": "sie@firma.de",
       "lookup": "Bestellungen ansehen",
       "lookup_failed": "Bestellungen konnten nicht geladen werden. Bitte erneut versuchen.",
       "empty_title": "Keine Bestellungen gefunden",
-      "empty_body": "Unter dieser E-Mail fanden wir keine Bestellungen. Prüfen Sie die Schreibweise oder wählen Sie einen Tarif.",
+      "empty_body": "In Ihrem Konto wurden noch keine Bestellungen gefunden. Wählen Sie einen Tarif, um zu starten.",
       "browse_plans": "Tarife ansehen",
       "active_subscription": "Aktives Abonnement",
       "renews_on": "Verlängert am {{date}}",
@@ -496,7 +508,21 @@
       "method_debit": "Debitkarte",
       "method_netbanking": "Online-Banking",
       "method_upi": "UPI",
-      "secure_note": "Ihr Bestellverlauf wird nur für die eingegebene E-Mail angezeigt."
+      "secure_note": "Ihre Bestellhistorie bleibt in Ihrem Konto privat."
+    },
+    "faq": {
+      "title": "Häufige Fragen",
+      "subtitle": "Klare Antworten zu Registrierung, Verwaltung und Bezahlung bei CyraCode.",
+      "categories": {
+        "general": "Allgemein",
+        "registration": "Registrierung",
+        "location": "Standort und Adresse",
+        "manage": "CyraCodes verwalten",
+        "account": "Konto und Sicherheit",
+        "pricing": "Tarife und Preise",
+        "payments": "Zahlungen",
+        "billing": "Abonnement und Abrechnung"
+      }
     }
   }
 }

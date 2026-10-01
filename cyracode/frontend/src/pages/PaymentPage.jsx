@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import {
@@ -15,7 +15,9 @@ import { useAuth } from '../context/AuthContext'
 import { billing } from '../services/api'
 import { apiErrorMessage } from '../utils/errors'
 import { PUBLIC_PLANS, breakdown, checkoutPrice } from '../lib/plans'
+import { MARKETING_MAX_WIDTH, MARKETING_PADDING_Y } from '../lib/layout'
 import { COUNTRIES, EMPTY_ADDRESS, ADDRESS_FIELDS, cloneAddress, isAddressEmpty, isPostalValid, isStateRequired } from '../lib/address'
+import { getStates, isStateValid } from '../lib/states'
 
 const METHODS = ['card', 'debit', 'netbanking', 'upi']
 
@@ -60,6 +62,14 @@ function formatExpiry(value) {
   return `${digits.slice(0, 2)}/${digits.slice(2)}`
 }
 
+// A well-formed MM/YY can still be in the past. Day 0 of the following month
+// is the last day of the expiry month, so 12/24 stays valid through 31 Dec 2024.
+function isExpired(mmYY) {
+  const [mm, yy] = mmYY.split('/').map(Number)
+  const lastDay = new Date(2000 + yy, mm, 0, 23, 59, 59)
+  return lastDay.getTime() < Date.now()
+}
+
 // Deterministic simulated payment gateway used until a real PSP is wired up.
 // Numbers ending in 0002 → insufficient funds; 0003 → expired card.
 function gatewayResult(method, data) {
@@ -77,6 +87,10 @@ function AddressSection({ ns, label, values, onChange, onCountryChange, errors, 
   const { t } = useTranslation()
   const editable = !disabled
   const country = values.country
+  // Countries we hold a list for get a dropdown; the rest stay free text so a
+  // customer is never blocked from entering their region.
+  const states = getStates(country)
+  const stateError = errors[`${ns}_state`]
   return (
     <div className="rounded-2xl border border-border p-5 space-y-4">
       <p className="text-sm font-semibold text-ink">{label}</p>
@@ -89,6 +103,70 @@ function AddressSection({ ns, label, values, onChange, onCountryChange, errors, 
         error={errors[`${ns}_company`]}
         disabled={!editable}
       />
+      {/* Country before state: whether a state/province is required follows from
+          the country, so the answer must already be visible. */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label htmlFor={`${ns}-country`} className="block text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">
+            {t('payment.addr_country')}
+          </label>
+          <select
+            id={`${ns}-country`}
+            value={values.country}
+            onChange={(e) => onCountryChange(e.target.value)}
+            disabled={!editable}
+            aria-invalid={errors[`${ns}_country`] ? 'true' : undefined}
+            aria-describedby={errors[`${ns}_country`] ? `${ns}-country-error` : undefined}
+            className={`w-full rounded-xl border px-3.5 py-2.5 text-sm text-ink bg-white focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed ${
+              errors[`${ns}_country`] ? 'border-red-400 focus:ring-red-100 focus:border-red-400' : 'border-border'
+            }`}
+          >
+            <option value="">{t('payment.addr_country_placeholder')}</option>
+            {COUNTRIES.map((c) => (
+              <option key={c.code} value={c.code}>{c.name}</option>
+            ))}
+          </select>
+          {errors[`${ns}_country`] && (
+            <p id={`${ns}-country-error`} role="alert" className="mt-1 text-xs text-red-500">{errors[`${ns}_country`]}</p>
+          )}
+        </div>
+        {states ? (
+          <div>
+            <label htmlFor={`${ns}-state`} className="block text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">
+              {t(`payment.addr_state${isStateRequired(country) ? '_required' : ''}`)}
+            </label>
+            <select
+              id={`${ns}-state`}
+              value={values.state}
+              onChange={(e) => onChange('state', e.target.value)}
+              disabled={!editable}
+              aria-invalid={stateError ? 'true' : undefined}
+              aria-describedby={stateError ? `${ns}-state-error` : undefined}
+              className={`w-full rounded-xl border px-3.5 py-2.5 text-sm text-ink bg-white focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed ${
+                stateError ? 'border-red-400 focus:ring-red-100 focus:border-red-400' : 'border-border'
+              }`}
+            >
+              <option value="">{t('payment.addr_state_placeholder')}</option>
+              {states.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            {stateError && (
+              <p id={`${ns}-state-error`} role="alert" className="mt-1 text-xs text-red-500">{stateError}</p>
+            )}
+          </div>
+        ) : (
+          <Input
+            id={`${ns}-state`}
+            label={t(`payment.addr_state${isStateRequired(country) ? '_required' : ''}`)}
+            placeholder={t('payment.addr_state_placeholder')}
+            value={values.state}
+            onChange={(e) => onChange('state', e.target.value)}
+            error={stateError}
+            disabled={!editable}
+          />
+        )}
+      </div>
       <Input
         id={`${ns}-addr1`}
         label={t('payment.addr_line1')}
@@ -118,17 +196,6 @@ function AddressSection({ ns, label, values, onChange, onCountryChange, errors, 
           disabled={!editable}
         />
         <Input
-          id={`${ns}-state`}
-          label={t(`payment.addr_state${isStateRequired(country) ? '_required' : ''}`)}
-          placeholder={t('payment.addr_state_placeholder')}
-          value={values.state}
-          onChange={(e) => onChange('state', e.target.value)}
-          error={errors[`${ns}_state`]}
-          disabled={!editable}
-        />
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Input
           id={`${ns}-postal`}
           label={t('payment.addr_postal')}
           inputMode="numeric"
@@ -138,24 +205,6 @@ function AddressSection({ ns, label, values, onChange, onCountryChange, errors, 
           error={errors[`${ns}_postal`]}
           disabled={!editable}
         />
-        <div>
-          <label htmlFor={`${ns}-country`} className="block text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">
-            {t('payment.addr_country')}
-          </label>
-          <select
-            id={`${ns}-country`}
-            value={values.country}
-            onChange={(e) => onCountryChange(e.target.value)}
-            disabled={!editable}
-            className="w-full rounded-xl border border-border px-3.5 py-2.5 text-sm text-ink bg-white focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed"
-          >
-            <option value="">{t('payment.addr_country_placeholder')}</option>
-            {COUNTRIES.map((c) => (
-              <option key={c.code} value={c.code}>{c.name}</option>
-            ))}
-          </select>
-          {errors[`${ns}_country`] && <p className="mt-1 text-xs text-red-500">{errors[`${ns}_country`]}</p>}
-        </div>
       </div>
     </div>
   )
@@ -184,6 +233,7 @@ export default function PaymentPage() {
   const [sameAsInvoice, setSameAsInvoice] = useState(false)
 
   const [errors, setErrors] = useState({})
+  const [submitted, setSubmitted] = useState(false)
   const [processing, setProcessing] = useState(false)
   const [failures, setFailures] = useState(0)
   const [locked, setLocked] = useState(false)
@@ -195,24 +245,7 @@ export default function PaymentPage() {
   const summary = breakdown(price)
   const emailPrefilled = Boolean(email)
 
-  // No valid plan → back to pricing.
-  if (!plan) {
-    return (
-      <div className="min-h-screen bg-surface">
-        <Header maxWidth="max-w-6xl" marketingNav />
-        <main id="main-content" className="max-w-xl mx-auto px-4 py-20 text-center">
-          <p className="text-muted">{t('payment.no_plan')}</p>
-          <Link to="/pricing" className="mt-4 inline-block rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-white hover:bg-primary-dark transition-colors">
-            {t('common.continue')}
-          </Link>
-        </main>
-
-        <Footer maxWidth="max-w-xl" />
-      </div>
-    )
-  }
-
-  const validate = () => {
+  const validate = useCallback(() => {
     const e = {}
     if (!email.trim()) e.email = t('common.required')
     else if (!EMAIL_RE.test(email.trim())) e.email = t('payment.err_email')
@@ -239,6 +272,7 @@ export default function PaymentPage() {
       else if (digits.length < 15 || digits.length > 19) e.number = t('payment.err_card_number')
       if (!card.expiry.trim()) e.expiry = t('common.required')
       else if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(card.expiry)) e.expiry = t('payment.err_expiry_format')
+      else if (isExpired(card.expiry)) e.expiry = t('payment.err_expiry_past')
       if (!card.cvv.trim()) e.cvv = t('common.required')
       else if (!new RegExp(brand === 'amex' ? /^\d{4}$/ : /^\d{3}$/).test(card.cvv)) e.cvv = t('payment.err_cvv')
     } else if (method === 'netbanking') {
@@ -250,9 +284,40 @@ export default function PaymentPage() {
       else if (!PHONE_RE.test(upi.phone.trim())) e.upiPhone = t('payment.err_phone')
     }
     return e
-  }
+  }, [t, email, invoiceAddr, billingAddr, sameAsInvoice, method, card, bank, upi, brand])
 
   const billingSnapshotRef = useRef(null)
+
+  // Re-run validation on every change once the user has attempted a submit, so
+  // a message clears the moment its field is corrected rather than lingering
+  // until the next submit. Nothing is flagged while they first fill it in.
+  useEffect(() => {
+    if (!submitted) return
+    setErrors(validate())
+  }, [submitted, validate])
+
+  // No valid plan → back to pricing. Kept below the hooks so the hook order
+  // stays the same whether or not the plan query param is valid.
+  if (!plan) {
+    return (
+      <div className="min-h-screen bg-surface">
+        <Header maxWidth={MARKETING_MAX_WIDTH} marketingNav />
+        <main
+          id="main-content"
+          className={`${MARKETING_MAX_WIDTH} mx-auto px-4 ${MARKETING_PADDING_Y}`}
+        >
+          <div className="max-w-xl mx-auto text-center">
+            <p className="text-muted">{t('payment.no_plan')}</p>
+            <Link to="/pricing" className="mt-4 inline-block rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-white hover:bg-primary-dark transition-colors">
+              {t('common.continue')}
+            </Link>
+          </div>
+        </main>
+
+        <Footer maxWidth={MARKETING_MAX_WIDTH} />
+      </div>
+    )
+  }
 
   const patchInvoice = (field, value) => {
     setInvoiceAddr((prev) => ({ ...prev, [field]: value }))
@@ -265,8 +330,11 @@ export default function PaymentPage() {
   }
 
   const handleInvoiceCountry = (code) => {
-    setInvoiceAddr((prev) => ({ ...prev, country: code }))
-    if (sameAsInvoice) setBillingAddr((prev) => ({ ...prev, country: code }))
+    // A region that belonged to the previous country is not an option on the
+    // new dropdown, so drop it rather than keep a value the field cannot show.
+    const keepState = (prev) => (isStateValid(prev.state, code) ? prev.state : '')
+    setInvoiceAddr((prev) => ({ ...prev, country: code, state: keepState(prev) }))
+    if (sameAsInvoice) setBillingAddr((prev) => ({ ...prev, country: code, state: keepState(prev) }))
     // A new country immediately re-bases postal/state validation.
     setErrors((prev) => {
       const next = { ...prev }
@@ -276,6 +344,20 @@ export default function PaymentPage() {
         delete next.billing_postal
         delete next.billing_state
       }
+      return next
+    })
+  }
+
+  const handleBillingCountry = (code) => {
+    setBillingAddr((prev) => ({
+      ...prev,
+      country: code,
+      state: isStateValid(prev.state, code) ? prev.state : '',
+    }))
+    setErrors((prev) => {
+      const next = { ...prev }
+      delete next.billing_postal
+      delete next.billing_state
       return next
     })
   }
@@ -313,10 +395,43 @@ export default function PaymentPage() {
     ev.preventDefault()
     if (processing || locked) return
 
+    // From here on, edits re-validate as they are made.
+    setSubmitted(true)
+
     const e = validate()
     setErrors(e)
     if (Object.keys(e).length) {
       toast.error(t('payment.err_fix_fields'))
+      // Move focus to the first invalid field so the message is not left
+      // off-screen at the bottom of a long checkout form.
+      const firstInvalid = e.email ? '#pay-email'
+        : e.holder ? '#pay-holder'
+          : e.number ? '#pay-number'
+            : e.expiry ? '#pay-expiry'
+              : e.cvv ? '#pay-cvv'
+                : e.bank ? '#pay-bank'
+                  : e.upiId ? '#pay-upi-id'
+                    : e.upiPhone ? '#pay-upi-phone'
+                      : e.invoice_company ? '#invoice-company'
+                        : e.invoice_addr1 ? '#invoice-addr1'
+                          : e.invoice_city ? '#invoice-city'
+                            : e.invoice_state ? '#invoice-state'
+                              : e.invoice_postal ? '#invoice-postal'
+                                : e.invoice_country ? '#invoice-country'
+                                  : e.billing_company ? '#billing-company'
+                                    : e.billing_addr1 ? '#billing-addr1'
+                                      : e.billing_city ? '#billing-city'
+                                        : e.billing_state ? '#billing-state'
+                                          : e.billing_postal ? '#billing-postal'
+                                            : e.billing_country ? '#billing-country' : null
+      const el = firstInvalid && document.querySelector(firstInvalid)
+      if (el) {
+        el.focus()
+        // Not implemented in jsdom.
+        if (typeof el.scrollIntoView === 'function') {
+          el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+        }
+      }
       return
     }
 
@@ -363,9 +478,14 @@ export default function PaymentPage() {
   if (success) {
     return (
       <div className="min-h-screen bg-surface">
-        <Header maxWidth="max-w-6xl" marketingNav />
-        <main id="main-content" className="max-w-2xl mx-auto px-4 py-14 animate-fade-in-up">
-          <div className="rounded-3xl border border-emerald-200 bg-white p-8 shadow-card text-center">
+        <Header maxWidth={MARKETING_MAX_WIDTH} marketingNav />
+        <main
+          id="main-content"
+          className={`${MARKETING_MAX_WIDTH} mx-auto px-4 ${MARKETING_PADDING_Y} animate-fade-in-up`}
+        >
+          {/* Receipt details are a narrow column even though the page frame is
+              the shared marketing width. */}
+          <div className="max-w-2xl mx-auto rounded-3xl border border-emerald-200 bg-white p-8 shadow-card text-center">
             <div className="mx-auto w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center">
               <CheckCircle2 className="w-8 h-8 text-emerald-600" aria-hidden="true" />
             </div>
@@ -400,13 +520,18 @@ export default function PaymentPage() {
             )}
 
             <div className="mt-6 flex flex-col sm:flex-row justify-center gap-3">
-              <Link
-                to={`/orders?email=${encodeURIComponent(success.email)}`}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-white hover:bg-primary-dark transition-colors"
-              >
-                {t('payment.view_orders')}
-                <ArrowRight className="w-4 h-4" aria-hidden="true" />
-              </Link>
+              {/* /orders is owner-scoped and needs a signed-in account, so only
+                  offer the shortcut to customers who can actually open it.
+                  Guest checkouts get their order by email instead. */}
+              {user && (
+                <Link
+                  to="/orders"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-white hover:bg-primary-dark transition-colors"
+                >
+                  {t('payment.view_orders')}
+                  <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                </Link>
+              )}
               <Link
                 to="/pricing"
                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-border px-6 py-2.5 text-sm font-semibold text-ink hover:bg-surface transition-colors"
@@ -417,18 +542,23 @@ export default function PaymentPage() {
           </div>
         </main>
 
-        <Footer maxWidth="max-w-2xl" />
+        <Footer maxWidth={MARKETING_MAX_WIDTH} />
       </div>
     )
   }
 
   return (
     <div className="min-h-screen bg-surface">
-      <Header maxWidth="max-w-6xl" marketingNav />
+      <Header maxWidth={MARKETING_MAX_WIDTH} marketingNav />
 
-      <main id="main-content" className="max-w-6xl mx-auto px-4 py-10 grid lg:grid-cols-[1fr_380px] gap-8 items-start">
-        {/* Payment form */}
-        <section className="bg-white rounded-3xl border border-border shadow-card p-6 md:p-8 animate-fade-in-up">
+      <main
+        id="main-content"
+        className={`${MARKETING_MAX_WIDTH} mx-auto px-4 ${MARKETING_PADDING_Y} grid lg:grid-cols-[1fr_380px] gap-8 items-start`}
+      >
+        {/* Payment form. order-first at lg keeps the form on the left on wide
+            screens while the summary, marked order-first below, leads the page
+            on narrow ones. */}
+        <section className="bg-white rounded-3xl border border-border shadow-card p-6 md:p-8 animate-fade-in-up lg:order-first">
           <h1 className="text-2xl font-bold text-ink">{t('payment.title')}</h1>
           <p className="text-sm text-muted mt-1">{t('payment.subtitle')}</p>
 
@@ -502,15 +632,7 @@ export default function PaymentPage() {
               label={t('payment.billing_address')}
               values={sameAsInvoice ? invoiceAddr : billingAddr}
               onChange={patchBilling}
-              onCountryChange={(code) => {
-                setBillingAddr((prev) => ({ ...prev, country: code }))
-                setErrors((prev) => {
-                  const next = { ...prev }
-                  delete next.billing_postal
-                  delete next.billing_state
-                  return next
-                })
-              }}
+              onCountryChange={handleBillingCountry}
               errors={errors}
               disabled={sameAsInvoice}
             />
@@ -558,7 +680,7 @@ export default function PaymentPage() {
                     placeholder="•••"
                     type="password"
                     inputMode="numeric"
-                    maxLength={4}
+                    maxLength={brand === 'amex' ? 4 : 3}
                     value={card.cvv}
                     onChange={(e) => setCard({ ...card, cvv: e.target.value.replace(/\D/g, '') })}
                     error={errors.cvv}
@@ -578,14 +700,18 @@ export default function PaymentPage() {
                     id="pay-bank"
                     value={bank}
                     onChange={(e) => setBank(e.target.value)}
-                    className="w-full rounded-xl border border-border px-3.5 py-2.5 text-sm text-ink bg-white focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    aria-invalid={errors.bank ? 'true' : undefined}
+                    aria-describedby={errors.bank ? 'pay-bank-error' : undefined}
+                    className={`w-full rounded-xl border px-3.5 py-2.5 text-sm text-ink bg-white focus:outline-none focus:ring-2 focus:ring-primary/40 ${
+                      errors.bank ? 'border-red-400 focus:ring-red-100 focus:border-red-400' : 'border-border'
+                    }`}
                   >
                     <option value="">{t('payment.bank_placeholder')}</option>
                     {BANKS.map((b) => (
                       <option key={b} value={b}>{b}</option>
                     ))}
                   </select>
-                  {errors.bank && <p className="mt-1 text-xs text-red-500">{errors.bank}</p>}
+                  {errors.bank && <p id="pay-bank-error" role="alert" className="mt-1 text-xs text-red-500">{errors.bank}</p>}
                 </div>
                 <p className="text-xs text-muted">{t('payment.netbanking_redirect_note')}</p>
               </div>
@@ -651,50 +777,53 @@ export default function PaymentPage() {
           </form>
         </section>
 
-        {/* Order summary */}
-        <aside className="bg-white rounded-3xl border border-border shadow-card p-6 sticky top-20">
+        {/* Order summary. Leads the page on narrow screens so the total is
+            visible before the form, and returns to the right column from lg up.
+            Sticky is desktop-only: pinned on mobile it would cover most of the
+            viewport and hide the form fields it sits above. */}
+        <aside className="bg-white rounded-3xl border border-border shadow-card p-5 sm:p-6 order-first lg:order-last lg:sticky lg:top-20">
           <h2 className="text-lg font-bold text-ink">{t('payment.summary_title')}</h2>
           <dl className="mt-4 space-y-3 text-sm">
-            <div className="flex justify-between">
+            <div className="flex items-baseline justify-between gap-3">
               <dt className="text-muted">{t('payment.plan')}</dt>
-              <dd className="font-semibold text-ink">{plan.name}</dd>
+              <dd className="font-semibold text-ink text-right break-words">{plan.name}</dd>
             </div>
-            <div className="flex justify-between">
+            <div className="flex items-baseline justify-between gap-3">
               <dt className="text-muted">{t('payment.billing_frequency')}</dt>
-              <dd className="font-medium text-ink capitalize">{t(`payment.${billingFreq}`)}</dd>
+              <dd className="font-medium text-ink capitalize text-right">{t(`payment.${billingFreq}`)}</dd>
             </div>
-            <div className="flex justify-between">
+            <div className="flex items-baseline justify-between gap-3">
               <dt className="text-muted">{t('payment.starts_today')}</dt>
-              <dd className="font-medium text-ink">{t('payment.today')}</dd>
+              <dd className="font-medium text-ink text-right">{t('payment.today')}</dd>
             </div>
-            <div className="border-t border-border pt-3 flex justify-between">
+            <div className="border-t border-border pt-3 flex items-baseline justify-between gap-3">
               <dt className="text-muted">{t('payment.subtotal')}</dt>
-              <dd className="font-medium text-ink">{money(summary.subtotal)}</dd>
+              <dd className="font-medium text-ink text-right">{money(summary.subtotal)}</dd>
             </div>
-            <div className="flex justify-between">
+            <div className="flex items-baseline justify-between gap-3">
               <dt className="text-muted">{t('payment.taxes')}</dt>
-              <dd className="font-medium text-ink">{money(summary.taxAmount)}</dd>
+              <dd className="font-medium text-ink text-right">{money(summary.taxAmount)}</dd>
             </div>
-            <div className="border-t border-border pt-3 flex justify-between items-baseline">
+            <div className="border-t border-border pt-3 flex items-baseline justify-between gap-3">
               <dt className="font-semibold text-ink">{t('payment.total_due')}</dt>
-              <dd className="text-xl font-extrabold text-primary">{money(summary.total)}</dd>
+              <dd className="text-xl font-extrabold text-primary text-right">{money(summary.total)}</dd>
             </div>
           </dl>
 
-          <div className="mt-5 flex gap-2">
+          <div className="mt-5 flex flex-wrap gap-2">
             <input
               type="text"
               value={promo}
               onChange={(e) => setPromo(e.target.value)}
               placeholder={t('payment.promo_placeholder')}
-              className="flex-1 rounded-xl border border-border px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40"
+              className="flex-1 min-w-0 rounded-xl border border-border px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40"
             />
             <button
               type="button"
               onClick={() => {
                 if (promo.trim()) { setAppliedPromo(promo.trim().toUpperCase()); toast.success(t('payment.promo_applied')); }
               }}
-              className="rounded-xl border border-primary px-4 py-2.5 text-sm font-semibold text-primary hover:bg-primary-light transition-colors"
+              className="shrink-0 rounded-xl border border-primary px-4 py-2.5 text-sm font-semibold text-primary hover:bg-primary-light transition-colors"
             >
               {t('payment.apply')}
             </button>
@@ -710,7 +839,7 @@ export default function PaymentPage() {
         </aside>
       </main>
 
-      <Footer maxWidth="max-w-6xl" />
+      <Footer maxWidth={MARKETING_MAX_WIDTH} />
     </div>
   )
 }
