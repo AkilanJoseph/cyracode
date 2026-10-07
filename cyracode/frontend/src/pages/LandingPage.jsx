@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { MapPin, Sparkles, ArrowRight, Zap, Users, LayoutDashboard } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -359,7 +359,22 @@ export default function LandingPage() {
                 type="password"
                 placeholder="••••••••"
                 value={loginForm.password}
-                onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                onChange={(e) => {
+                  const val = e.target.value
+                  setLoginForm({ ...loginForm, password: val })
+                  // Any password satisfies the only rule here, so clear as soon as
+                  // there is one. Without this the "Required" message raised on
+                  // submit stayed up while the user was typing a valid password.
+                  if (loginErrors.password && val) {
+                    setLoginErrors((prev) => ({ ...prev, password: undefined }))
+                  }
+                }}
+                onBlur={(e) => {
+                  setLoginErrors((prev) => ({
+                    ...prev,
+                    password: e.target.value ? undefined : t('common.required'),
+                  }))
+                }}
                 error={loginErrors.password}
               />
               <div className="flex items-center justify-between text-xs text-muted">
@@ -485,13 +500,16 @@ export default function LandingPage() {
                   />
                   <span className="text-xs text-muted">
                     {t('landing.gdpr_text')}{' '}
-                    <button
-                      type="button"
+                    {/* A router Link, not window.open: the policy is an internal
+                        route, so it belongs in this tab like every other internal
+                        link. Opening it in a new tab also threw away everything
+                        already typed into the signup form. */}
+                    <Link
+                      to="/privacy"
                       className="text-primary underline hover:text-primary-dark"
-                      onClick={() => window.open('/privacy', '_blank')}
                     >
                       {t('landing.gdpr_policy')}
-                    </button>{' '}
+                    </Link>{' '}
                     {t('landing.gdpr_and')}
                   </span>
                 </label>

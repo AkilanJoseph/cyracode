@@ -523,6 +523,9 @@
         "payments": "支付方式",
         "billing": "订阅与账单"
       }
-    }
+    },
+    "edit.share_qr": "Share QR",
+    "confirmation.share_email": "Email",
+    "confirmation.share_qr": "Share QR"
   }
 }

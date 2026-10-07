@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { Sparkles, RefreshCw, Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -11,13 +11,16 @@ import Header from '../components/common/Header'
 import Footer from '../components/common/Footer'
 import ConfirmDialog from '../components/common/ConfirmDialog'
 import { AddressStep, validateAddress } from './RegisterTraditional'
-import { APP_MAX_WIDTH, APP_PADDING_Y } from '../lib/layout'
+import { frameForOrigin } from '../lib/layout'
 import { registration } from '../services/api'
 import { apiErrorMessage } from '../utils/errors'
 import { useGoBack } from '../utils/navigation'
 
 export default function RegisterAutoGenerate() {
   const navigate = useNavigate()
+  // Admin, Dashboard and marketing hand the flow different frames; the entry point
+  // recorded which one this is and it follows the flow to the completion screen.
+  const frame = frameForOrigin(useLocation().state)
   const { t } = useTranslation()
   const [step, setStep] = useState(1)
   const [submitting, setSubmitting] = useState(false)
@@ -133,7 +136,7 @@ export default function RegisterAutoGenerate() {
         landmark: address.landmark || null,
       }
       const { data } = await registration.registerPersonalized(payload, idempotencyKeyRef.current)
-      navigate('/confirmation', { state: { record: data, mode: 'auto_generate' } })
+      navigate('/confirmation', { state: { record: data, mode: 'auto_generate', fromAdmin: frame.isAdmin } })
     } catch (err) {
       if (err.response?.status === 409) {
         // The database re-check found the name was claimed while the user was
@@ -151,9 +154,9 @@ export default function RegisterAutoGenerate() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <Header showBack breadcrumb={t('nav.auto_generate')} maxWidth={APP_MAX_WIDTH} />
+      <Header showBack breadcrumb={t('nav.auto_generate')} maxWidth={frame.maxWidth} />
 
-      <div id="main-content" className={`${APP_MAX_WIDTH} mx-auto px-4 ${APP_PADDING_Y}`}>
+      <div id="main-content" className={`${frame.maxWidth} mx-auto px-4 ${frame.paddingY}`}>
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-ink">{t('register.title_auto')}</h1>
           <p className="text-muted mt-1">{t('common.step_of', { current: step, total: 2, name: STEPS[step - 1] })}</p>
@@ -285,7 +288,7 @@ export default function RegisterAutoGenerate() {
         onCancel={() => setConfirmingDiscard(false)}
         testId="discard-dialog"
       />
-    <Footer maxWidth={APP_MAX_WIDTH} />
+    <Footer maxWidth={frame.maxWidth} />
     </div>
   )
 }

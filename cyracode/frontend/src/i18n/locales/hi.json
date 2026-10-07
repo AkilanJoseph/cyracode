@@ -523,6 +523,9 @@
         "payments": "भुगतान",
         "billing": "सदस्यता और बिलिंग"
       }
-    }
+    },
+    "edit.share_qr": "Share QR",
+    "confirmation.share_email": "Email",
+    "confirmation.share_qr": "Share QR"
   }
 }

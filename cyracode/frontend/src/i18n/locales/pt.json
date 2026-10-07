@@ -523,6 +523,9 @@
         "payments": "Pagamentos",
         "billing": "Assinatura e faturamento"
       }
-    }
+    },
+    "edit.share_qr": "Share QR",
+    "confirmation.share_email": "Email",
+    "confirmation.share_qr": "Share QR"
   }
 }

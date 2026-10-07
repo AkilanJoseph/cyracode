@@ -123,7 +123,7 @@ export default function Footer({ maxWidth = 'max-w-3xl', variant = 'full' }) {
 
   const copyright = (
     <p className="text-xs text-muted text-center sm:text-left">
-      &copy; {year} {t('nav.brand')}. {t('footer.rights_reserved')}
+      &copy; {year} {t('nav.brand')}. {t('footer.rights_reserved')} · {t('language.label')}: {currentLang.toUpperCase()} ({country})}
     </p>
   )
 

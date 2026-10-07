@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
 import { Plus, Pencil, Trash2, X, Tag } from 'lucide-react'
 import Header from '../components/common/Header'
-import Footer from '../components/common/Footer'
+import Footer from '../components/common/Footer'
+import { ADMIN_MAX_WIDTH, ADMIN_PADDING_Y } from '../lib/layout'
 import AdminNav from '../components/admin/AdminNav'
 import Button from '../components/common/Button'
 import Input from '../components/common/Input'
@@ -113,10 +114,10 @@ export default function AdminPlans() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <Header maxWidth="max-w-5xl" />
+      <Header maxWidth={ADMIN_MAX_WIDTH} />
       <AdminNav />
 
-      <main id="main-content" className="max-w-5xl mx-auto px-4 py-10">
+      <main id="main-content" className={`${ADMIN_MAX_WIDTH} mx-auto px-4 ${ADMIN_PADDING_Y}`}>
         <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <div>
             <h1 className="text-2xl font-bold text-ink">{t('admin.plans_title')}</h1>
@@ -207,7 +208,7 @@ export default function AdminPlans() {
         </div>
       )}
 
-    <Footer variant="minimal" maxWidth="max-w-5xl" />
+    <Footer variant="minimal" maxWidth={ADMIN_MAX_WIDTH} />
     </div>
   )
 }

@@ -842,6 +842,9 @@
         "payments": "Payments",
         "billing": "Subscription and Billing"
       }
-    }
+    },
+    "edit.share_qr": "Share QR",
+    "confirmation.share_qr": "Share QR",
+    "confirmation.share_email": "Email"
   }
 }

@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import { LayoutDashboard, MapPin, KeyRound, Users, ScrollText, CreditCard, Tag } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { ADMIN_MAX_WIDTH } from '../../lib/layout'
 
 const links = [
   { to: '/admin', icon: LayoutDashboard, key: 'admin.nav_dashboard', end: true },
@@ -16,7 +17,7 @@ export default function AdminNav() {
   const { t } = useTranslation()
   return (
     <nav aria-label="Admin" className="border-b border-border bg-white/80 sticky top-14 z-10">
-      <div className="max-w-5xl mx-auto px-4 h-12 flex items-center gap-1 overflow-x-auto">
+      <div className={`${ADMIN_MAX_WIDTH} mx-auto px-4 h-12 flex items-center gap-1 overflow-x-auto`}>
         {links.map(({ to, icon: Icon, key, end }) => (
           <NavLink
             key={to}

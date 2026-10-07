@@ -523,6 +523,9 @@
         "payments": "Zahlungen",
         "billing": "Abonnement und Abrechnung"
       }
-    }
+    },
+    "edit.share_qr": "Share QR",
+    "confirmation.share_email": "Email",
+    "confirmation.share_qr": "Share QR"
   }
 }

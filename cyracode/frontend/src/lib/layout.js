@@ -31,3 +31,22 @@ export const MARKETING_HERO_SUBTITLE_CLASS = 'text-lg text-muted leading-relaxed
 export const APP_MAX_WIDTH = 'max-w-3xl'
 
 export const APP_PADDING_Y = 'py-12'
+
+// The admin frame, with the admin pages as the reference, exactly as APP_* is to
+// the Dashboard. The registration screens reuse these when the flow was entered
+// from the admin module, so that hand-off keeps the admin's width and rhythm
+// instead of snapping to the narrower app frame at step one.
+export const ADMIN_MAX_WIDTH = 'max-w-5xl'
+
+export const ADMIN_PADDING_Y = 'py-10'
+
+// Registration is reachable from the admin module, the Dashboard and the
+// marketing pages, and each of those hands the next screen a different frame.
+// The entry point records where the flow started, so the frame can follow it
+// through every step and on to the completion screen.
+export function frameForOrigin(state) {
+  const isAdmin = state?.fromAdmin === true
+  return isAdmin
+    ? { maxWidth: ADMIN_MAX_WIDTH, paddingY: ADMIN_PADDING_Y, isAdmin }
+    : { maxWidth: APP_MAX_WIDTH, paddingY: APP_PADDING_Y, isAdmin }
+}

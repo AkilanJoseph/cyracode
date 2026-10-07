@@ -6,7 +6,8 @@ import {
   CreditCard, CalendarClock, TrendingUp, Download, X, Ban, Pencil,
 } from 'lucide-react'
 import Header from '../components/common/Header'
-import Footer from '../components/common/Footer'
+import Footer from '../components/common/Footer'
+import { ADMIN_MAX_WIDTH, ADMIN_PADDING_Y } from '../lib/layout'
 import AdminNav from '../components/admin/AdminNav'
 import Button from '../components/common/Button'
 import { PlanBadge, SubStatusBadge, MONTH_OPTIONS, formatMoney } from '../components/admin/Badges'
@@ -220,10 +221,10 @@ export default function AdminSubscriptions() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <Header maxWidth="max-w-5xl" />
+      <Header maxWidth={ADMIN_MAX_WIDTH} />
       <AdminNav />
 
-      <main id="main-content" className="max-w-5xl mx-auto px-4 py-10">
+      <main id="main-content" className={`${ADMIN_MAX_WIDTH} mx-auto px-4 ${ADMIN_PADDING_Y}`}>
         <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <div>
             <h1 className="text-2xl font-bold text-ink">{t('admin.subs_title')}</h1>
@@ -386,7 +387,7 @@ export default function AdminSubscriptions() {
         </div>
       )}
 
-    <Footer variant="minimal" maxWidth="max-w-5xl" />
+    <Footer variant="minimal" maxWidth={ADMIN_MAX_WIDTH} />
     </div>
   )
 }

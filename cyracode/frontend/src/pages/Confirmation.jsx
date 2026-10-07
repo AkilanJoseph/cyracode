@@ -11,6 +11,7 @@ import Button from '../components/common/Button'
 import Header from '../components/common/Header'
 import Footer from '../components/common/Footer'
 import { cyraCodeQrValue } from '../utils/qrcode'
+import { frameForOrigin } from '../lib/layout'
 
 // Shared by the address and coords rows so their labels and values sit on the
 // same edges, and so the action slot exists on both rows. Previously the address
@@ -50,6 +51,9 @@ export default function Confirmation() {
   const qrRef = useRef(null)
 
   const record = state?.record
+  // Registered from admin the completion screen keeps the admin width, so the
+  // frame does not change on the last hop of the flow.
+  const frame = frameForOrigin(state)
   if (!record) {
     return (
       <div className="min-h-screen bg-surface flex flex-col items-center justify-center gap-4 p-6">
@@ -159,9 +163,9 @@ export default function Confirmation() {
     <div className="min-h-screen bg-surface">
       <Confetti />
 
-      <Header showBack />
+      <Header showBack maxWidth={frame.maxWidth} />
 
-      <div className="max-w-3xl mx-auto px-4 py-12 animate-fade-in-up">
+      <div className={`${frame.maxWidth} mx-auto px-4 ${frame.paddingY} animate-fade-in-up`}>
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-50 border-4 border-emerald-100 animate-checkmark mb-4">
             <CheckCircle2 className="w-8 h-8 text-emerald-500" strokeWidth={2} />
@@ -243,7 +247,7 @@ export default function Confirmation() {
           </Link>
         </div>
       </div>
-      <Footer maxWidth="max-w-3xl" />
+      <Footer maxWidth={frame.maxWidth} />
     </div>
   )
 }

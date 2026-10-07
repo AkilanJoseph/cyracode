@@ -523,6 +523,9 @@
         "payments": "お支払い方法",
         "billing": "サブスクリプションと請求"
       }
-    }
+    },
+    "edit.share_qr": "Share QR",
+    "confirmation.share_email": "Email",
+    "confirmation.share_qr": "Share QR"
   }
 }

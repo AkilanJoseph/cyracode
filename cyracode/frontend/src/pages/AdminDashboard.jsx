@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
 import { Search, Users, DollarSign, CalendarClock, Wrench } from 'lucide-react'
 import Header from '../components/common/Header'
-import Footer from '../components/common/Footer'
+import Footer from '../components/common/Footer'
+import { ADMIN_MAX_WIDTH, ADMIN_PADDING_Y } from '../lib/layout'
 import AdminNav from '../components/admin/AdminNav'
 import { PlanBadge, formatMoney } from '../components/admin/Badges'
 import { admin } from '../services/api'
@@ -131,10 +132,10 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <Header maxWidth="max-w-5xl" />
+      <Header maxWidth={ADMIN_MAX_WIDTH} />
       <AdminNav />
 
-      <main id="main-content" className="max-w-5xl mx-auto px-4 py-10">
+      <main id="main-content" className={`${ADMIN_MAX_WIDTH} mx-auto px-4 ${ADMIN_PADDING_Y}`}>
         <form onSubmit={submitSearch} className="mb-8 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-ink">{t('admin.dashboard_title')}</h1>
@@ -264,7 +265,7 @@ export default function AdminDashboard() {
         )}
       </main>
 
-    <Footer variant="minimal" maxWidth="max-w-5xl" />
+    <Footer variant="minimal" maxWidth={ADMIN_MAX_WIDTH} />
     </div>
   )
 }

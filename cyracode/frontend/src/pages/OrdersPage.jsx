@@ -8,6 +8,7 @@ import Footer from '../components/common/Footer'
 import { useAuth } from '../context/AuthContext'
 import { billing } from '../services/api'
 import { apiErrorMessage } from '../utils/errors'
+import { APP_MAX_WIDTH, APP_PADDING_Y } from '../lib/layout'
 
 function money(n) {
   return `$${Number(n || 0).toLocaleString('en-US')}`
@@ -122,9 +123,12 @@ export default function OrdersPage() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <Header maxWidth="max-w-6xl" marketingNav />
+      {/* Orders is a signed-in app screen, so it takes the Dashboard's frame. The
+          header used to be max-w-6xl while the content and footer below were
+          max-w-3xl, leaving the bar visibly wider than the page it sat on. */}
+      <Header maxWidth={APP_MAX_WIDTH} marketingNav />
 
-      <main id="main-content" className="max-w-3xl mx-auto px-4 py-12">
+      <main id="main-content" className={`${APP_MAX_WIDTH} mx-auto px-4 ${APP_PADDING_Y}`}>
         <h1 className="text-3xl font-bold text-ink">{t('orders.title')}</h1>
         <p className="mt-1 text-muted">{t('orders.subtitle')}</p>
 
@@ -243,7 +247,7 @@ export default function OrdersPage() {
           </p>
         )}
       </main>
-    <Footer maxWidth="max-w-3xl" />
+    <Footer maxWidth={APP_MAX_WIDTH} />
     </div>
   )
 }

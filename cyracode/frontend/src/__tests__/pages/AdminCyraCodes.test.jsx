@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, within, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Routes, Route } from 'react-router-dom'
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { AuthProvider } from '../../context/AuthContext'
 import AdminCyraCodes from '../../pages/AdminCyraCodes'
 import { mockAdminUser, mockToken, adminCyracodeStore } from '../mocks/handlers'
@@ -53,13 +53,20 @@ function setupWithRoutes() {
       <AuthProvider>
         <Routes>
           <Route path="/admin/cyracodes" element={<AdminCyraCodes />} />
-          <Route path="/register/traditional" element={<div>Traditional registration screen</div>} />
-          <Route path="/register/auto-generate" element={<div>Auto-generate registration screen</div>} />
+          <Route path="/register/traditional" element={<><div>Traditional registration screen</div><OriginProbe /></>} />
+          <Route path="/register/auto-generate" element={<><div>Auto-generate registration screen</div><OriginProbe /></>} />
         </Routes>
       </AuthProvider>
     </MemoryRouter>
   )
   return { user: userEvent.setup(), ...utils }
+}
+
+// The registration screens size themselves from this flag, so the hand-off is
+// worth asserting rather than trusting.
+function OriginProbe() {
+  const location = useLocation()
+  return <p data-testid="origin">{String(location.state?.fromAdmin)}</p>
 }
 
 beforeEach(() => {
@@ -147,6 +154,21 @@ describe('AdminCyraCodes', () => {
     await user.click(await screen.findByTestId('reg-type-custom'))
 
     expect(await screen.findByText('Traditional registration screen')).toBeInTheDocument()
+  })
+
+  // Both registration types must carry the origin, since each sizes itself from it.
+  it.each([
+    ['custom', 'reg-type-custom', 'Traditional registration screen'],
+    ['auto', 'reg-type-auto', 'Auto-generate registration screen'],
+  ])('marks the %s registration flow as entered from admin', async (_name, testId, screen_text) => {
+    const { user } = setupWithRoutes()
+    await screen.findByText('TestHome')
+
+    await user.click(screen.getByRole('button', { name: /add cyracode/i }))
+    await user.click(await screen.findByTestId(testId))
+
+    expect(await screen.findByText(screen_text)).toBeInTheDocument()
+    expect(screen.getByTestId('origin')).toHaveTextContent('true')
   })
 
   it('navigates to the auto-generate registration flow for Auto Code', async () => {

@@ -139,6 +139,39 @@ describe('LandingPage — Login tab', () => {
     expect(await screen.findByText(/this field is required/i)).toBeInTheDocument()
   })
 
+  // The password field used to keep the "Required" message raised on submit even
+  // after a valid password was typed, because it never cleared the error.
+  it('clears the password error as soon as a password is typed', async () => {
+    const { user } = setup()
+    await user.type(screen.getByPlaceholderText('you@example.com'), 'a@b.com')
+    await user.click(screen.getByRole('button', { name: /^let's go$/i }))
+    expect(await screen.findByText(/this field is required/i)).toBeInTheDocument()
+
+    await user.type(screen.getByPlaceholderText('••••••••'), 'ValidP@ss1')
+
+    await waitFor(() =>
+      expect(screen.queryByText(/this field is required/i)).not.toBeInTheDocument()
+    )
+  })
+
+  it('brings the password error back if the field is emptied again', async () => {
+    const { user } = setup()
+    await user.type(screen.getByPlaceholderText('you@example.com'), 'a@b.com')
+    await user.click(screen.getByRole('button', { name: /^let's go$/i }))
+    await screen.findByText(/this field is required/i)
+
+    const password = screen.getByPlaceholderText('••••••••')
+    await user.type(password, 'ValidP@ss1')
+    await waitFor(() =>
+      expect(screen.queryByText(/this field is required/i)).not.toBeInTheDocument()
+    )
+
+    await user.clear(password)
+    await user.tab()
+
+    expect(await screen.findByText(/this field is required/i)).toBeInTheDocument()
+  })
+
   it('navigates to dashboard on successful login', async () => {
     const { user } = setup()
     await user.type(screen.getByPlaceholderText('you@example.com'), 'test@example.com')
@@ -215,6 +248,50 @@ describe('LandingPage — Sign Up tab', () => {
     const pwInput = screen.getAllByPlaceholderText('••••••••')[0]
     await user.type(pwInput, 'weak')
     expect(await screen.findByText(/very weak|weak/i)).toBeInTheDocument()
+  })
+
+  // The GDPR consent line used to call window.open('/privacy', '_blank'), so the
+  // policy landed in a second tab and discarded the half-filled signup form.
+  // The footer carries an identically named link, so scope to the signup form.
+  function signupPrivacyLink() {
+    const form = screen.getByRole('button', { name: /setup your account/i }).closest('form')
+    return within(form).getByRole('link', { name: 'Privacy Policy' })
+  }
+
+  it('links to the privacy policy in the same tab', async () => {
+    const { user } = setup()
+    await switchToSignUp(user)
+
+    const link = signupPrivacyLink()
+    expect(link).toHaveAttribute('href', '/privacy')
+    // No target=_blank and not a rel="opener" hand-off.
+    expect(link).not.toHaveAttribute('target')
+  })
+
+  it('navigates to the policy without opening a new window', async () => {
+    const openSpy = vi.fn()
+    window.open = openSpy
+    try {
+      const { user } = setup()
+      await switchToSignUp(user)
+      await user.click(signupPrivacyLink())
+      expect(openSpy).not.toHaveBeenCalled()
+    } finally {
+      delete window.open
+    }
+  })
+
+  // The consent control sits inside the <label> wrapping the GDPR checkbox.
+  // Reading the policy must not silently tick consent on the visitor's behalf.
+  it('does not tick the GDPR box when the policy link is used', async () => {
+    const { user } = setup()
+    await switchToSignUp(user)
+
+    const form = screen.getByRole('button', { name: /setup your account/i }).closest('form')
+    const checkbox = within(form).getByRole('checkbox')
+    expect(checkbox.checked).toBe(false)
+    await user.click(signupPrivacyLink())
+    expect(checkbox.checked).toBe(false)
   })
 
   it('shows mode-select modal on successful registration', async () => {

@@ -523,6 +523,9 @@
         "payments": "Pagos",
         "billing": "Suscripción y facturación"
       }
-    }
+    },
+    "edit.share_qr": "Share QR",
+    "confirmation.share_email": "Email",
+    "confirmation.share_qr": "Share QR"
   }
 }

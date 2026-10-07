@@ -38,6 +38,24 @@ describe('PrivacyPolicy header', () => {
     // Signed-out visitors go back to the landing page, never /dashboard.
     expect(logo.getAttribute('href')).toBe('/')
   })
+
+  // Arriving here from the footer left no way back to Pricing: this page was the
+  // only public marketing page not rendering the marketing nav.
+  it('keeps the Pricing link in the header', () => {
+    const { container } = renderPage()
+    const header = container.querySelector('nav')
+    const pricing = within(header).getByRole('link', { name: 'Pricing' })
+    expect(pricing.getAttribute('href')).toBe('/pricing')
+    // The footer also links to Pricing, so confirm we read the header's copy.
+    expect(within(screen.getByRole('contentinfo')).getByRole('link', { name: 'Pricing' })).toBeInTheDocument()
+  })
+
+  it('does not mark Pricing as the current page', () => {
+    const { container } = renderPage()
+    const header = container.querySelector('nav')
+    // Reachable, but not presented as active while reading the policy.
+    expect(within(header).getByRole('link', { name: 'Pricing' }).className).not.toMatch(/bg-primary-light/)
+  })
 })
 
 describe('PrivacyPolicy frame', () => {

@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import { ChevronLeft, Loader2 } from 'lucide-react'
 import Header from '../components/common/Header'
 import Footer from '../components/common/Footer'
+import { ADMIN_MAX_WIDTH, ADMIN_PADDING_Y } from '../lib/layout'
 import AdminNav from '../components/admin/AdminNav'
 import { admin } from '../services/api'
 import { apiErrorMessage } from '../utils/errors'
@@ -59,10 +60,10 @@ export default function AdminClientDetail() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <Header maxWidth="max-w-5xl" />
+      <Header maxWidth={ADMIN_MAX_WIDTH} />
       <AdminNav />
 
-      <main id="main-content" className="max-w-5xl mx-auto px-4 py-10">
+      <main id="main-content" className={`${ADMIN_MAX_WIDTH} mx-auto px-4 ${ADMIN_PADDING_Y}`}>
         <div className="mb-6">
           {/* Plain button when there is an origin screen, so the admin always
               returns to the exact list they came from rather than to history. */}
@@ -107,7 +108,7 @@ export default function AdminClientDetail() {
         )}
       </main>
 
-      <Footer variant="minimal" maxWidth="max-w-5xl" />
+      <Footer variant="minimal" maxWidth={ADMIN_MAX_WIDTH} />
     </div>
   )
 }

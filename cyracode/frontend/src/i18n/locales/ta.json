@@ -558,6 +558,9 @@
         "payments": "கட்டண செலுத்துதல்",
         "billing": "சந்தா மற்றும் பில்லிங்"
       }
-    }
+    },
+    "edit.share_qr": "Share QR",
+    "confirmation.share_email": "Email",
+    "confirmation.share_qr": "Share QR"
   }
 }

@@ -325,16 +325,16 @@ describe('ManageCyraCodes — view mode', () => {
     expect(clicked[0].download).toMatch(/^CyraCode_TestHome_\d+\.(webp|png)$/)
   })
 
-  it('keeps sharing controls out of the view modal', async () => {
+  it('includes sharing controls in the view modal', async () => {
     const { user } = setup()
     const tile = await screen.findByTestId('code-tile-code-test-id')
     await user.click(within(tile).getByRole('button', { name: /view/i }))
 
     const modal = await screen.findByTestId('view-modal')
-    expect(within(modal).queryByRole('link')).not.toBeInTheDocument()
-    for (const label of [/whatsapp/i, /copy link/i, /email share/i, /facebook/i]) {
-      expect(within(modal).queryByRole('button', { name: label })).not.toBeInTheDocument()
-      expect(within(modal).queryByRole('link', { name: label })).not.toBeInTheDocument()
+    // No standalone external links expected; the share actions are buttons that
+    // trigger native sharing or copy.
+    for (const label of [/whatsapp/i, /copy link/i, /email/i, /facebook/i]) {
+      expect(within(modal).getByRole('button', { name: label })).toBeInTheDocument()
     }
   })
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { Check, X, Loader2, AlertTriangle } from 'lucide-react'
 import Country from 'country-state-city/lib/country'
@@ -11,7 +11,7 @@ import ConfirmDialog from '../components/common/ConfirmDialog'
 import MapPicker from '../components/MapPicker'
 import Header from '../components/common/Header'
 import Footer from '../components/common/Footer'
-import { APP_MAX_WIDTH, APP_PADDING_Y } from '../lib/layout'
+import { frameForOrigin } from '../lib/layout'
 import { registration } from '../services/api'
 import { apiErrorMessage } from '../utils/errors'
 import { useGoBack } from '../utils/navigation'
@@ -34,19 +34,47 @@ const POSTAL_REGEX = {
   JP: /^\d{3}-?\d{4}$/,
 }
 
-export function SelectWithLoader({ loading, className, children, ...rest }) {
+// Mirrors Input's error handling so a required dropdown announces itself the same
+// way a required text box does. The five cascade selects used to hand-roll this
+// and three of them never marked the control invalid at all.
+export function SelectWithLoader({ loading, className, error, children, id, ...rest }) {
+  const errorId = id && error ? `${id}-error` : undefined
   return (
-    <div className="relative">
-      <select {...rest} className={className}>{children}</select>
-      {loading && (
-        <Loader2
-          className="w-4 h-4 animate-spin text-primary absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
-          aria-hidden="true"
-        />
-      )}
+    <div>
+      <div className="relative">
+        <select
+          {...rest}
+          id={id}
+          aria-invalid={error ? 'true' : undefined}
+          aria-describedby={errorId}
+          className={className}
+        >
+          {children}
+        </select>
+        {loading && (
+          <Loader2
+            className="w-4 h-4 animate-spin text-primary absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
+            aria-hidden="true"
+          />
+        )}
+      </div>
+      {error && <p id={errorId} role="alert" className="mt-1 text-sm text-red-500">{error}</p>}
     </div>
   )
 }
+
+// The order the cascading dropdowns have to be answered in: each one depends on
+// the field before it, so it is also the order the layouts are built in and the
+// order a failed field is focused in. Postal is last because it depends on the
+// country, and street sits after city to match the layout below.
+export const ADDRESS_CASCADE_ORDER = [
+  'country_code',
+  'state',
+  'district',
+  'city',
+  'street_address',
+  'postal_code',
+]
 
 export function AddressStep({ address, setAddress, errors, clearError }) {
   const { t } = useTranslation()
@@ -147,14 +175,30 @@ export function AddressStep({ address, setAddress, errors, clearError }) {
   const isGenericCountry = address.country_code && !SPECIAL_CODES.includes(address.country_code)
   const selectCls = 'w-full px-3.5 py-2.5 text-sm border border-border rounded-xl outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white text-ink'
 
+  // On a failed submit, take the admin to the first unfilled field of the cascade.
+  // Triggering only on the empty-to-populated transition keeps it from stealing
+  // focus while they are typing through the rest of the errors.
+  const rootRef = useRef(null)
+  const hadErrorsRef = useRef(false)
+  useEffect(() => {
+    const failed = ADDRESS_CASCADE_ORDER.filter((field) => errors[field])
+    if (failed.length && !hadErrorsRef.current) {
+      rootRef.current?.querySelector(`[data-address-field="${failed[0]}"]`)?.focus()
+    }
+    hadErrorsRef.current = Object.keys(errors).length > 0
+  }, [errors])
+
   return (
-    <div className="space-y-4">
+    <div ref={rootRef} className="space-y-4">
       {/* AC 2.8: 195+ ISO 3166-1 countries with common countries pinned at top */}
       <div>
-        <label className="block text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">{t('register.country')}</label>
-        <select
+        <label htmlFor="address-country" className="block text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">{t('register.country')}</label>
+        <SelectWithLoader
+          id="address-country"
+          data-address-field="country_code"
           value={address.country_code}
           onChange={(e) => handleCountryChange(e.target.value)}
+          error={errors.country_code}
           className={selectCls}
         >
           <option value="">{t('register.select_country')}</option>
@@ -164,8 +208,7 @@ export function AddressStep({ address, setAddress, errors, clearError }) {
           <optgroup label="All Countries">
             {remainingCountries.map((c) => <option key={c.isoCode} value={c.isoCode}>{c.name}</option>)}
           </optgroup>
-        </select>
-        {errors.country_code && <p className="mt-1 text-sm text-red-500">{errors.country_code}</p>}
+        </SelectWithLoader>
       </div>
 
       {/* AC 2.9: India — cascading State → District dropdowns */}
@@ -173,30 +216,28 @@ export function AddressStep({ address, setAddress, errors, clearError }) {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">{t('register.state')}</label>
-              <SelectWithLoader loading={loadingStates} value={address.stateIso || ''} onChange={(e) => { const s = states.find((x) => x.isoCode === e.target.value); setAddress({ ...address, stateIso: e.target.value, state: s?.name || '', district: '' }); if (typeof clearError === 'function') { clearError('state'); clearError('district') } }} className={selectCls}>
+              <label htmlFor="address-state" className="block text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">{t('register.state')}</label>
+              <SelectWithLoader id="address-state" data-address-field="state" error={errors.state} loading={loadingStates} value={address.stateIso || ''} onChange={(e) => { const s = states.find((x) => x.isoCode === e.target.value); setAddress({ ...address, stateIso: e.target.value, state: s?.name || '', district: '' }); if (typeof clearError === 'function') { clearError('state'); clearError('district') } }} className={selectCls}>
                 <option value="">{t('register.select_state')}</option>
                 {states.map((s) => <option key={s.isoCode} value={s.isoCode}>{s.name}</option>)}
               </SelectWithLoader>
-              {errors.state && <p className="mt-1 text-sm text-red-500">{errors.state}</p>}
             </div>
             <div>
-              <label className="block text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">{t('register.district')}</label>
-              <SelectWithLoader loading={loadingDistricts} value={address.district || ''} onChange={(e) => set('district', e.target.value)} className={selectCls}>
+              <label htmlFor="address-district" className="block text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">{t('register.district')}</label>
+              <SelectWithLoader id="address-district" data-address-field="district" error={errors.district} loading={loadingDistricts} value={address.district || ''} onChange={(e) => set('district', e.target.value)} className={selectCls}>
                 <option value="">{t('register.select_district')}</option>
                 {districts.map((d) => <option key={d.name} value={d.name}>{d.name}</option>)}
               </SelectWithLoader>
-              {errors.district && <p className="mt-1 text-sm text-red-500">{errors.district}</p>}
             </div>
           </div>
+          <Input data-address-field="city" label={t('register.city')} value={address.city || ''} onChange={(e) => set('city', e.target.value)} error={errors.city} maxLength={100} />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input label={t('register.area')} value={address.area} onChange={(e) => set('area', e.target.value)} error={errors.area} maxLength={100} />
             <Input label={t('register.town')} value={address.town} onChange={(e) => set('town', e.target.value)} error={errors.town} maxLength={100} />
           </div>
-          <Input label={t('register.city')} value={address.city || ''} onChange={(e) => set('city', e.target.value)} error={errors.city} maxLength={100} />
+          <Input data-address-field="street_address" label={t('register.street')} value={address.street_address} onChange={(e) => set('street_address', e.target.value)} error={errors.street_address} maxLength={100} />
           <Input label={t('register.road_name')} value={address.road_name} onChange={(e) => set('road_name', e.target.value)} error={errors.road_name} maxLength={100} />
           <Input label={t('register.avenue_name')} value={address.avenue_name} onChange={(e) => set('avenue_name', e.target.value)} error={errors.avenue_name} maxLength={100} />
-          <Input label={t('register.street')} value={address.street_address} onChange={(e) => set('street_address', e.target.value)} error={errors.street_address} maxLength={100} />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input label={t('register.building')} value={address.building_name} onChange={(e) => set('building_name', e.target.value)} error={errors.building_name} maxLength={100} />
             <Input label={t('register.floor')} value={address.floor_unit} onChange={(e) => set('floor_unit', e.target.value)} error={errors.floor_unit} maxLength={50} />
@@ -207,9 +248,9 @@ export function AddressStep({ address, setAddress, errors, clearError }) {
           </div>
           <Input label={t('register.suite_name')} value={address.suite_name} onChange={(e) => set('suite_name', e.target.value)} error={errors.suite_name} maxLength={50} />
           {/* AC 2.14: Landmark optional, max 100 chars */}
-          <Input label={t('register.landmark')} value={address.landmark || ''} onChange={(e) => set('landmark', e.target.value)} maxLength={100} />
+          <Input label={t('register.landmark')} value={address.landmark || ''} onChange={(e) => set('landmark', e.target.value)} error={errors.landmark} maxLength={100} />
           {/* AC 2.13: Real-time postal validation */}
-          <Input label={t('register.postal_in')} value={address.postal_code} onChange={(e) => handlePostalChange(e.target.value)} error={postalErr} helperText={!postalErr ? t('register.postal_hint_in') : undefined} />
+          <Input data-address-field="postal_code" label={t('register.postal_in')} value={address.postal_code} onChange={(e) => handlePostalChange(e.target.value)} error={postalErr} helperText={!postalErr ? t('register.postal_hint_in') : undefined} />
           <Input label={t('register.po_box')} value={address.po_box || ''} onChange={(e) => set('po_box', e.target.value)} error={errors.po_box} maxLength={10} />
         </>
       )}
@@ -217,7 +258,19 @@ export function AddressStep({ address, setAddress, errors, clearError }) {
       {/* AC 2.10: USA */}
       {address.country_code === 'US' && (
         <>
-          <Input label={t('register.street')} value={address.street_address} onChange={(e) => set('street_address', e.target.value)} error={errors.street_address} maxLength={100} />
+          <div>
+            <label htmlFor="address-state" className="block text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">{t('register.state')}</label>
+            <SelectWithLoader id="address-state" data-address-field="state" error={errors.state} loading={loadingStates} value={address.stateIso || ''} onChange={(e) => { const s = states.find((x) => x.isoCode === e.target.value); setAddress({ ...address, stateIso: e.target.value, state: s?.name || '' }); if (typeof clearError === 'function') clearError('state') }} className={selectCls}>
+              <option value="">{t('register.select_state')}</option>
+              {states.map((s) => <option key={s.isoCode} value={s.isoCode}>{s.name}</option>)}
+            </SelectWithLoader>
+          </div>
+          <Input data-address-field="city" label={t('register.city')} value={address.city || ''} onChange={(e) => set('city', e.target.value)} error={errors.city} maxLength={100} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Input label={t('register.area')} value={address.area} onChange={(e) => set('area', e.target.value)} error={errors.area} maxLength={100} />
+            <Input label={t('register.town')} value={address.town} onChange={(e) => set('town', e.target.value)} error={errors.town} maxLength={100} />
+          </div>
+          <Input data-address-field="street_address" label={t('register.street')} value={address.street_address} onChange={(e) => set('street_address', e.target.value)} error={errors.street_address} maxLength={100} />
           <Input label={t('register.road_name')} value={address.road_name} onChange={(e) => set('road_name', e.target.value)} error={errors.road_name} maxLength={100} />
           <Input label={t('register.avenue_name')} value={address.avenue_name} onChange={(e) => set('avenue_name', e.target.value)} error={errors.avenue_name} maxLength={100} />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -225,94 +278,85 @@ export function AddressStep({ address, setAddress, errors, clearError }) {
             <Input label={t('register.plot_number')} value={address.plot_number} onChange={(e) => set('plot_number', e.target.value)} error={errors.plot_number} maxLength={50} />
           </div>
           <Input label={t('register.suite_name')} value={address.suite_name} onChange={(e) => set('suite_name', e.target.value)} error={errors.suite_name} maxLength={50} />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Input label={t('register.area')} value={address.area} onChange={(e) => set('area', e.target.value)} error={errors.area} maxLength={100} />
-            <Input label={t('register.town')} value={address.town} onChange={(e) => set('town', e.target.value)} error={errors.town} maxLength={100} />
-          </div>
-          <Input label={t('register.city')} value={address.city || ''} onChange={(e) => set('city', e.target.value)} error={errors.city} maxLength={100} />
-          <div>
-            <label className="block text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">{t('register.state')}</label>
-            <SelectWithLoader loading={loadingStates} value={address.stateIso || ''} onChange={(e) => { const s = states.find((x) => x.isoCode === e.target.value); setAddress({ ...address, stateIso: e.target.value, state: s?.name || '' }); if (typeof clearError === 'function') clearError('state') }} className={selectCls}>
-              <option value="">{t('register.select_state')}</option>
-              {states.map((s) => <option key={s.isoCode} value={s.isoCode}>{s.name}</option>)}
-            </SelectWithLoader>
-            {errors.state && <p className="mt-1 text-sm text-red-500">{errors.state}</p>}
-          </div>
-          <Input label={t('register.landmark')} value={address.landmark || ''} onChange={(e) => set('landmark', e.target.value)} maxLength={100} />
-          <Input label={t('register.postal_us')} value={address.postal_code} onChange={(e) => handlePostalChange(e.target.value)} error={postalErr} helperText={!postalErr ? t('register.postal_hint_us') : undefined} />
+          <Input label={t('register.landmark')} value={address.landmark || ''} onChange={(e) => set('landmark', e.target.value)} error={errors.landmark} maxLength={100} />
+          <Input data-address-field="postal_code" label={t('register.postal_us')} value={address.postal_code} onChange={(e) => handlePostalChange(e.target.value)} error={postalErr} helperText={!postalErr ? t('register.postal_hint_us') : undefined} />
         </>
       )}
 
       {/* AC 2.11: UK — Flat/Plot added (AC 2.15), Landmark added (AC 2.14) */}
       {address.country_code === 'GB' && (
         <>
-          <Input label={t('register.building_num')} value={address.building_name} onChange={(e) => set('building_name', e.target.value)} error={errors.building_name} maxLength={100} />
-          <Input label={t('register.street')} value={address.street_address} onChange={(e) => set('street_address', e.target.value)} error={errors.street_address} maxLength={100} />
-          <Input label={t('register.road_name')} value={address.road_name} onChange={(e) => set('road_name', e.target.value)} error={errors.road_name} maxLength={100} />
-          <Input label={t('register.avenue_name')} value={address.avenue_name} onChange={(e) => set('avenue_name', e.target.value)} error={errors.avenue_name} maxLength={100} />
+          <Input data-address-field="city" label={t('register.city')} value={address.city || ''} onChange={(e) => set('city', e.target.value)} error={errors.city} maxLength={100} />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input label={t('register.area')} value={address.area} onChange={(e) => set('area', e.target.value)} error={errors.area} maxLength={100} />
             <Input label={t('register.town')} value={address.town} onChange={(e) => set('town', e.target.value)} error={errors.town} maxLength={100} />
           </div>
-          <Input label={t('register.city')} value={address.city || ''} onChange={(e) => set('city', e.target.value)} error={errors.city} maxLength={100} />
+          <Input data-address-field="street_address" label={t('register.street')} value={address.street_address} onChange={(e) => set('street_address', e.target.value)} error={errors.street_address} maxLength={100} />
+          <Input label={t('register.road_name')} value={address.road_name} onChange={(e) => set('road_name', e.target.value)} error={errors.road_name} maxLength={100} />
+          <Input label={t('register.avenue_name')} value={address.avenue_name} onChange={(e) => set('avenue_name', e.target.value)} error={errors.avenue_name} maxLength={100} />
+          <Input label={t('register.building_num')} value={address.building_name} onChange={(e) => set('building_name', e.target.value)} error={errors.building_name} maxLength={100} />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input label={t('register.flat_number')} value={address.flat_number} onChange={(e) => set('flat_number', e.target.value)} error={errors.flat_number} maxLength={50} />
             <Input label={t('register.plot_number')} value={address.plot_number} onChange={(e) => set('plot_number', e.target.value)} error={errors.plot_number} maxLength={50} />
           </div>
           <Input label={t('register.suite_name')} value={address.suite_name} onChange={(e) => set('suite_name', e.target.value)} error={errors.suite_name} maxLength={50} />
           <Input label={t('register.floor')} value={address.floor_unit} onChange={(e) => set('floor_unit', e.target.value)} error={errors.floor_unit} maxLength={50} />
-          <Input label={t('register.landmark')} value={address.landmark || ''} onChange={(e) => set('landmark', e.target.value)} maxLength={100} />
-          <Input label={t('register.postal_gb')} value={address.postal_code} onChange={(e) => handlePostalChange(e.target.value)} error={postalErr} />
+          <Input label={t('register.landmark')} value={address.landmark || ''} onChange={(e) => set('landmark', e.target.value)} error={errors.landmark} maxLength={100} />
+          <Input data-address-field="postal_code" label={t('register.postal_gb')} value={address.postal_code} onChange={(e) => handlePostalChange(e.target.value)} error={postalErr} />
         </>
       )}
 
       {/* Japan — Landmark added (AC 2.14) */}
       {address.country_code === 'JP' && (
         <>
-          <Input label={t('register.postal_jp')} value={address.postal_code} onChange={(e) => handlePostalChange(e.target.value)} error={postalErr} helperText={!postalErr ? t('register.postal_hint_jp') : undefined} />
-          <Input label={t('register.prefecture')} value={address.state} onChange={(e) => set('state', e.target.value)} error={errors.state} maxLength={100} />
+          <Input data-address-field="state" label={t('register.prefecture')} value={address.state} onChange={(e) => set('state', e.target.value)} error={errors.state} maxLength={100} />
+          <Input data-address-field="district" label={t('register.district_ward')} value={address.district || ''} onChange={(e) => set('district', e.target.value)} error={errors.district} maxLength={100} />
+          <Input data-address-field="city" label={t('register.city')} value={address.city || ''} onChange={(e) => set('city', e.target.value)} error={errors.city} maxLength={100} />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input label={t('register.area')} value={address.area} onChange={(e) => set('area', e.target.value)} error={errors.area} maxLength={100} />
             <Input label={t('register.town')} value={address.town} onChange={(e) => set('town', e.target.value)} error={errors.town} maxLength={100} />
           </div>
-          <Input label={t('register.city')} value={address.city || ''} onChange={(e) => set('city', e.target.value)} error={errors.city} maxLength={100} />
+          <Input data-address-field="street_address" label={t('register.street_block')} value={address.street_address} onChange={(e) => set('street_address', e.target.value)} error={errors.street_address} maxLength={100} />
           <Input label={t('register.road_name')} value={address.road_name} onChange={(e) => set('road_name', e.target.value)} error={errors.road_name} maxLength={100} />
           <Input label={t('register.avenue_name')} value={address.avenue_name} onChange={(e) => set('avenue_name', e.target.value)} error={errors.avenue_name} maxLength={100} />
-          <Input label={t('register.district_ward')} value={address.district} onChange={(e) => set('district', e.target.value)} maxLength={100} />
           <Input label={t('register.building')} value={address.building_name} onChange={(e) => set('building_name', e.target.value)} error={errors.building_name} maxLength={100} />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input label={t('register.flat_number')} value={address.flat_number} onChange={(e) => set('flat_number', e.target.value)} error={errors.flat_number} maxLength={50} />
             <Input label={t('register.plot_number')} value={address.plot_number} onChange={(e) => set('plot_number', e.target.value)} error={errors.plot_number} maxLength={50} />
           </div>
           <Input label={t('register.suite_name')} value={address.suite_name} onChange={(e) => set('suite_name', e.target.value)} error={errors.suite_name} maxLength={50} />
-          <Input label={t('register.street_block')} value={address.street_address} onChange={(e) => set('street_address', e.target.value)} error={errors.street_address} maxLength={100} />
-          <Input label={t('register.landmark')} value={address.landmark || ''} onChange={(e) => set('landmark', e.target.value)} maxLength={100} />
+          <Input label={t('register.landmark')} value={address.landmark || ''} onChange={(e) => set('landmark', e.target.value)} error={errors.landmark} maxLength={100} />
+          {/* JP forms lead with the postal code, so it stays the first field here. */}
+          <Input data-address-field="postal_code" label={t('register.postal_jp')} value={address.postal_code} onChange={(e) => handlePostalChange(e.target.value)} error={postalErr} helperText={!postalErr ? t('register.postal_hint_jp') : undefined} />
         </>
       )}
 
       {/* AC 2.12: All other countries — state dropdown + full fields (AC 2.14, 2.15) */}
       {isGenericCountry && (
         <>
-          <Input label={t('register.street')} value={address.street_address} onChange={(e) => set('street_address', e.target.value)} error={errors.street_address} maxLength={100} />
-          <Input label={t('register.road_name')} value={address.road_name} onChange={(e) => set('road_name', e.target.value)} error={errors.road_name} maxLength={100} />
-          <Input label={t('register.avenue_name')} value={address.avenue_name} onChange={(e) => set('avenue_name', e.target.value)} error={errors.avenue_name} maxLength={100} />
+          {/* The state dropdown only replaces the text box once the dataset has actually
+              resolved. Keying this off `states.length` alone swapped the control
+              out from under anyone who had started typing, silently dropping the
+              value they entered. */}
+          {loadingStates || states.length > 0 ? (
+            <div>
+              <label htmlFor="address-state" className="block text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">{t('register.state_province')}</label>
+              <SelectWithLoader id="address-state" data-address-field="state" error={errors.state} loading={loadingStates} value={address.stateIso || ''} onChange={(e) => { const s = states.find((x) => x.isoCode === e.target.value); setAddress({ ...address, stateIso: e.target.value, state: s?.name || '' }); if (typeof clearError === 'function') clearError('state') }} className={selectCls}>
+                <option value="">{t('register.select_state')}</option>
+                {states.map((s) => <option key={s.isoCode} value={s.isoCode}>{s.name}</option>)}
+              </SelectWithLoader>
+            </div>
+          ) : (
+            <Input data-address-field="state" label={t('register.state_province')} value={address.state} onChange={(e) => set('state', e.target.value)} error={errors.state} maxLength={100} />
+          )}
+          <Input data-address-field="city" label={t('register.city')} value={address.city || ''} onChange={(e) => set('city', e.target.value)} error={errors.city} maxLength={100} />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input label={t('register.area')} value={address.area} onChange={(e) => set('area', e.target.value)} error={errors.area} maxLength={100} />
             <Input label={t('register.town')} value={address.town} onChange={(e) => set('town', e.target.value)} error={errors.town} maxLength={100} />
           </div>
-          <Input label={t('register.city')} value={address.city || ''} onChange={(e) => set('city', e.target.value)} error={errors.city} maxLength={100} />
-          {states.length > 0 ? (
-            <div>
-              <label className="block text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">{t('register.state_province')}</label>
-              <SelectWithLoader loading={loadingStates} value={address.stateIso || ''} onChange={(e) => { const s = states.find((x) => x.isoCode === e.target.value); setAddress({ ...address, stateIso: e.target.value, state: s?.name || '' }); if (typeof clearError === 'function') clearError('state') }} className={selectCls}>
-                <option value="">{t('register.select_state')}</option>
-                {states.map((s) => <option key={s.isoCode} value={s.isoCode}>{s.name}</option>)}
-              </SelectWithLoader>
-              {errors.state && <p className="mt-1 text-sm text-red-500">{errors.state}</p>}
-            </div>
-          ) : (
-            <Input label={t('register.state_province')} value={address.state} onChange={(e) => set('state', e.target.value)} error={errors.state} maxLength={100} />
-          )}
+          <Input data-address-field="street_address" label={t('register.street')} value={address.street_address} onChange={(e) => set('street_address', e.target.value)} error={errors.street_address} maxLength={100} />
+          <Input label={t('register.road_name')} value={address.road_name} onChange={(e) => set('road_name', e.target.value)} error={errors.road_name} maxLength={100} />
+          <Input label={t('register.avenue_name')} value={address.avenue_name} onChange={(e) => set('avenue_name', e.target.value)} error={errors.avenue_name} maxLength={100} />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input label={t('register.building')} value={address.building_name} onChange={(e) => set('building_name', e.target.value)} error={errors.building_name} maxLength={100} />
             <Input label={t('register.flat_number')} value={address.flat_number} onChange={(e) => set('flat_number', e.target.value)} error={errors.flat_number} maxLength={50} />
@@ -320,7 +364,7 @@ export function AddressStep({ address, setAddress, errors, clearError }) {
           <Input label={t('register.plot_number')} value={address.plot_number} onChange={(e) => set('plot_number', e.target.value)} error={errors.plot_number} maxLength={50} />
           <Input label={t('register.suite_name')} value={address.suite_name} onChange={(e) => set('suite_name', e.target.value)} error={errors.suite_name} maxLength={50} />
           <Input label={t('register.landmark')} value={address.landmark || ''} onChange={(e) => set('landmark', e.target.value)} error={errors.landmark} maxLength={100} />
-          <Input label={t('register.postal_other')} value={address.postal_code} onChange={(e) => handlePostalChange(e.target.value)} error={postalErr} maxLength={20} />
+          <Input data-address-field="postal_code" label={t('register.postal_other')} value={address.postal_code} onChange={(e) => handlePostalChange(e.target.value)} error={postalErr} maxLength={20} />
         </>
       )}
     </div>
@@ -371,6 +415,9 @@ export function validateAddress(address) {
 
 export default function RegisterTraditional() {
   const navigate = useNavigate()
+  // Admin, Dashboard and marketing hand the flow different frames; the entry point
+  // recorded which one this is and it follows the flow to the completion screen.
+  const frame = frameForOrigin(useLocation().state)
   const { t } = useTranslation()
   const [step, setStep] = useState(1)
   const [submitting, setSubmitting] = useState(false)
@@ -509,7 +556,7 @@ export default function RegisterTraditional() {
         landmark: address.landmark || null,
       }
       const { data } = await registration.registerTraditional(payload, idempotencyKeyRef.current)
-      navigate('/confirmation', { state: { record: data, mode: 'traditional' } })
+      navigate('/confirmation', { state: { record: data, mode: 'traditional', fromAdmin: frame.isAdmin } })
     } catch (err) {
       toast.error(apiErrorMessage(err, t('errors.register_failed')))
     } finally {
@@ -519,9 +566,9 @@ export default function RegisterTraditional() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <Header showBack breadcrumb={t('nav.register')} maxWidth={APP_MAX_WIDTH} />
+      <Header showBack breadcrumb={t('nav.register')} maxWidth={frame.maxWidth} />
 
-      <div id="main-content" className={`${APP_MAX_WIDTH} mx-auto px-4 ${APP_PADDING_Y}`}>
+      <div id="main-content" className={`${frame.maxWidth} mx-auto px-4 ${frame.paddingY}`}>
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-ink">{t('register.title_traditional')}</h1>
           <p className="text-muted mt-1">{t('common.step_of', { current: step, total: 2, name: STEPS[step - 1] })}</p>
@@ -641,7 +688,7 @@ export default function RegisterTraditional() {
         onCancel={() => setConfirmingDiscard(false)}
         testId="discard-dialog"
       />
-    <Footer maxWidth={APP_MAX_WIDTH} />
+    <Footer maxWidth={frame.maxWidth} />
     </div>
   )
 }

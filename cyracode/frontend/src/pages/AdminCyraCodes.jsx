@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { Search, Plus, Eye, Pencil, Trash2, RotateCcw, X, Sparkles, Zap, ArrowRight, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import Header from '../components/common/Header'
-import Footer from '../components/common/Footer'
+import Footer from '../components/common/Footer'
+import { ADMIN_MAX_WIDTH, ADMIN_PADDING_Y } from '../lib/layout'
 import AdminNav from '../components/admin/AdminNav'
 import Button from '../components/common/Button'
 import Input from '../components/common/Input'
@@ -208,7 +209,10 @@ export default function AdminCyraCodes() {
       navigatingRef.current = false
       return
     }
-    navigate(path)
+    // Records that the flow was entered from admin, so the registration steps and
+    // the completion screen keep the admin width instead of jumping to the narrower
+    // app frame used by the Dashboard and marketing entry points.
+    navigate(path, { state: { fromAdmin: true } })
   }
 
   // The list endpoint only returns summary columns, so the full record is
@@ -418,10 +422,10 @@ export default function AdminCyraCodes() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <Header maxWidth="max-w-5xl" />
+      <Header maxWidth={ADMIN_MAX_WIDTH} />
       <AdminNav />
 
-      <main id="main-content" className="max-w-5xl mx-auto px-4 py-10">
+      <main id="main-content" className={`${ADMIN_MAX_WIDTH} mx-auto px-4 ${ADMIN_PADDING_Y}`}>
         {editing ? (
           <>
             <div className="mb-6">
@@ -573,7 +577,7 @@ export default function AdminCyraCodes() {
         </div>
       )}
 
-    <Footer variant="minimal" maxWidth="max-w-5xl" />
+    <Footer variant="minimal" maxWidth={ADMIN_MAX_WIDTH} />
     </div>
   )
 }

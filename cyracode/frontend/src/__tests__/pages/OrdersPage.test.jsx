@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { AuthProvider } from '../../context/AuthContext'
 import { ContactWidgetProvider } from '../../context/ContactWidgetContext'
 import OrdersPage from '../../pages/OrdersPage'
+import { APP_MAX_WIDTH } from '../../lib/layout'
 
 const toastMock = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }))
 
@@ -35,6 +36,20 @@ function renderPage({ email = 'test@example.com', entry = '/orders' } = {}) {
 }
 
 describe('OrdersPage', () => {
+  // The header sat at max-w-6xl while the content and footer below it were
+  // max-w-3xl, so the bar overhung the page by a quarter of the viewport.
+  it('shares one frame across the header, content and footer', () => {
+    renderPage()
+
+    const header = document.querySelector('nav .max-w-3xl')
+    expect(header, 'header is not on the app width').toBeInTheDocument()
+    expect(document.querySelector('main#main-content')).toHaveClass('max-w-3xl')
+    expect(screen.getByRole('contentinfo').firstElementChild).toHaveClass('max-w-3xl')
+    // The drifting width came from a hand-written literal; tie it to the constant
+    // the Dashboard uses so the two frames cannot diverge again.
+    expect(APP_MAX_WIDTH).toBe('max-w-3xl')
+  })
+
   it('loads orders for the signed-in account on mount', async () => {
     renderPage()
 

@@ -8,8 +8,12 @@ export default function PrivacyPolicy() {
       {/* No back arrow: this is a public legal page reached from the footer, so
           there is no meaningful parent step to return to. The brand logo stays.
           Also fixes the old `showBack` default, which pointed signed-out
-          visitors at /dashboard. */}
-      <Header maxWidth={MARKETING_MAX_WIDTH} />
+          visitors at /dashboard.
+          `marketingNav` keeps the Pricing link in the header: this is a public
+          marketing page like Pricing/FAQ, and it used to be the only one of them
+          that dropped it, leaving visitors who arrived from the footer with no
+          way back to Pricing. */}
+      <Header maxWidth={MARKETING_MAX_WIDTH} marketingNav />
 
       {/* Matches the landing hero frame; the policy text stays in a readable
           column instead of running the full width. */}
