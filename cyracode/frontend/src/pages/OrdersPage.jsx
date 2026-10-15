@@ -7,6 +7,7 @@ import Header from '../components/common/Header'
 import Footer from '../components/common/Footer'
 import { useAuth } from '../context/AuthContext'
 import { billing } from '../services/api'
+import { downloadInvoicePdf } from '../lib/invoicePdf'
 import { apiErrorMessage } from '../utils/errors'
 import { APP_MAX_WIDTH, APP_PADDING_Y } from '../lib/layout'
 
@@ -25,36 +26,6 @@ function renewalDate(order) {
   const d = new Date(order.created_at)
   d.setMonth(d.getMonth() + (order.billing_frequency === 'annual' ? 12 : 1))
   return d
-}
-
-function downloadInvoice(order) {
-  const lines = [
-    'CyraCode — API Plans',
-    '=====================================',
-    `Invoice  : ${order.order_no}`,
-    `Date     : ${formatDate(order.created_at)}`,
-    `Email    : ${order.email}`,
-    '',
-    `Plan     : ${order.plan_name}`,
-    `Billing  : ${order.billing_frequency}`,
-    '',
-    `Subtotal : ${money(order.amount)}`,
-    `Tax      : ${money(order.tax_amount)}`,
-    `Total    : ${money(order.total_amount)} (${order.currency})`,
-    '',
-    `Status   : ${order.status}`,
-    '=====================================',
-    'Thank you for using CyraCode.',
-  ]
-  const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `invoice-${order.order_no.toLowerCase()}.txt`
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  URL.revokeObjectURL(url)
 }
 
 export default function OrdersPage() {
@@ -203,7 +174,7 @@ export default function OrdersPage() {
                   <div className="flex flex-col items-end gap-2">
                     <button
                       type="button"
-                      onClick={() => downloadInvoice(order)}
+                      onClick={() => downloadInvoicePdf(order)}
                       className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary-dark transition-colors"
                     >
                       <Download className="w-4 h-4" aria-hidden="true" />
